@@ -2,7 +2,10 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
 
     <title>B2B AI CRM</title>
 
@@ -14,9 +17,14 @@
         }
 
         body {
-            font-family: Arial, Helvetica, sans-serif;
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
             background: #f5f7fb;
-            color: #1f2937;
+            color: #172033;
         }
 
         button,
@@ -30,71 +38,267 @@
             cursor: pointer;
         }
 
-        .app {
-            display: flex;
-            min-height: 100vh;
+        .hidden {
+            display: none !important;
         }
 
-        /* =====================================================
-           SIDEBAR
-           ===================================================== */
+        /* ================================
+           LOGIN
+        ================================= */
+
+        #authScreen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background:
+                linear-gradient(
+                    135deg,
+                    #eef2ff,
+                    #f8fafc
+                );
+        }
+
+        .auth-card {
+            width: 100%;
+            max-width: 430px;
+            background: white;
+            border-radius: 18px;
+            padding: 34px;
+            box-shadow:
+                0 20px 60px rgba(15, 23, 42, 0.10);
+        }
+
+        .auth-logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #4f46e5;
+            color: white;
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        .auth-card h1 {
+            font-size: 27px;
+            margin-bottom: 8px;
+        }
+
+        .auth-subtitle {
+            color: #667085;
+            margin-bottom: 28px;
+        }
+
+        .auth-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            background: #f1f3f7;
+            padding: 5px;
+            border-radius: 10px;
+            margin-bottom: 22px;
+        }
+
+        .auth-tab {
+            border: 0;
+            background: transparent;
+            padding: 10px;
+            border-radius: 7px;
+            color: #667085;
+        }
+
+        .auth-tab.active {
+            background: white;
+            color: #172033;
+            font-weight: 600;
+            box-shadow: 0 1px 4px rgba(0,0,0,.06);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            border: 1px solid #d9dee8;
+            border-radius: 9px;
+            padding: 11px 12px;
+            outline: none;
+            background: white;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            border-color: #6366f1;
+            box-shadow:
+                0 0 0 3px rgba(99, 102, 241, .10);
+        }
+
+        .auth-button {
+            width: 100%;
+            border: 0;
+            border-radius: 9px;
+            padding: 12px;
+            background: #4f46e5;
+            color: white;
+            font-weight: 700;
+            margin-top: 6px;
+        }
+
+        .auth-button:hover {
+            background: #4338ca;
+        }
+
+        .auth-message {
+            margin-top: 15px;
+            padding: 11px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .auth-message.error {
+            display: block;
+            background: #fef2f2;
+            color: #b42318;
+        }
+
+        .auth-message.success {
+            display: block;
+            background: #ecfdf3;
+            color: #027a48;
+        }
+
+        /* ================================
+           APP
+        ================================= */
+
+        #app {
+            min-height: 100vh;
+            display: flex;
+        }
 
         .sidebar {
-            width: 250px;
+            width: 245px;
+            min-height: 100vh;
             background: #111827;
             color: white;
-            padding: 24px 16px;
+            padding: 20px 14px;
             position: fixed;
             left: 0;
             top: 0;
             bottom: 0;
-            overflow-y: auto;
         }
 
-        .logo {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 30px;
-            padding: 0 10px;
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            padding: 7px 10px 25px;
         }
 
-        .logo span {
-            opacity: .65;
+        .brand-icon {
+            width: 38px;
+            height: 38px;
+            background: #4f46e5;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
         }
 
-        .nav-title {
-            font-size: 11px;
+        .brand-name {
+            font-weight: 750;
+            font-size: 17px;
+        }
+
+        .nav-section {
+            margin-top: 12px;
+        }
+
+        .nav-label {
+            color: #6b7280;
             text-transform: uppercase;
-            color: #9ca3af;
-            padding: 0 10px;
-            margin: 20px 0 8px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 0 11px 7px;
+            letter-spacing: .08em;
         }
 
-        .nav button {
+        .nav-item {
             width: 100%;
             border: 0;
             background: transparent;
-            color: #d1d5db;
-            padding: 11px 10px;
-            border-radius: 8px;
+            color: #cbd5e1;
             text-align: left;
+            padding: 10px 11px;
+            border-radius: 8px;
             margin-bottom: 3px;
+            font-size: 14px;
         }
 
-        .nav button:hover,
-        .nav button.active {
+        .nav-item:hover,
+        .nav-item.active {
             background: #1f2937;
             color: white;
         }
 
-        /* =====================================================
-           MAIN
-           ===================================================== */
+        .nav-icon {
+            display: inline-block;
+            width: 23px;
+        }
+
+        .sidebar-bottom {
+            position: absolute;
+            bottom: 18px;
+            left: 14px;
+            right: 14px;
+        }
+
+        .user-box {
+            background: #1f2937;
+            border-radius: 10px;
+            padding: 11px;
+            margin-bottom: 8px;
+        }
+
+        .user-email {
+            font-size: 12px;
+            color: #d1d5db;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .logout-button {
+            width: 100%;
+            border: 0;
+            border-radius: 8px;
+            background: #374151;
+            color: white;
+            padding: 9px;
+        }
 
         .main {
-            margin-left: 250px;
-            width: calc(100% - 250px);
-            padding: 30px;
+            margin-left: 245px;
+            width: calc(100% - 245px);
+            padding: 28px;
         }
 
         .page {
@@ -107,166 +311,166 @@
 
         .page-header {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             gap: 20px;
             margin-bottom: 25px;
         }
 
         .page-header h1 {
-            font-size: 28px;
-            margin-bottom: 5px;
+            font-size: 26px;
+            margin-bottom: 4px;
         }
 
         .page-header p {
-            color: #6b7280;
-        }
-
-        /* =====================================================
-           CARDS
-           ===================================================== */
-
-        .cards {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 18px;
-            margin-bottom: 25px;
-        }
-
-        .card {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
-        }
-
-        .card-label {
-            color: #6b7280;
+            color: #667085;
             font-size: 14px;
-            margin-bottom: 10px;
         }
-
-        .card-value {
-            font-size: 30px;
-            font-weight: 700;
-        }
-
-        /* =====================================================
-           PANELS
-           ===================================================== */
-
-        .panel {
-            background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 22px;
-            margin-bottom: 22px;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .panel-header h2 {
-            font-size: 19px;
-        }
-
-        /* =====================================================
-           FORM
-           ===================================================== */
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 16px;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 7px;
-        }
-
-        .form-group.full {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-size: 13px;
-            font-weight: 600;
-        }
-
-        input,
-        select,
-        textarea {
-            width: 100%;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 11px 12px;
-            background: white;
-            outline: none;
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            border-color: #6b7280;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 90px;
-        }
-
-        /* =====================================================
-           BUTTONS
-           ===================================================== */
 
         .btn {
             border: 0;
             border-radius: 8px;
-            padding: 11px 16px;
-            font-weight: 600;
+            padding: 10px 15px;
+            font-weight: 650;
         }
 
         .btn-primary {
-            background: #111827;
+            background: #4f46e5;
             color: white;
         }
 
         .btn-primary:hover {
-            background: #1f2937;
+            background: #4338ca;
         }
 
         .btn-secondary {
-            background: #e5e7eb;
-            color: #111827;
+            background: white;
+            color: #344054;
+            border: 1px solid #d9dee8;
         }
 
-        .btn-danger {
-            background: #fee2e2;
-            color: #991b1b;
+        /* ================================
+           DASHBOARD
+        ================================= */
+
+        .stats {
+            display: grid;
+            grid-template-columns:
+                repeat(4, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
         }
 
-        .btn:disabled {
-            opacity: .55;
-            cursor: not-allowed;
+        .stat-card {
+            background: white;
+            border: 1px solid #eaecf0;
+            border-radius: 12px;
+            padding: 19px;
         }
 
-        .form-actions {
-            margin-top: 20px;
+        .stat-title {
+            color: #667085;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 750;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 18px;
+        }
+
+        .card {
+            background: white;
+            border: 1px solid #eaecf0;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .card h2 {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        /* ================================
+           SEARCH
+        ================================= */
+
+        .search-card {
+            max-width: 1000px;
+        }
+
+        .search-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(2, minmax(0, 1fr));
+            gap: 15px;
+        }
+
+        .search-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        .search-actions {
+            margin-top: 18px;
             display: flex;
-            justify-content: flex-end;
-            gap: 10px;
+            align-items: center;
+            gap: 12px;
         }
 
-        /* =====================================================
+        .search-status {
+            padding: 11px 13px;
+            border-radius: 8px;
+            background: #f2f4f7;
+            color: #475467;
+            font-size: 14px;
+            display: none;
+        }
+
+        .search-status.show {
+            display: block;
+        }
+
+        .search-status.success {
+            background: #ecfdf3;
+            color: #027a48;
+        }
+
+        .search-status.error {
+            background: #fef2f2;
+            color: #b42318;
+        }
+
+        /* ================================
            TABLE
-           ===================================================== */
+        ================================= */
+
+        .table-card {
+            overflow: hidden;
+        }
+
+        .table-toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .table-toolbar input,
+        .table-toolbar select {
+            border: 1px solid #d9dee8;
+            border-radius: 8px;
+            padding: 10px 12px;
+            background: white;
+        }
+
+        .table-toolbar input {
+            flex: 1;
+        }
 
         .table-wrapper {
             overflow-x: auto;
@@ -275,165 +479,95 @@
         table {
             width: 100%;
             border-collapse: collapse;
+            font-size: 13px;
         }
 
         th,
         td {
-            padding: 13px 10px;
             text-align: left;
-            border-bottom: 1px solid #e5e7eb;
+            padding: 12px 10px;
+            border-bottom: 1px solid #eaecf0;
             white-space: nowrap;
         }
 
         th {
+            color: #667085;
             font-size: 12px;
-            color: #6b7280;
-            text-transform: uppercase;
+            font-weight: 650;
         }
-
-        td {
-            font-size: 14px;
-        }
-
-        tr:hover td {
-            background: #fafafa;
-        }
-
-        /* =====================================================
-           STATUS
-           ===================================================== */
 
         .status {
             display: inline-block;
-            padding: 5px 9px;
             border-radius: 999px;
-            background: #f3f4f6;
-            font-size: 12px;
+            padding: 4px 9px;
+            font-size: 11px;
+            font-weight: 650;
         }
 
         .status-new {
-            background: #dbeafe;
-            color: #1d4ed8;
+            background: #eef4ff;
+            color: #3538cd;
         }
 
         .status-called {
-            background: #fef3c7;
-            color: #92400e;
+            background: #fff6ed;
+            color: #c4320a;
         }
 
         .status-qualified {
-            background: #dcfce7;
-            color: #166534;
+            background: #ecfdf3;
+            color: #027a48;
         }
 
         .status-lost {
-            background: #fee2e2;
-            color: #991b1b;
+            background: #f2f4f7;
+            color: #475467;
         }
-
-        /* =====================================================
-           SEARCH BAR
-           ===================================================== */
-
-        .toolbar {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 18px;
-        }
-
-        .toolbar input {
-            max-width: 400px;
-        }
-
-        /* =====================================================
-           LOADING
-           ===================================================== */
-
-        .loading {
-            display: none;
-            align-items: center;
-            gap: 10px;
-            padding: 15px;
-            background: #f3f4f6;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-
-        .loading.active {
-            display: flex;
-        }
-
-        .spinner {
-            width: 18px;
-            height: 18px;
-            border: 3px solid #d1d5db;
-            border-top-color: #111827;
-            border-radius: 50%;
-            animation: spin .8s linear infinite;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
-
-        /* =====================================================
-           ALERTS
-           ===================================================== */
-
-        .alert {
-            display: none;
-            padding: 13px 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-
-        .alert.active {
-            display: block;
-        }
-
-        .alert-success {
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        /* =====================================================
-           EMPTY
-           ===================================================== */
 
         .empty {
-            padding: 35px;
             text-align: center;
-            color: #6b7280;
+            padding: 35px 15px;
+            color: #667085;
         }
 
-        /* =====================================================
+        /* ================================
+           PLACEHOLDER
+        ================================= */
+
+        .placeholder {
+            padding: 50px 20px;
+            text-align: center;
+            color: #667085;
+        }
+
+        .placeholder-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        /* ================================
            RESPONSIVE
-           ===================================================== */
+        ================================= */
 
-        @media (max-width: 1100px) {
-            .cards {
-                grid-template-columns: repeat(2, 1fr);
+        @media (max-width: 1000px) {
+            .stats {
+                grid-template-columns:
+                    repeat(2, minmax(0, 1fr));
             }
 
-            .form-grid {
-                grid-template-columns: repeat(2, 1fr);
+            .content-grid {
+                grid-template-columns: 1fr;
             }
         }
 
-        @media (max-width: 700px) {
+        @media (max-width: 760px) {
             .sidebar {
                 position: static;
                 width: 100%;
+                min-height: auto;
             }
 
-            .app {
+            #app {
                 display: block;
             }
 
@@ -443,26 +577,26 @@
                 padding: 18px;
             }
 
-            .cards {
+            .sidebar-bottom {
+                position: static;
+                margin-top: 15px;
+            }
+
+            .search-grid {
                 grid-template-columns: 1fr;
             }
 
-            .form-grid {
+            .search-grid .full {
+                grid-column: auto;
+            }
+
+            .stats {
                 grid-template-columns: 1fr;
             }
 
             .page-header {
-                display: block;
-            }
-
-            .toolbar {
-                display: block;
-            }
-
-            .toolbar input,
-            .toolbar select {
-                max-width: none;
-                margin-bottom: 8px;
+                align-items: flex-start;
+                flex-direction: column;
             }
         }
     </style>
@@ -470,88 +604,272 @@
 
 <body>
 
-<div class="app">
+<!-- ==========================================
+     AUTH SCREEN
+=========================================== -->
 
-    <!-- =====================================================
-         SIDEBAR
-         ===================================================== -->
+<div id="authScreen">
 
-    <aside class="sidebar">
+    <div class="auth-card">
 
-        <div class="logo">
-            B2B <span>AI CRM</span>
+        <div class="auth-logo">
+            AI
         </div>
 
-        <div class="nav-title">CRM</div>
+        <h1>B2B AI CRM</h1>
 
-        <nav class="nav">
+        <p class="auth-subtitle">
+            Melde dich an oder erstelle deinen Account.
+        </p>
+
+        <div class="auth-tabs">
 
             <button
-                class="active"
-                data-page="dashboard">
-                Dashboard
+                class="auth-tab active"
+                id="loginTab"
+                type="button"
+                onclick="switchAuthMode('login')"
+            >
+                Anmelden
             </button>
 
             <button
-                data-page="lead-search">
+                class="auth-tab"
+                id="registerTab"
+                type="button"
+                onclick="switchAuthMode('register')"
+            >
+                Registrieren
+            </button>
+
+        </div>
+
+        <form id="authForm">
+
+            <div
+                class="form-group hidden"
+                id="nameGroup"
+            >
+                <label for="authName">
+                    Name
+                </label>
+
+                <input
+                    id="authName"
+                    type="text"
+                    placeholder="Max Mustermann"
+                    autocomplete="name"
+                >
+            </div>
+
+            <div class="form-group">
+
+                <label for="authEmail">
+                    E-Mail
+                </label>
+
+                <input
+                    id="authEmail"
+                    type="email"
+                    placeholder="name@firma.de"
+                    required
+                    autocomplete="email"
+                >
+
+            </div>
+
+            <div class="form-group">
+
+                <label for="authPassword">
+                    Passwort
+                </label>
+
+                <input
+                    id="authPassword"
+                    type="password"
+                    placeholder="Mindestens 6 Zeichen"
+                    required
+                    minlength="6"
+                    autocomplete="current-password"
+                >
+
+            </div>
+
+            <button
+                class="auth-button"
+                id="authSubmit"
+                type="submit"
+            >
+                Anmelden
+            </button>
+
+        </form>
+
+        <div
+            class="auth-message"
+            id="authMessage"
+        ></div>
+
+    </div>
+
+</div>
+
+
+<!-- ==========================================
+     APP
+=========================================== -->
+
+<div
+    id="app"
+    class="hidden"
+>
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                AI
+            </div>
+
+            <div class="brand-name">
+                B2B AI CRM
+            </div>
+
+        </div>
+
+
+        <div class="nav-section">
+
+            <div class="nav-label">
+                Übersicht
+            </div>
+
+            <button
+                class="nav-item active"
+                data-page="dashboard"
+            >
+                <span class="nav-icon">⌂</span>
+                Dashboard
+            </button>
+
+        </div>
+
+
+        <div class="nav-section">
+
+            <div class="nav-label">
+                Vertrieb
+            </div>
+
+            <button
+                class="nav-item"
+                data-page="lead-search"
+            >
+                <span class="nav-icon">✦</span>
                 KI Leadssuche
             </button>
 
             <button
-                data-page="leads">
+                class="nav-item"
+                data-page="leads"
+            >
+                <span class="nav-icon">▣</span>
                 Leads
             </button>
 
             <button
-                data-page="contacts">
+                class="nav-item"
+                data-page="contacts"
+            >
+                <span class="nav-icon">♙</span>
                 Kontakte
             </button>
 
             <button
-                data-page="calls">
+                class="nav-item"
+                data-page="calls"
+            >
+                <span class="nav-icon">☎</span>
                 Anrufe
             </button>
 
             <button
-                data-page="tasks">
+                class="nav-item"
+                data-page="tasks"
+            >
+                <span class="nav-icon">✓</span>
                 Aufgaben
             </button>
 
             <button
-                data-page="pipeline">
+                class="nav-item"
+                data-page="pipeline"
+            >
+                <span class="nav-icon">↗</span>
                 Pipeline
             </button>
 
-        </nav>
+        </div>
 
-        <div class="nav-title">System</div>
 
-        <nav class="nav">
+        <div class="nav-section">
+
+            <div class="nav-label">
+                System
+            </div>
 
             <button
-                data-page="settings">
+                class="nav-item"
+                data-page="settings"
+            >
+                <span class="nav-icon">⚙</span>
                 Einstellungen
             </button>
 
-        </nav>
+        </div>
+
+
+        <div class="sidebar-bottom">
+
+            <div class="user-box">
+
+                <div
+                    class="user-email"
+                    id="sidebarUserEmail"
+                >
+                    —
+                </div>
+
+            </div>
+
+            <button
+                class="logout-button"
+                id="logoutButton"
+            >
+                Abmelden
+            </button>
+
+        </div>
 
     </aside>
 
 
-    <!-- =====================================================
-         MAIN
-         ===================================================== -->
+    <!-- MAIN -->
 
     <main class="main">
 
 
-        <!-- =================================================
+        <!-- ======================================
              DASHBOARD
-             ================================================= -->
+        ======================================= -->
 
         <section
+            class="page active"
             id="page-dashboard"
-            class="page active">
+        >
 
             <div class="page-header">
 
@@ -559,75 +877,80 @@
                     <h1>Dashboard</h1>
 
                     <p>
-                        Übersicht über deine Vertriebsaktivitäten.
+                        Deine Vertriebsübersicht
                     </p>
                 </div>
 
                 <button
                     class="btn btn-primary"
-                    onclick="showPage('lead-search')">
-
-                    + Leads suchen
-
+                    onclick="showPage('lead-search')"
+                >
+                    + KI Leadssuche
                 </button>
 
             </div>
 
 
-            <div class="cards">
+            <div class="stats">
 
-                <div class="card">
+                <div class="stat-card">
 
-                    <div class="card-label">
+                    <div class="stat-title">
                         Leads gesamt
                     </div>
 
                     <div
-                        class="card-value"
-                        id="dashboardLeadCount">
+                        class="stat-value"
+                        id="statLeads"
+                    >
                         0
                     </div>
 
                 </div>
 
 
-                <div class="card">
+                <div class="stat-card">
 
-                    <div class="card-label">
-                        Heute zu kontaktieren
+                    <div class="stat-title">
+                        Neue Leads
                     </div>
 
                     <div
-                        class="card-value"
-                        id="dashboardTodayCount">
+                        class="stat-value"
+                        id="statNewLeads"
+                    >
                         0
                     </div>
 
                 </div>
 
 
-                <div class="card">
+                <div class="stat-card">
 
-                    <div class="card-label">
-                        Termine
+                    <div class="stat-title">
+                        Qualifizierte Leads
                     </div>
 
                     <div
-                        class="card-value">
+                        class="stat-value"
+                        id="statQualifiedLeads"
+                    >
                         0
                     </div>
 
                 </div>
 
 
-                <div class="card">
+                <div class="stat-card">
 
-                    <div class="card-label">
+                    <div class="stat-title">
                         Pipeline
                     </div>
 
                     <div
-                        class="card-value">
+                        class="stat-value"
+                        id="statPipeline"
+                    >
                         0 €
                     </div>
 
@@ -636,29 +959,35 @@
             </div>
 
 
-            <div class="panel">
+            <div class="content-grid">
 
-                <div class="panel-header">
+                <div class="card">
 
                     <h2>
-                        Zuletzt gefundene Leads
+                        Willkommen im B2B AI CRM
                     </h2>
 
-                    <button
-                        class="btn btn-secondary"
-                        onclick="showPage('leads')">
-
-                        Alle Leads
-
-                    </button>
+                    <p style="color:#667085;line-height:1.7;">
+                        Starte eine KI-Leadssuche und finde
+                        neue B2B-Unternehmen anhand deiner
+                        eigenen Kriterien.
+                    </p>
 
                 </div>
 
-                <div
-                    id="dashboardRecentLeads"
-                    class="empty">
 
-                    Noch keine Leads vorhanden.
+                <div class="card">
+
+                    <h2>
+                        Schnellstart
+                    </h2>
+
+                    <button
+                        class="btn btn-primary"
+                        onclick="showPage('lead-search')"
+                    >
+                        Leads suchen
+                    </button>
 
                 </div>
 
@@ -667,13 +996,14 @@
         </section>
 
 
-        <!-- =================================================
+        <!-- ======================================
              KI LEAD SEARCH
-             ================================================= -->
+        ======================================= -->
 
         <section
+            class="page"
             id="page-lead-search"
-            class="page">
+        >
 
             <div class="page-header">
 
@@ -681,262 +1011,246 @@
                     <h1>KI Leadssuche</h1>
 
                     <p>
-                        Die KI recherchiert passende B2B-Unternehmen
-                        im Internet.
+                        Finde automatisch neue B2B-Unternehmen.
                     </p>
                 </div>
 
             </div>
 
 
-            <div class="panel">
+            <div class="card search-card">
 
-                <div class="panel-header">
+                <div class="search-grid">
 
-                    <h2>
-                        Suchkriterien
-                    </h2>
+                    <div class="form-group">
+
+                        <label for="industry">
+                            Branche *
+                        </label>
+
+                        <input
+                            id="industry"
+                            type="text"
+                            placeholder="z. B. Maschinenbau"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="postal">
+                            Postleitzahl *
+                        </label>
+
+                        <input
+                            id="postal"
+                            type="text"
+                            placeholder="z. B. 56068"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="radius">
+                            Radius
+                        </label>
+
+                        <select id="radius">
+
+                            <option value="10">
+                                10 km
+                            </option>
+
+                            <option
+                                value="25"
+                                selected
+                            >
+                                25 km
+                            </option>
+
+                            <option value="50">
+                                50 km
+                            </option>
+
+                            <option value="100">
+                                100 km
+                            </option>
+
+                            <option value="200">
+                                200 km
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="amount">
+                            Anzahl Leads
+                        </label>
+
+                        <select id="amount">
+
+                            <option value="10">
+                                10
+                            </option>
+
+                            <option value="25">
+                                25
+                            </option>
+
+                            <option
+                                value="50"
+                                selected
+                            >
+                                50
+                            </option>
+
+                            <option value="100">
+                                100
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="employeesFrom">
+                            Mitarbeiter von
+                        </label>
+
+                        <input
+                            id="employeesFrom"
+                            type="number"
+                            min="0"
+                            placeholder="z. B. 10"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="employeesTo">
+                            Mitarbeiter bis
+                        </label>
+
+                        <input
+                            id="employeesTo"
+                            type="number"
+                            min="0"
+                            placeholder="z. B. 250"
+                        >
+
+                    </div>
+
+
+                    <div class="form-group full">
+
+                        <label for="additionalCriteria">
+                            Zusätzliche Kriterien
+                        </label>
+
+                        <textarea
+                            id="additionalCriteria"
+                            rows="4"
+                            placeholder="z. B. inhabergeführt, B2B-Fokus, eigene Produktion..."
+                        ></textarea>
+
+                    </div>
+
+
+                    <div class="form-group full">
+
+                        <label for="exclusionCriteria">
+                            Ausschlusskriterien
+                        </label>
+
+                        <textarea
+                            id="exclusionCriteria"
+                            rows="4"
+                            placeholder="z. B. Großkonzerne, öffentliche Einrichtungen..."
+                        ></textarea>
+
+                    </div>
 
                 </div>
 
 
-                <form
-                    id="leadSearchForm"
-                    onsubmit="startLeadSearch(event)">
+                <div class="search-actions">
 
-                    <div class="form-grid">
-
-
-                        <div class="form-group">
-
-                            <label for="industry">
-                                Branche *
-                            </label>
-
-                            <input
-                                id="industry"
-                                type="text"
-                                placeholder="z. B. Maschinenbau"
-                                required>
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label for="postal">
-                                Postleitzahl *
-                            </label>
-
-                            <input
-                                id="postal"
-                                type="text"
-                                placeholder="z. B. 56068"
-                                required>
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label for="radius">
-                                Radius
-                            </label>
-
-                            <select id="radius">
-
-                                <option value="10">
-                                    10 km
-                                </option>
-
-                                <option
-                                    value="25"
-                                    selected>
-                                    25 km
-                                </option>
-
-                                <option value="50">
-                                    50 km
-                                </option>
-
-                                <option value="100">
-                                    100 km
-                                </option>
-
-                                <option value="200">
-                                    200 km
-                                </option>
-
-                            </select>
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label for="employeesMin">
-                                Mitarbeiter von
-                            </label>
-
-                            <input
-                                id="employeesMin"
-                                type="number"
-                                min="0"
-                                placeholder="z. B. 10">
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label for="employeesMax">
-                                Mitarbeiter bis
-                            </label>
-
-                            <input
-                                id="employeesMax"
-                                type="number"
-                                min="0"
-                                placeholder="z. B. 250">
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label for="leadCount">
-                                Anzahl Leads
-                            </label>
-
-                            <select id="leadCount">
-
-                                <option value="10">
-                                    10
-                                </option>
-
-                                <option value="25">
-                                    25
-                                </option>
-
-                                <option
-                                    value="50"
-                                    selected>
-                                    50
-                                </option>
-
-                                <option value="100">
-                                    100
-                                </option>
-
-                            </select>
-
-                        </div>
-
-
-                        <div class="form-group full">
-
-                            <label for="additionalCriteria">
-                                Zusätzliche Kriterien
-                            </label>
-
-                            <textarea
-                                id="additionalCriteria"
-                                placeholder="z. B. eigene Produktion, B2B-Fokus, mindestens 20 Mitarbeiter ..."></textarea>
-
-                        </div>
-
-
-                        <div class="form-group full">
-
-                            <label for="excludeCriteria">
-                                Ausschlusskriterien
-                            </label>
-
-                            <textarea
-                                id="excludeCriteria"
-                                placeholder="z. B. keine Großkonzerne, keine Agenturen, keine Privatkunden ..."></textarea>
-
-                        </div>
-
-                    </div>
-
+                    <button
+                        class="btn btn-primary"
+                        id="searchButton"
+                        type="button"
+                        onclick="startLeadSearch()"
+                    >
+                        ✦ Leads mit KI suchen
+                    </button>
 
                     <div
-                        id="leadSearchLoading"
-                        class="loading">
+                        class="search-status"
+                        id="searchStatus"
+                    ></div>
 
-                        <div class="spinner"></div>
-
-                        <span>
-                            KI recherchiert Unternehmen im Internet ...
-                        </span>
-
-                    </div>
-
-
-                    <div
-                        id="leadSearchSuccess"
-                        class="alert alert-success">
-                    </div>
-
-
-                    <div
-                        id="leadSearchError"
-                        class="alert alert-error">
-                    </div>
-
-
-                    <div class="form-actions">
-
-                        <button
-                            type="submit"
-                            id="leadSearchButton"
-                            class="btn btn-primary">
-
-                            KI-Suche starten
-
-                        </button>
-
-                    </div>
-
-                </form>
+                </div>
 
             </div>
 
         </section>
 
 
-        <!-- =================================================
+        <!-- ======================================
              LEADS
-             ================================================= -->
+        ======================================= -->
 
         <section
+            class="page"
             id="page-leads"
-            class="page">
+        >
 
             <div class="page-header">
 
                 <div>
+
                     <h1>Leads</h1>
 
                     <p>
-                        Deine gespeicherten Unternehmen.
+                        Deine gespeicherten B2B-Leads
                     </p>
+
                 </div>
+
+                <button
+                    class="btn btn-primary"
+                    onclick="showPage('lead-search')"
+                >
+                    + Leads suchen
+                </button>
 
             </div>
 
 
-            <div class="panel">
+            <div class="card table-card">
 
-                <div class="toolbar">
+                <div class="table-toolbar">
 
                     <input
-                        id="leadFilterSearch"
-                        type="text"
-                        placeholder="Firma, Ort, Telefon ...">
+                        id="leadSearch"
+                        type="search"
+                        placeholder="Unternehmen, Stadt, Telefon..."
+                    >
 
-                    <select id="leadFilterStatus">
+                    <select id="leadStatus">
 
                         <option value="">
                             Alle Status
@@ -946,36 +1260,12 @@
                             Neu
                         </option>
 
-                        <option value="to_contact">
-                            Zu kontaktieren
-                        </option>
-
                         <option value="called">
                             Angerufen
                         </option>
 
-                        <option value="reached">
-                            Erreicht
-                        </option>
-
                         <option value="qualified">
                             Qualifiziert
-                        </option>
-
-                        <option value="callback">
-                            Rückruf
-                        </option>
-
-                        <option value="appointment">
-                            Termin
-                        </option>
-
-                        <option value="offer">
-                            Angebot
-                        </option>
-
-                        <option value="won">
-                            Gewonnen
                         </option>
 
                         <option value="lost">
@@ -983,14 +1273,6 @@
                         </option>
 
                     </select>
-
-                    <button
-                        class="btn btn-secondary"
-                        onclick="loadLeads()">
-
-                        Aktualisieren
-
-                    </button>
 
                 </div>
 
@@ -1001,41 +1283,27 @@
 
                         <thead>
 
-                        <tr>
-
-                            <th>
-                                Unternehmen
-                            </th>
-
-                            <th>
-                                Branche
-                            </th>
-
-                            <th>
-                                Telefon
-                            </th>
-
-                            <th>
-                                Ort
-                            </th>
-
-                            <th>
-                                Mitarbeiter
-                            </th>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th>
-                                Quelle
-                            </th>
-
-                        </tr>
+                            <tr>
+                                <th>Unternehmen</th>
+                                <th>Branche</th>
+                                <th>Telefon</th>
+                                <th>Ort</th>
+                                <th>Mitarbeiter</th>
+                                <th>Status</th>
+                            </tr>
 
                         </thead>
 
                         <tbody id="leadsTableBody">
+
+                            <tr>
+                                <td
+                                    colspan="6"
+                                    class="empty"
+                                >
+                                    Noch keine Leads vorhanden.
+                                </td>
+                            </tr>
 
                         </tbody>
 
@@ -1048,13 +1316,14 @@
         </section>
 
 
-        <!-- =================================================
+        <!-- ======================================
              CONTACTS
-             ================================================= -->
+        ======================================= -->
 
         <section
+            class="page"
             id="page-contacts"
-            class="page">
+        >
 
             <div class="page-header">
 
@@ -1062,30 +1331,39 @@
                     <h1>Kontakte</h1>
 
                     <p>
-                        Ansprechpartner deiner Unternehmen.
+                        Ansprechpartner deiner Unternehmen
                     </p>
                 </div>
 
             </div>
 
-            <div class="panel">
+            <div class="card placeholder">
 
-                <div class="empty">
-                    Noch keine Kontakte vorhanden.
+                <div class="placeholder-icon">
+                    ♙
                 </div>
+
+                <h2>
+                    Kontaktverwaltung
+                </h2>
+
+                <p>
+                    Dieser Bereich wird als Nächstes ausgebaut.
+                </p>
 
             </div>
 
         </section>
 
 
-        <!-- =================================================
+        <!-- ======================================
              CALLS
-             ================================================= -->
+        ======================================= -->
 
         <section
+            class="page"
             id="page-calls"
-            class="page">
+        >
 
             <div class="page-header">
 
@@ -1093,30 +1371,40 @@
                     <h1>Anrufe</h1>
 
                     <p>
-                        Telefonaktivitäten und Gesprächsdokumentation.
+                        Telefonaktivitäten und Gesprächsergebnisse
                     </p>
                 </div>
 
             </div>
 
-            <div class="panel">
+            <div class="card placeholder">
 
-                <div class="empty">
-                    Noch keine Anrufe vorhanden.
+                <div class="placeholder-icon">
+                    ☎
                 </div>
+
+                <h2>
+                    Anrufverwaltung
+                </h2>
+
+                <p>
+                    Call-Modus und Gesprächsdokumentation
+                    folgen im nächsten Schritt.
+                </p>
 
             </div>
 
         </section>
 
 
-        <!-- =================================================
+        <!-- ======================================
              TASKS
-             ================================================= -->
+        ======================================= -->
 
         <section
+            class="page"
             id="page-tasks"
-            class="page">
+        >
 
             <div class="page-header">
 
@@ -1124,30 +1412,39 @@
                     <h1>Aufgaben</h1>
 
                     <p>
-                        Rückrufe und Follow-ups.
+                        Follow-ups und Wiedervorlagen
                     </p>
                 </div>
 
             </div>
 
-            <div class="panel">
+            <div class="card placeholder">
 
-                <div class="empty">
-                    Noch keine Aufgaben vorhanden.
+                <div class="placeholder-icon">
+                    ✓
                 </div>
+
+                <h2>
+                    Aufgabenverwaltung
+                </h2>
+
+                <p>
+                    Follow-ups werden hier später angezeigt.
+                </p>
 
             </div>
 
         </section>
 
 
-        <!-- =================================================
+        <!-- ======================================
              PIPELINE
-             ================================================= -->
+        ======================================= -->
 
         <section
+            class="page"
             id="page-pipeline"
-            class="page">
+        >
 
             <div class="page-header">
 
@@ -1155,30 +1452,40 @@
                     <h1>Pipeline</h1>
 
                     <p>
-                        Übersicht deiner Verkaufschancen.
+                        Deine Verkaufschancen
                     </p>
                 </div>
 
             </div>
 
-            <div class="panel">
+            <div class="card placeholder">
 
-                <div class="empty">
-                    Noch keine Deals vorhanden.
+                <div class="placeholder-icon">
+                    ↗
                 </div>
+
+                <h2>
+                    Sales Pipeline
+                </h2>
+
+                <p>
+                    Deals und Verkaufsphasen werden später
+                    hier dargestellt.
+                </p>
 
             </div>
 
         </section>
 
 
-        <!-- =================================================
+        <!-- ======================================
              SETTINGS
-             ================================================= -->
+        ======================================= -->
 
         <section
+            class="page"
             id="page-settings"
-            class="page">
+        >
 
             <div class="page-header">
 
@@ -1186,21 +1493,26 @@
                     <h1>Einstellungen</h1>
 
                     <p>
-                        CRM-Konfiguration.
+                        Account und CRM-Einstellungen
                     </p>
                 </div>
 
             </div>
 
-            <div class="panel">
+            <div class="card">
 
-                <h2 style="margin-bottom: 10px;">
-                    System
+                <h2>
+                    Account
                 </h2>
 
-                <p style="color:#6b7280;">
-                    API und Datenbank werden über die Serverumgebung
-                    konfiguriert.
+                <p
+                    id="settingsEmail"
+                    style="
+                        color:#667085;
+                        margin-top:8px;
+                    "
+                >
+                    —
                 </p>
 
             </div>
@@ -1212,933 +1524,1234 @@
 </div>
 
 
-<script>
+<!-- ==========================================
+     SUPABASE
+=========================================== -->
 
-/* ============================================================
-   GLOBALE DATEN
-   ============================================================ */
+<script type="module">
 
-let leads = [];
-
-let currentUserId =
-    localStorage.getItem("crm_user_id");
-
-
-/*
- * Für den aktuellen Entwicklungsstand erzeugen wir eine
- * lokale Demo-User-ID.
- *
- * Später wird diese durch Supabase Auth ersetzt.
- */
-
-if (!currentUserId) {
-
-    currentUserId =
-        crypto.randomUUID();
-
-    localStorage.setItem(
-        "crm_user_id",
-        currentUserId
-    );
-}
+    import {
+        createClient
+    } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
 
-/* ============================================================
-   NAVIGATION
-   ============================================================ */
+    /*
+     * WICHTIG:
+     *
+     * Diese beiden Werte werden später über
+     * deine öffentliche Supabase-Konfiguration
+     * eingetragen.
+     *
+     * Die ANON KEY darf im Frontend stehen.
+     * Die SERVICE ROLE KEY darf NIEMALS hier stehen.
+     */
 
-function showPage(pageName) {
+    const SUPABASE_URL =
+        "https://ippummtfsjfrayosofxb.supabase.co";
 
-    document
-        .querySelectorAll(".page")
-        .forEach((page) => {
-
-            page.classList.remove("active");
-
-        });
-
-    document
-        .querySelectorAll(".nav button")
-        .forEach((button) => {
-
-            button.classList.remove("active");
-
-        });
+    const SUPABASE_ANON_KEY =
+        "sb_publishable_8pIR4I1i_30XdDcqp-JzJQ_3fznf-gi";
 
 
-    const page =
-        document.getElementById(
-            `page-${pageName}`
+    const supabase =
+        createClient(
+            SUPABASE_URL,
+            SUPABASE_ANON_KEY
         );
 
-    if (page) {
-        page.classList.add("active");
+
+    window.supabaseClient =
+        supabase;
+
+
+    let currentUser = null;
+    let currentLeads = [];
+
+
+    // ==========================================
+    // AUTH MODE
+    // ==========================================
+
+    window.switchAuthMode =
+        function(mode) {
+
+            const loginTab =
+                document.getElementById(
+                    "loginTab"
+                );
+
+            const registerTab =
+                document.getElementById(
+                    "registerTab"
+                );
+
+            const nameGroup =
+                document.getElementById(
+                    "nameGroup"
+                );
+
+            const submit =
+                document.getElementById(
+                    "authSubmit"
+                );
+
+            if (mode === "register") {
+
+                loginTab.classList.remove(
+                    "active"
+                );
+
+                registerTab.classList.add(
+                    "active"
+                );
+
+                nameGroup.classList.remove(
+                    "hidden"
+                );
+
+                submit.textContent =
+                    "Account erstellen";
+
+            } else {
+
+                registerTab.classList.remove(
+                    "active"
+                );
+
+                loginTab.classList.add(
+                    "active"
+                );
+
+                nameGroup.classList.add(
+                    "hidden"
+                );
+
+                submit.textContent =
+                    "Anmelden";
+            }
+
+            document.getElementById(
+                "authForm"
+            ).dataset.mode = mode;
+        };
+
+
+    // ==========================================
+    // AUTH MESSAGE
+    // ==========================================
+
+    function showAuthMessage(
+        message,
+        type
+    ) {
+
+        const element =
+            document.getElementById(
+                "authMessage"
+            );
+
+        element.textContent =
+            message;
+
+        element.className =
+            "auth-message " +
+            type;
     }
 
 
-    const navButton =
-        document.querySelector(
-            `.nav button[data-page="${pageName}"]`
-        );
+    function clearAuthMessage() {
 
-    if (navButton) {
-        navButton.classList.add("active");
+        const element =
+            document.getElementById(
+                "authMessage"
+            );
+
+        element.textContent = "";
+
+        element.className =
+            "auth-message";
     }
 
 
-    if (pageName === "leads") {
+    // ==========================================
+    // LOGIN / REGISTER
+    // ==========================================
+
+    document
+        .getElementById("authForm")
+        .addEventListener(
+            "submit",
+            async function(event) {
+
+                event.preventDefault();
+
+                clearAuthMessage();
+
+                const mode =
+                    this.dataset.mode ||
+                    "login";
+
+                const email =
+                    document
+                        .getElementById(
+                            "authEmail"
+                        )
+                        .value
+                        .trim();
+
+                const password =
+                    document
+                        .getElementById(
+                            "authPassword"
+                        )
+                        .value;
+
+                const name =
+                    document
+                        .getElementById(
+                            "authName"
+                        )
+                        .value
+                        .trim();
+
+                const button =
+                    document
+                        .getElementById(
+                            "authSubmit"
+                        );
+
+                button.disabled = true;
+
+                button.textContent =
+                    mode === "register"
+                        ? "Account wird erstellt..."
+                        : "Anmeldung...";
+
+                try {
+
+                    if (mode === "register") {
+
+                        if (!name) {
+                            throw new Error(
+                                "Bitte gib deinen Namen ein."
+                            );
+                        }
+
+                        const {
+                            data,
+                            error
+                        } =
+                            await supabase.auth
+                                .signUp({
+                                    email,
+                                    password,
+                                    options: {
+                                        data: {
+                                            full_name:
+                                                name
+                                        }
+                                    }
+                                });
+
+                        if (error) {
+                            throw error;
+                        }
+
+                        /*
+                         * Wenn Supabase E-Mail-Bestätigung
+                         * verlangt, existiert zunächst noch
+                         * keine aktive Session.
+                         */
+
+                        if (
+                            data?.session
+                        ) {
+
+                            showAuthMessage(
+                                "Account erfolgreich erstellt.",
+                                "success"
+                            );
+
+                        } else {
+
+                            showAuthMessage(
+                                "Account erstellt. Bitte bestätige deine E-Mail-Adresse.",
+                                "success"
+                            );
+
+                        }
+
+                    } else {
+
+                        const {
+                            error
+                        } =
+                            await supabase.auth
+                                .signInWithPassword({
+                                    email,
+                                    password
+                                });
+
+                        if (error) {
+                            throw error;
+                        }
+
+                    }
+
+                } catch (error) {
+
+                    console.error(
+                        "Auth error:",
+                        error
+                    );
+
+                    showAuthMessage(
+                        translateAuthError(
+                            error
+                        ),
+                        "error"
+                    );
+
+                } finally {
+
+                    button.disabled = false;
+
+                    button.textContent =
+                        mode === "register"
+                            ? "Account erstellen"
+                            : "Anmelden";
+                }
+            }
+        );
+
+
+    // ==========================================
+    // AUTH ERROR ÜBERSETZEN
+    // ==========================================
+
+    function translateAuthError(error) {
+
+        const message =
+            error?.message ||
+            "Unbekannter Fehler.";
+
+        if (
+            message
+                .toLowerCase()
+                .includes("invalid login")
+        ) {
+            return "E-Mail oder Passwort ist falsch.";
+        }
+
+        if (
+            message
+                .toLowerCase()
+                .includes("email not confirmed")
+        ) {
+            return "Bitte bestätige zuerst deine E-Mail-Adresse.";
+        }
+
+        if (
+            message
+                .toLowerCase()
+                .includes("user already registered")
+        ) {
+            return "Für diese E-Mail-Adresse existiert bereits ein Account.";
+        }
+
+        if (
+            message
+                .toLowerCase()
+                .includes("password")
+        ) {
+            return "Das Passwort muss mindestens 6 Zeichen enthalten.";
+        }
+
+        return message;
+    }
+
+
+    // ==========================================
+    // APP EINBLENDEN
+    // ==========================================
+
+    function showApp(user) {
+
+        currentUser = user;
+
+        document
+            .getElementById(
+                "authScreen"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+        document
+            .getElementById(
+                "app"
+            )
+            .classList.remove(
+                "hidden"
+            );
+
+        const email =
+            user.email || "Benutzer";
+
+        document
+            .getElementById(
+                "sidebarUserEmail"
+            )
+            .textContent =
+            email;
+
+        document
+            .getElementById(
+                "settingsEmail"
+            )
+            .textContent =
+            email;
+
         loadLeads();
     }
 
 
-    if (pageName === "dashboard") {
-        updateDashboard();
+    // ==========================================
+    // LOGIN SCREEN EINBLENDEN
+    // ==========================================
+
+    function showLogin() {
+
+        currentUser = null;
+
+        document
+            .getElementById(
+                "app"
+            )
+            .classList.add(
+                "hidden"
+            );
+
+        document
+            .getElementById(
+                "authScreen"
+            )
+            .classList.remove(
+                "hidden"
+            );
     }
-}
 
 
-/* Navigation Buttons */
+    // ==========================================
+    // SESSION PRÜFEN
+    // ==========================================
 
-document
-    .querySelectorAll(".nav button")
-    .forEach((button) => {
+    async function checkSession() {
 
-        button.addEventListener(
-            "click",
-            () => {
+        const {
+            data,
+            error
+        } =
+            await supabase.auth
+                .getSession();
 
-                showPage(
-                    button.dataset.page
+        if (error) {
+
+            console.error(
+                "Session error:",
+                error
+            );
+
+            showLogin();
+
+            return;
+        }
+
+        if (
+            data?.session?.user
+        ) {
+
+            showApp(
+                data.session.user
+            );
+
+        } else {
+
+            showLogin();
+        }
+    }
+
+
+    // ==========================================
+    // AUTH STATE LISTENER
+    // ==========================================
+
+    supabase.auth.onAuthStateChange(
+        async (
+            event,
+            session
+        ) => {
+
+            if (
+                session?.user
+            ) {
+
+                showApp(
+                    session.user
                 );
 
+            } else {
+
+                showLogin();
+            }
+        }
+    );
+
+
+    // ==========================================
+    // LOGOUT
+    // ==========================================
+
+    document
+        .getElementById(
+            "logoutButton"
+        )
+        .addEventListener(
+            "click",
+            async () => {
+
+                await supabase.auth
+                    .signOut();
+
+                showLogin();
             }
         );
 
-    });
 
+    // ==========================================
+    // NAVIGATION
+    // ==========================================
 
-/* ============================================================
-   KI LEAD-SUCHE
-   ============================================================ */
+    document
+        .querySelectorAll(
+            ".nav-item"
+        )
+        .forEach(
+            button => {
 
-async function startLeadSearch(event) {
+                button.addEventListener(
+                    "click",
+                    () => {
 
-    event.preventDefault();
-
-
-    const button =
-        document.getElementById(
-            "leadSearchButton"
-        );
-
-    const loading =
-        document.getElementById(
-            "leadSearchLoading"
-        );
-
-    const success =
-        document.getElementById(
-            "leadSearchSuccess"
-        );
-
-    const errorBox =
-        document.getElementById(
-            "leadSearchError"
+                        showPage(
+                            button.dataset.page
+                        );
+                    }
+                );
+            }
         );
 
 
-    success.classList.remove("active");
-    errorBox.classList.remove("active");
+    window.showPage =
+        function(page) {
 
-    button.disabled = true;
-    loading.classList.add("active");
-
-
-    const payload = {
-
-        user_id:
-            currentUserId,
-
-        industry:
             document
-                .getElementById("industry")
-                .value
-                .trim(),
+                .querySelectorAll(
+                    ".page"
+                )
+                .forEach(
+                    element => {
+                        element.classList.remove(
+                            "active"
+                        );
+                    }
+                );
 
-        postal:
+            const target =
+                document.getElementById(
+                    "page-" + page
+                );
+
+            if (target) {
+                target.classList.add(
+                    "active"
+                );
+            }
+
             document
-                .getElementById("postal")
-                .value
-                .trim(),
+                .querySelectorAll(
+                    ".nav-item"
+                )
+                .forEach(
+                    button => {
 
-        radius:
-            Number(
-                document
-                    .getElementById("radius")
-                    .value
-            ),
+                        button.classList.toggle(
+                            "active",
+                            button.dataset.page ===
+                            page
+                        );
+                    }
+                );
 
-        employeesMin:
-            document
-                .getElementById("employeesMin")
-                .value,
-
-        employeesMax:
-            document
-                .getElementById("employeesMax")
-                .value,
-
-        leadCount:
-            Number(
-                document
-                    .getElementById("leadCount")
-                    .value
-            ),
-
-        additionalCriteria:
-            document
-                .getElementById("additionalCriteria")
-                .value
-                .trim(),
-
-        excludeCriteria:
-            document
-                .getElementById("excludeCriteria")
-                .value
-                .trim()
-    };
+            if (
+                page === "leads"
+            ) {
+                loadLeads();
+            }
+        };
 
 
-    try {
+    // ==========================================
+    // LEADS LADEN
+    // ==========================================
 
-        const response =
-            await fetch(
-                "/api/lead-search",
-                {
-                    method: "POST",
+    async function loadLeads() {
 
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:
-                        JSON.stringify(payload)
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok || !data.success) {
-
-            throw new Error(
-                data.error ||
-                "Die Lead-Suche ist fehlgeschlagen."
-            );
-
+        if (!currentUser) {
+            return;
         }
 
+        const {
+            data: sessionData
+        } =
+            await supabase.auth
+                .getSession();
 
-        /*
-         * Die API hat die Leads bereits in Supabase gespeichert.
-         * Wir laden sie deshalb anschließend erneut.
-         */
+        const token =
+            sessionData?.session
+                ?.access_token;
 
-        await loadLeads();
+        if (!token) {
+            return;
+        }
 
+        try {
 
-        success.textContent =
-            data.message ||
-            `${data.count || 0} Leads gefunden.`;
+            const response =
+                await fetch(
+                    "/api/leads",
+                    {
+                        method: "GET",
+                        headers: {
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
 
+            const result =
+                await response.json();
 
-        success.classList.add("active");
+            if (!response.ok) {
+                throw new Error(
+                    result.error ||
+                    "Leads konnten nicht geladen werden."
+                );
+            }
 
+            currentLeads =
+                result.leads || [];
 
-        /*
-         * Nach erfolgreicher Suche direkt zur
-         * Lead-Liste wechseln.
-         */
+            renderLeads(
+                currentLeads
+            );
 
-        setTimeout(() => {
+            updateDashboardStats(
+                currentLeads
+            );
 
-            showPage("leads");
+        } catch (error) {
 
-        }, 800);
+            console.error(
+                "Load leads error:",
+                error
+            );
 
-
-    } catch (error) {
-
-        console.error(
-            "Lead search frontend error:",
-            error
-        );
-
-
-        errorBox.textContent =
-            error.message ||
-            "Unbekannter Fehler.";
-
-        errorBox.classList.add("active");
-
-
-    } finally {
-
-        button.disabled = false;
-
-        loading.classList.remove("active");
-
+            renderLeads([]);
+        }
     }
 
-}
+
+    // ==========================================
+    // LEADS RENDERN
+    // ==========================================
+
+    function renderLeads(
+        leads
+    ) {
+
+        const tbody =
+            document.getElementById(
+                "leadsTableBody"
+            );
+
+        if (!leads.length) {
+
+            tbody.innerHTML = `
+                <tr>
+                    <td
+                        colspan="6"
+                        class="empty"
+                    >
+                        Noch keine Leads vorhanden.
+                    </td>
+                </tr>
+            `;
+
+            return;
+        }
+
+        tbody.innerHTML =
+            leads
+                .map(
+                    lead => {
+
+                        const company =
+                            lead.companies ||
+                            {};
+
+                        const status =
+                            lead.status ||
+                            "new";
+
+                        return `
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        ${escapeHtml(
+                                            company.name ||
+                                            "Unbekannt"
+                                        )}
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(
+                                        company.industry ||
+                                        "—"
+                                    )}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(
+                                        company.phone ||
+                                        "—"
+                                    )}
+                                </td>
+
+                                <td>
+                                    ${escapeHtml(
+                                        [
+                                            company.postal_code,
+                                            company.city
+                                        ]
+                                            .filter(Boolean)
+                                            .join(" ") ||
+                                        "—"
+                                    )}
+                                </td>
+
+                                <td>
+                                    ${company.employee_count ??
+                                        "—"}
+                                </td>
+
+                                <td>
+                                    <span
+                                        class="status ${statusClass(
+                                            status
+                                        )}"
+                                    >
+                                        ${statusLabel(
+                                            status
+                                        )}
+                                    </span>
+                                </td>
+
+                            </tr>
+                        `;
+                    }
+                )
+                .join("");
+    }
 
 
-/* ============================================================
-   LEADS LADEN
-   ============================================================ */
+    // ==========================================
+    // STATUS
+    // ==========================================
 
-async function loadLeads() {
+    function statusClass(
+        status
+    ) {
 
-    const tableBody =
-        document.getElementById(
-            "leadsTableBody"
+        const map = {
+            new: "status-new",
+            called: "status-called",
+            qualified: "status-qualified",
+            lost: "status-lost"
+        };
+
+        return (
+            map[status] ||
+            "status-new"
+        );
+    }
+
+
+    function statusLabel(
+        status
+    ) {
+
+        const map = {
+            new: "Neu",
+            called: "Angerufen",
+            qualified: "Qualifiziert",
+            lost: "Verloren"
+        };
+
+        return (
+            map[status] ||
+            status
+        );
+    }
+
+
+    // ==========================================
+    // DASHBOARD
+    // ==========================================
+
+    function updateDashboardStats(
+        leads
+    ) {
+
+        const newLeads =
+            leads.filter(
+                lead =>
+                    lead.status === "new"
+            ).length;
+
+        const qualifiedLeads =
+            leads.filter(
+                lead =>
+                    lead.status === "qualified"
+            ).length;
+
+        document
+            .getElementById(
+                "statLeads"
+            )
+            .textContent =
+            leads.length;
+
+        document
+            .getElementById(
+                "statNewLeads"
+            )
+            .textContent =
+            newLeads;
+
+        document
+            .getElementById(
+                "statQualifiedLeads"
+            )
+            .textContent =
+            qualifiedLeads;
+    }
+
+
+    // ==========================================
+    // LEAD FILTER
+    // ==========================================
+
+    document
+        .getElementById(
+            "leadSearch"
+        )
+        .addEventListener(
+            "input",
+            filterLeads
+        );
+
+    document
+        .getElementById(
+            "leadStatus"
+        )
+        .addEventListener(
+            "change",
+            filterLeads
         );
 
 
-    tableBody.innerHTML = `
-        <tr>
-            <td colspan="7">
-                <div class="empty">
-                    Leads werden geladen ...
-                </div>
-            </td>
-        </tr>
-    `;
-
-
-    try {
+    function filterLeads() {
 
         const search =
             document
                 .getElementById(
-                    "leadFilterSearch"
+                    "leadSearch"
                 )
-                ?.value
-                ?.trim() || "";
-
+                .value
+                .trim()
+                .toLowerCase();
 
         const status =
             document
                 .getElementById(
-                    "leadFilterStatus"
+                    "leadStatus"
                 )
-                ?.value || "";
-
-
-        const params =
-            new URLSearchParams();
-
-
-        if (search) {
-            params.set(
-                "search",
-                search
-            );
-        }
-
-
-        if (status) {
-            params.set(
-                "status",
-                status
-            );
-        }
-
-
-        const response =
-            await fetch(
-                `/api/leads?${params.toString()}`
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok || !data.success) {
-
-            throw new Error(
-                data.error ||
-                "Leads konnten nicht geladen werden."
-            );
-
-        }
-
-
-        leads =
-            data.leads || [];
-
-
-        renderLeads();
-
-
-        updateDashboard();
-
-
-    } catch (error) {
-
-        console.error(
-            "Load leads error:",
-            error
-        );
-
-
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                    <div class="empty">
-                        Fehler beim Laden der Leads:
-                        ${escapeHtml(error.message)}
-                    </div>
-                </td>
-            </tr>
-        `;
-
-    }
-
-}
-
-
-/* ============================================================
-   LEADS RENDERN
-   ============================================================ */
-
-function renderLeads() {
-
-    const tableBody =
-        document.getElementById(
-            "leadsTableBody"
-        );
-
-
-    if (!leads.length) {
-
-        tableBody.innerHTML = `
-            <tr>
-                <td colspan="7">
-                    <div class="empty">
-                        Keine Leads gefunden.
-                    </div>
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-
-    tableBody.innerHTML =
-        leads
-            .map((lead) => {
-
-                const company =
-                    lead.company || {};
-
-                const status =
-                    lead.status || "new";
-
-
-                return `
-                    <tr>
-
-                        <td>
-                            <strong>
-                                ${escapeHtml(
-                                    company.name ||
-                                    "-"
-                                )}
-                            </strong>
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                company.industry ||
-                                "-"
-                            )}
-                        </td>
-
-                        <td>
-                            ${
-                                company.phone
-                                    ? `
-                                        <a href="tel:${escapeAttribute(company.phone)}">
-                                            ${escapeHtml(company.phone)}
-                                        </a>
-                                      `
-                                    : "-"
-                            }
-                        </td>
-
-                        <td>
-                            ${escapeHtml(
-                                [
-                                    company.postal_code,
-                                    company.city
-                                ]
-                                    .filter(Boolean)
-                                    .join(" ")
-                                || "-"
-                            )}
-                        </td>
-
-                        <td>
-                            ${
-                                company.employees ??
-                                "-"
-                            }
-                        </td>
-
-                        <td>
-                            <span
-                                class="status ${getStatusClass(status)}">
-
-                                ${escapeHtml(
-                                    getStatusLabel(status)
-                                )}
-
-                            </span>
-                        </td>
-
-                        <td>
-                            ${
-                                company.website
-                                    ? `
-                                        <a
-                                            href="${escapeAttribute(company.website)}"
-                                            target="_blank"
-                                            rel="noopener noreferrer">
-
-                                            Website
-
-                                        </a>
-                                      `
-                                    : "-"
-                            }
-                        </td>
-
-                    </tr>
-                `;
-
-            })
-            .join("");
-
-}
-
-
-/* ============================================================
-   STATUS
-   ============================================================ */
-
-function getStatusLabel(status) {
-
-    const labels = {
-
-        new: "Neu",
-
-        to_contact:
-            "Zu kontaktieren",
-
-        called:
-            "Angerufen",
-
-        reached:
-            "Erreicht",
-
-        not_reached:
-            "Nicht erreicht",
-
-        qualified:
-            "Qualifiziert",
-
-        callback:
-            "Rückruf",
-
-        appointment:
-            "Termin",
-
-        offer:
-            "Angebot",
-
-        won:
-            "Gewonnen",
-
-        lost:
-            "Verloren",
-
-        no_interest:
-            "Kein Interesse",
-
-        wrong_number:
-            "Falsche Nummer"
-
-    };
-
-
-    return labels[status] || status;
-
-}
-
-
-function getStatusClass(status) {
-
-    if (
-        status === "new"
-    ) {
-        return "status-new";
-    }
-
-    if (
-        status === "called" ||
-        status === "callback"
-    ) {
-        return "status-called";
-    }
-
-    if (
-        status === "qualified" ||
-        status === "appointment" ||
-        status === "won"
-    ) {
-        return "status-qualified";
-    }
-
-    if (
-        status === "lost" ||
-        status === "no_interest"
-    ) {
-        return "status-lost";
-    }
-
-    return "";
-
-}
-
-
-/* ============================================================
-   DASHBOARD
-   ============================================================ */
-
-async function updateDashboard() {
-
-    try {
-
-        const response =
-            await fetch(
-                "/api/leads"
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!response.ok || !data.success) {
-            return;
-        }
-
-
-        const dashboardLeads =
-            data.leads || [];
-
-
-        document
-            .getElementById(
-                "dashboardLeadCount"
-            )
-            .textContent =
-                dashboardLeads.length;
-
-
-        const today =
-            new Date();
-
-
-        today.setHours(
-            0,
-            0,
-            0,
-            0
-        );
-
-
-        const todayCount =
-            dashboardLeads.filter(
-                (lead) => {
-
-                    if (!lead.next_follow_up_at) {
-                        return false;
-                    }
-
-                    const date =
-                        new Date(
-                            lead.next_follow_up_at
+                .value;
+
+        const filtered =
+            currentLeads.filter(
+                lead => {
+
+                    const company =
+                        lead.companies ||
+                        {};
+
+                    const text = [
+                        company.name,
+                        company.industry,
+                        company.phone,
+                        company.email,
+                        company.address,
+                        company.postal_code,
+                        company.city,
+                        lead.status
+                    ]
+                        .filter(Boolean)
+                        .join(" ")
+                        .toLowerCase();
+
+                    const matchesSearch =
+                        !search ||
+                        text.includes(
+                            search
                         );
 
-                    date.setHours(
-                        0,
-                        0,
-                        0,
-                        0
-                    );
+                    const matchesStatus =
+                        !status ||
+                        lead.status ===
+                        status;
 
                     return (
-                        date.getTime() ===
-                        today.getTime()
+                        matchesSearch &&
+                        matchesStatus
                     );
-
                 }
-            ).length;
-
-
-        document
-            .getElementById(
-                "dashboardTodayCount"
-            )
-            .textContent =
-                todayCount;
-
-
-        renderRecentLeads(
-            dashboardLeads.slice(
-                0,
-                5
-            )
-        );
-
-
-    } catch (error) {
-
-        console.error(
-            "Dashboard error:",
-            error
-        );
-
-    }
-
-}
-
-
-/* ============================================================
-   DASHBOARD RECENT LEADS
-   ============================================================ */
-
-function renderRecentLeads(recentLeads) {
-
-    const container =
-        document.getElementById(
-            "dashboardRecentLeads"
-        );
-
-
-    if (!recentLeads.length) {
-
-        container.innerHTML =
-            "Noch keine Leads vorhanden.";
-
-        return;
-    }
-
-
-    container.innerHTML = `
-        <div class="table-wrapper">
-
-            <table>
-
-                <thead>
-                    <tr>
-
-                        <th>
-                            Unternehmen
-                        </th>
-
-                        <th>
-                            Ort
-                        </th>
-
-                        <th>
-                            Telefon
-                        </th>
-
-                        <th>
-                            Status
-                        </th>
-
-                    </tr>
-                </thead>
-
-                <tbody>
-
-                    ${recentLeads
-                        .map((lead) => {
-
-                            const company =
-                                lead.company ||
-                                {};
-
-                            return `
-                                <tr>
-
-                                    <td>
-                                        ${escapeHtml(
-                                            company.name ||
-                                            "-"
-                                        )}
-                                    </td>
-
-                                    <td>
-                                        ${escapeHtml(
-                                            [
-                                                company.postal_code,
-                                                company.city
-                                            ]
-                                                .filter(Boolean)
-                                                .join(" ")
-                                                || "-"
-                                        )}
-                                    </td>
-
-                                    <td>
-                                        ${escapeHtml(
-                                            company.phone ||
-                                            "-"
-                                        )}
-                                    </td>
-
-                                    <td>
-
-                                        <span
-                                            class="status ${getStatusClass(lead.status)}">
-
-                                            ${escapeHtml(
-                                                getStatusLabel(
-                                                    lead.status
-                                                )
-                                            )}
-
-                                        </span>
-
-                                    </td>
-
-                                </tr>
-                            `;
-
-                        })
-                        .join("")}
-
-                </tbody>
-
-            </table>
-
-        </div>
-    `;
-
-}
-
-
-/* ============================================================
-   FILTER
-   ============================================================ */
-
-document
-    .getElementById(
-        "leadFilterSearch"
-    )
-    ?.addEventListener(
-        "input",
-        debounce(
-            loadLeads,
-            350
-        )
-    );
-
-
-document
-    .getElementById(
-        "leadFilterStatus"
-    )
-    ?.addEventListener(
-        "change",
-        loadLeads
-    );
-
-
-/* ============================================================
-   DEBOUNCE
-   ============================================================ */
-
-function debounce(
-    callback,
-    delay
-) {
-
-    let timer;
-
-    return function (...args) {
-
-        clearTimeout(timer);
-
-        timer =
-            setTimeout(
-                () => callback.apply(
-                    this,
-                    args
-                ),
-                delay
             );
 
-    };
-
-}
-
-
-/* ============================================================
-   SECURITY
-   ============================================================ */
-
-function escapeHtml(value) {
-
-    return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-
-}
-
-
-function escapeAttribute(value) {
-
-    return escapeHtml(value);
-
-}
-
-
-/* ============================================================
-   START
-   ============================================================ */
-
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-        updateDashboard();
-
+        renderLeads(
+            filtered
+        );
     }
-);
+
+
+    // ==========================================
+    // KI LEAD SEARCH
+    // ==========================================
+
+    window.startLeadSearch =
+        async function() {
+
+            if (!currentUser) {
+
+                showPage(
+                    "dashboard"
+                );
+
+                return;
+            }
+
+            const industry =
+                document
+                    .getElementById(
+                        "industry"
+                    )
+                    .value
+                    .trim();
+
+            const postal =
+                document
+                    .getElementById(
+                        "postal"
+                    )
+                    .value
+                    .trim();
+
+            const radius =
+                document
+                    .getElementById(
+                        "radius"
+                    )
+                    .value;
+
+            const amount =
+                document
+                    .getElementById(
+                        "amount"
+                    )
+                    .value;
+
+            const employeesFrom =
+                document
+                    .getElementById(
+                        "employeesFrom"
+                    )
+                    .value;
+
+            const employeesTo =
+                document
+                    .getElementById(
+                        "employeesTo"
+                    )
+                    .value;
+
+            const additionalCriteria =
+                document
+                    .getElementById(
+                        "additionalCriteria"
+                    )
+                    .value
+                    .trim();
+
+            const exclusionCriteria =
+                document
+                    .getElementById(
+                        "exclusionCriteria"
+                    )
+                    .value
+                    .trim();
+
+            if (!industry) {
+
+                showSearchStatus(
+                    "Bitte eine Branche eingeben.",
+                    "error"
+                );
+
+                return;
+            }
+
+            if (!postal) {
+
+                showSearchStatus(
+                    "Bitte eine Postleitzahl eingeben.",
+                    "error"
+                );
+
+                return;
+            }
+
+
+            const button =
+                document
+                    .getElementById(
+                        "searchButton"
+                    );
+
+            button.disabled = true;
+
+            button.textContent =
+                "⏳ KI recherchiert...";
+
+
+            showSearchStatus(
+                "Die KI sucht im Internet nach passenden Unternehmen. Das kann etwas dauern...",
+                ""
+            );
+
+
+            try {
+
+                const {
+                    data: sessionData
+                } =
+                    await supabase.auth
+                        .getSession();
+
+                const token =
+                    sessionData?.session
+                        ?.access_token;
+
+                if (!token) {
+                    throw new Error(
+                        "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an."
+                    );
+                }
+
+
+                const response =
+                    await fetch(
+                        "/api/lead-search",
+                        {
+                            method: "POST",
+
+                            headers: {
+                                "Content-Type":
+                                    "application/json",
+
+                                "Authorization":
+                                    `Bearer ${token}`
+                            },
+
+                            body: JSON.stringify({
+                                industry,
+                                postal,
+                                radius_km:
+                                    Number(
+                                        radius
+                                    ),
+                                mitarbeiter_von:
+                                    employeesFrom
+                                        ? Number(
+                                            employeesFrom
+                                        )
+                                        : null,
+                                mitarbeiter_bis:
+                                    employeesTo
+                                        ? Number(
+                                            employeesTo
+                                        )
+                                        : null,
+                                anzahl:
+                                    Number(
+                                        amount
+                                    ),
+                                zusatzkriterien:
+                                    additionalCriteria,
+                                ausschlusskriterien:
+                                    exclusionCriteria
+                            })
+                        }
+                    );
+
+
+                const result =
+                    await response.json();
+
+
+                if (!response.ok) {
+
+                    throw new Error(
+                        result.error ||
+                        "Die Lead-Suche ist fehlgeschlagen."
+                    );
+                }
+
+
+                const saved =
+                    result.saved ??
+                    result.leads?.length ??
+                    0;
+
+
+                showSearchStatus(
+                    `Fertig. ${saved} neue Leads wurden gespeichert.`,
+                    "success"
+                );
+
+
+                await loadLeads();
+
+
+                setTimeout(
+                    () => {
+                        showPage(
+                            "leads"
+                        );
+                    },
+                    1200
+                );
+
+
+            } catch (error) {
+
+                console.error(
+                    "Lead search error:",
+                    error
+                );
+
+                showSearchStatus(
+                    error.message ||
+                    "Die Lead-Suche ist fehlgeschlagen.",
+                    "error"
+                );
+
+            } finally {
+
+                button.disabled = false;
+
+                button.textContent =
+                    "✦ Leads mit KI suchen";
+            }
+        };
+
+
+    function showSearchStatus(
+        message,
+        type
+    ) {
+
+        const status =
+            document
+                .getElementById(
+                    "searchStatus"
+                );
+
+        status.textContent =
+            message;
+
+        status.className =
+            "search-status show";
+
+        if (type) {
+            status.classList.add(
+                type
+            );
+        }
+    }
+
+
+    // ==========================================
+    // HTML SICHER MACHEN
+    // ==========================================
+
+    function escapeHtml(
+        value
+    ) {
+
+        return String(
+            value ?? ""
+        )
+            .replace(
+                /&/g,
+                "&amp;"
+            )
+            .replace(
+                /</g,
+                "&lt;"
+            )
+            .replace(
+                />/g,
+                "&gt;"
+            )
+            .replace(
+                /"/g,
+                "&quot;"
+            )
+            .replace(
+                /'/g,
+                "&#039;"
+            );
+    }
+
+
+    // ==========================================
+    // START
+    // ==========================================
+
+    checkSession();
 
 </script>
 
