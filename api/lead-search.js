@@ -1,17 +1,39 @@
 import { supabase } from "./supabase.js";
 
-const GEMINI_MODELS = [
-  "gemini-3.8-flash",
-  "gemini-3.7-flash",
-  "gemini-3.6-flash",
-  "gemini-3.5-flash",
-  "gemini-3.1-pro-preview",
-  "gemini-3.5-flash-lite",
-  "gemini-3.1-flash-lite",
-  "gemini-3-flash-preview"
-];
-
 const MAX_RESULTS = 50;
+
+const PROVIDERS = [
+  {
+    name: "groq",
+    envKey: "GROQ_API_KEY",
+    models: [
+      "openai/gpt-oss-120b",
+      "openai/gpt-oss-20b"
+    ]
+  },
+
+  {
+    name: "openrouter",
+    envKey: "OPENROUTER_API_KEY",
+    models: [
+      "openrouter/free"
+    ]
+  },
+
+  {
+    name: "huggingface",
+    envKey: "HF_TOKEN",
+    models: [
+      "openai/gpt-oss-120b"
+    ]
+  },
+
+  {
+    name: "gemini",
+    envKey: "GEMINI_API_KEY",
+    models: []
+  }
+];
 
 function getBearerToken(req) {
   const header = req.headers.authorization || "";
@@ -49,10 +71,6 @@ function firstRow(data) {
   return data || null;
 }
 
-/**
- * Versucht Text aus unterschiedlichen Gemini-Antwortstrukturen
- * zu extrahieren.
- */
 function extractText(value) {
   if (!value) {
     return "";
@@ -100,9 +118,6 @@ function extractText(value) {
   return "";
 }
 
-/**
- * JSON aus Gemini-Antwort extrahieren.
- */
 function parseJsonFromText(text) {
   if (!text) {
     return null;
@@ -144,16 +159,13 @@ function parseJsonFromText(text) {
         cleaned.slice(firstBracket, lastBracket + 1)
       );
     } catch {
-      // Kein gültiges JSON.
+      // Weiter versuchen.
     }
   }
 
   return null;
 }
 
-/**
- * Unternehmen normalisieren.
- */
 function normalizeCompany(company) {
   if (!company || typeof company !== "object") {
     return null;
@@ -238,9 +250,6 @@ function normalizeCompany(company) {
   };
 }
 
-/**
- * Doppelte Unternehmen entfernen.
- */
 function normalizeCompanies(parsed) {
   let companies = [];
 
@@ -295,9 +304,6 @@ function normalizeCompanies(parsed) {
   return unique.slice(0, MAX_RESULTS);
 }
 
-/**
- * Recherche-Prompt.
- */
 function buildResearchPrompt({
   industry,
   postalCode,
@@ -346,7 +352,7 @@ RECHERCHE-REGELN
 
 1. Suche ausschließlich nach real existierenden Unternehmen.
 2. Nutze öffentlich zugängliche Informationen.
-3. Nutze die Websuche für die Recherche.
+3. Nutze die Websuche, wenn der Anbieter diese unterstützt.
 4. Bevorzuge offizielle Unternehmenswebseiten.
 5. Erfinde niemals Unternehmen.
 6. Erfinde niemals Telefonnummern.
@@ -362,7 +368,7 @@ RECHERCHE-REGELN
 16. Beachte Zusatzkriterien.
 17. Beachte Ausschlusskriterien.
 18. Liefere maximal ${requestedCount} Unternehmen.
-19. Wenn weniger passende Unternehmen gefunden werden, liefere nur die tatsächlich gefundenen Unternehmen.
+19. Wenn weniger passende Unternehmen gefunden werden, liefere nur tatsächlich gefundene Unternehmen.
 20. Jede Firma muss nachvollziehbar recherchiert sein.
 
 AUSGABE
@@ -392,11 +398,222 @@ Format:
 `;
 }
 
-/**
- * Einzelnes Gemini-Modell aufrufen.
- */
-async function callGemini(model, prompt) {
-  const apiKey = process.env.GEMINI_API_KEY;
+/* ---------------------------------------------------------
+   OPENAI-COMPATIBLE PROVIDER
+--------------------------------------------------------- */
+
+async function callOpenAICompatible({
+  provider,
+  model,
+  apiKey,
+  prompt,
+  baseUrl,
+  extraHeaders = {},
+  tools = undefined
+}) {
+  const body = {
+    model,
+
+    messages: [
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+
+    temperature: 0,
+
+    response_format: {
+      type: "json_object"
+    }
+  };
+
+  if (tools) {
+    body.tools = tools;
+  }
+
+  const response = await fetch(
+    `${baseUrl}/chat/completions`,
+    {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+
+        Authorization:
+          `Bearer ${apiKey}`,
+
+        ...extraHeaders
+      },
+
+      body: JSON.stringify(body)
+    }
+  );
+
+  const raw = await response.text();
+
+  let data = null;
+
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      data?.error?.message ||
+      data?.message ||
+      raw ||
+      `HTTP ${response.status}`;
+
+    const error = new Error(message);
+
+    error.status = response.status;
+    error.provider = provider;
+    error.model = model;
+
+    throw error;
+  }
+
+  const text =
+    data?.choices?.[0]?.message?.content ||
+    extractText(data);
+
+  if (!text) {
+    throw new Error(
+      `${provider} ${model} hat keine Textantwort geliefert.`
+    );
+  }
+
+  const parsed =
+    parseJsonFromText(text);
+
+  if (!parsed) {
+    throw new Error(
+      `${provider} ${model} hat kein gültiges JSON geliefert.`
+    );
+  }
+
+  return {
+    provider,
+    model,
+    parsed,
+    data
+  };
+}
+
+/* ---------------------------------------------------------
+   GROQ
+--------------------------------------------------------- */
+
+async function callGroq(
+  model,
+  prompt
+) {
+  const apiKey =
+    process.env.GROQ_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "GROQ_API_KEY ist nicht gesetzt."
+    );
+  }
+
+  return callOpenAICompatible({
+    provider: "groq",
+    model,
+    apiKey,
+    prompt,
+
+    baseUrl:
+      "https://api.groq.com/openai/v1",
+
+    tools:
+      model === "openai/gpt-oss-120b" ||
+      model === "openai/gpt-oss-20b"
+        ? [
+            {
+              type: "browser_search"
+            }
+          ]
+        : undefined
+  });
+}
+
+/* ---------------------------------------------------------
+   OPENROUTER
+--------------------------------------------------------- */
+
+async function callOpenRouter(
+  model,
+  prompt
+) {
+  const apiKey =
+    process.env.OPENROUTER_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "OPENROUTER_API_KEY ist nicht gesetzt."
+    );
+  }
+
+  return callOpenAICompatible({
+    provider: "openrouter",
+    model,
+    apiKey,
+    prompt,
+
+    baseUrl:
+      "https://openrouter.ai/api/v1",
+
+    extraHeaders: {
+      "HTTP-Referer":
+        "https://b2b-ai-crm.vercel.app",
+
+      "X-Title":
+        "B2B AI CRM"
+    }
+  });
+}
+
+/* ---------------------------------------------------------
+   HUGGING FACE
+--------------------------------------------------------- */
+
+async function callHuggingFace(
+  model,
+  prompt
+) {
+  const apiKey =
+    process.env.HF_TOKEN;
+
+  if (!apiKey) {
+    throw new Error(
+      "HF_TOKEN ist nicht gesetzt."
+    );
+  }
+
+  return callOpenAICompatible({
+    provider: "huggingface",
+    model,
+    apiKey,
+    prompt,
+
+    baseUrl:
+      "https://router.huggingface.co/v1"
+  });
+}
+
+/* ---------------------------------------------------------
+   GEMINI
+--------------------------------------------------------- */
+
+async function callGemini(
+  prompt
+) {
+  const apiKey =
+    process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
     throw new Error(
@@ -415,7 +632,8 @@ async function callGemini(model, prompt) {
       },
 
       body: JSON.stringify({
-        model,
+        model: "gemini-3-flash-preview",
+
         input: prompt,
 
         tools: [
@@ -449,158 +667,214 @@ async function callGemini(model, prompt) {
     const error = new Error(message);
 
     error.status = response.status;
-    error.model = model;
+    error.provider = "gemini";
+    error.model = "gemini-3-flash-preview";
 
     throw error;
   }
 
-  const text = extractText(data);
+  const text =
+    extractText(data);
 
   if (!text) {
     throw new Error(
-      `Gemini ${model} hat keine Textantwort geliefert.`
+      "Gemini hat keine Textantwort geliefert."
     );
   }
 
-  const parsed = parseJsonFromText(text);
+  const parsed =
+    parseJsonFromText(text);
 
   if (!parsed) {
     throw new Error(
-      `Gemini ${model} hat kein gültiges JSON geliefert.`
+      "Gemini hat kein gültiges JSON geliefert."
     );
   }
 
   return {
-    model,
-    data,
+    provider: "gemini",
+    model: "gemini-3-flash-preview",
     parsed,
-    text
+    data
   };
 }
 
-/**
- * Mehrere Gemini-Modelle nacheinander.
- *
- * Modell 1 Fehler
- *       ↓
- * Modell 2
- *       ↓
- * Modell 3
- *       ↓
- * usw.
- */
-async function callGeminiWithFallback(prompt) {
-  const attemptedModels = [];
+/* ---------------------------------------------------------
+   MULTI-PROVIDER ROUTER
+--------------------------------------------------------- */
+
+async function callAIWithFallback(
+  prompt
+) {
+  const attempts = [];
   const errors = [];
 
-  for (const model of GEMINI_MODELS) {
-    attemptedModels.push(model);
+  for (const provider of PROVIDERS) {
+    const apiKey =
+      process.env[provider.envKey];
 
-    try {
-      console.log(
-        `[lead-search] Gemini Versuch: ${model}`
-      );
+    if (!apiKey) {
+      continue;
+    }
 
-      const result = await callGemini(
-        model,
-        prompt
-      );
+    for (const model of provider.models) {
+      try {
+        console.log(
+          `[lead-search] Versuch: ${provider.name}/${model}`
+        );
 
-      console.log(
-        `[lead-search] Gemini erfolgreich: ${model}`
-      );
+        let result;
 
-      return {
-        ...result,
-        attemptedModels,
-        errors
-      };
-
-    } catch (error) {
-      const message =
-        error?.message ||
-        "Unbekannter Fehler";
-
-      const status =
-        error?.status ||
-        null;
-
-      console.error(
-        `[lead-search] Gemini ${model} fehlgeschlagen`,
-        {
-          model,
-          status,
-          message
+        if (provider.name === "groq") {
+          result =
+            await callGroq(
+              model,
+              prompt
+            );
         }
-      );
 
-      errors.push({
-        model,
-        status,
-        message
-      });
+        else if (
+          provider.name === "openrouter"
+        ) {
+          result =
+            await callOpenRouter(
+              model,
+              prompt
+            );
+        }
 
-      // NICHT abbrechen.
-      // Nächstes Modell probieren.
+        else if (
+          provider.name === "huggingface"
+        ) {
+          result =
+            await callHuggingFace(
+              model,
+              prompt
+            );
+        }
+
+        else {
+          result =
+            await callGemini(
+              prompt
+            );
+        }
+
+        attempts.push({
+          provider:
+            result.provider,
+
+          model:
+            result.model,
+
+          success:
+            true
+        });
+
+        console.log(
+          `[lead-search] Erfolgreich: ${result.provider}/${result.model}`
+        );
+
+        return {
+          ...result,
+
+          attempts,
+          errors
+        };
+
+      } catch (error) {
+        const entry = {
+          provider:
+            provider.name,
+
+          model:
+            model ||
+            "default",
+
+          status:
+            error?.status ||
+            null,
+
+          message:
+            error?.message ||
+            "Unbekannter Fehler"
+        };
+
+        attempts.push({
+          ...entry,
+          success: false
+        });
+
+        errors.push(entry);
+
+        console.error(
+          "[lead-search] Provider fehlgeschlagen:",
+          entry
+        );
+      }
     }
   }
 
-  const error = new Error(
-    "Alle konfigurierten Gemini-Modelle sind fehlgeschlagen."
+  throw Object.assign(
+    new Error(
+      "Alle konfigurierten KI-Anbieter sind fehlgeschlagen."
+    ),
+    {
+      attempts,
+      errors
+    }
   );
-
-  error.attemptedModels =
-    attemptedModels;
-
-  error.errors =
-    errors;
-
-  throw error;
 }
 
-/**
- * Benutzer anhand seines Bearer-Tokens prüfen.
- */
+/* ---------------------------------------------------------
+   AUTH
+--------------------------------------------------------- */
+
 async function getAuthenticatedUser(req) {
-  const token = getBearerToken(req);
+  const token =
+    getBearerToken(req);
 
   if (!token) {
     return null;
   }
 
   try {
-    const response = await fetch(
-      `${process.env.SUPABASE_URL}/auth/v1/user`,
-      {
-        method: "GET",
+    const response =
+      await fetch(
+        `${process.env.SUPABASE_URL}/auth/v1/user`,
+        {
+          method: "GET",
 
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: process.env.SUPABASE_ANON_KEY
+          headers: {
+            Authorization:
+              `Bearer ${token}`,
+
+            apikey:
+              process.env.SUPABASE_ANON_KEY
+          }
         }
-      }
-    );
+      );
 
     if (!response.ok) {
       return null;
     }
 
-    const user = await response.json();
+    const user =
+      await response.json();
 
-    if (!user?.id) {
-      return null;
-    }
-
-    return user;
+    return user?.id
+      ? user
+      : null;
 
   } catch {
     return null;
   }
 }
 
-/**
- * Bestehendes Unternehmen suchen.
- */
+/* ---------------------------------------------------------
+   COMPANY
+--------------------------------------------------------- */
+
 async function findExistingCompany(
   userId,
   company
@@ -611,7 +885,7 @@ async function findExistingCompany(
 
   try {
     if (company.website) {
-      const websiteResult =
+      const result =
         await supabase
           .from("companies")
           .select("*")
@@ -619,15 +893,15 @@ async function findExistingCompany(
           .eq("website", company.website)
           .limit(1);
 
-      const existingWebsite =
-        firstRow(websiteResult.data);
+      const existing =
+        firstRow(result.data);
 
-      if (existingWebsite) {
-        return existingWebsite;
+      if (existing) {
+        return existing;
       }
     }
 
-    const nameResult =
+    const result =
       await supabase
         .from("companies")
         .select("*")
@@ -635,11 +909,11 @@ async function findExistingCompany(
         .eq("name", company.name)
         .limit(1);
 
-    return firstRow(nameResult.data);
+    return firstRow(result.data);
 
   } catch (error) {
     console.error(
-      "[lead-search] Duplikatprüfung fehlgeschlagen:",
+      "[lead-search] Duplikatprüfung:",
       error
     );
 
@@ -647,9 +921,6 @@ async function findExistingCompany(
   }
 }
 
-/**
- * Unternehmen speichern.
- */
 async function createCompany(
   userId,
   company
@@ -667,58 +938,57 @@ async function createCompany(
     };
   }
 
-  const payload = {
-    user_id: userId,
-
-    name:
-      company.name,
-
-    legal_name:
-      company.legal_name ||
-      company.name ||
-      null,
-
-    phone:
-      company.phone ||
-      null,
-
-    website:
-      company.website ||
-      null,
-
-    street:
-      company.street ||
-      null,
-
-    postal_code:
-      company.postal_code ||
-      null,
-
-    city:
-      company.city ||
-      null,
-
-    country:
-      company.country ||
-      "Deutschland",
-
-    industry:
-      company.industry ||
-      null,
-
-    employees:
-      company.employees ||
-      null,
-
-    description:
-      company.description ||
-      null
-  };
-
   const result =
     await supabase
       .from("companies")
-      .insert(payload);
+      .insert({
+        user_id:
+          userId,
+
+        name:
+          company.name,
+
+        legal_name:
+          company.legal_name ||
+          company.name ||
+          null,
+
+        phone:
+          company.phone ||
+          null,
+
+        website:
+          company.website ||
+          null,
+
+        street:
+          company.street ||
+          null,
+
+        postal_code:
+          company.postal_code ||
+          null,
+
+        city:
+          company.city ||
+          null,
+
+        country:
+          company.country ||
+          "Deutschland",
+
+        industry:
+          company.industry ||
+          null,
+
+        employees:
+          company.employees ||
+          null,
+
+        description:
+          company.description ||
+          null
+      });
 
   if (result.error) {
     throw new Error(
@@ -730,13 +1000,15 @@ async function createCompany(
     company:
       firstRow(result.data),
 
-    created: true
+    created:
+      true
   };
 }
 
-/**
- * Lead erstellen.
- */
+/* ---------------------------------------------------------
+   LEAD
+--------------------------------------------------------- */
+
 async function createLead(
   userId,
   companyId,
@@ -756,7 +1028,9 @@ async function createLead(
         .limit(1);
 
     const existing =
-      firstRow(existingResult.data);
+      firstRow(
+        existingResult.data
+      );
 
     if (existing) {
       return existing;
@@ -766,7 +1040,8 @@ async function createLead(
       await supabase
         .from("leads")
         .insert({
-          user_id: userId,
+          user_id:
+            userId,
 
           company_id:
             companyId,
@@ -778,7 +1053,8 @@ async function createLead(
             "ai_lead_search",
 
           lead_search_id:
-            searchId || null
+            searchId ||
+            null
         });
 
     if (result.error) {
@@ -791,7 +1067,7 @@ async function createLead(
 
   } catch (error) {
     console.error(
-      "[lead-search] Lead konnte nicht erstellt werden:",
+      "[lead-search] Lead:",
       error
     );
 
@@ -799,9 +1075,10 @@ async function createLead(
   }
 }
 
-/**
- * Quelle speichern.
- */
+/* ---------------------------------------------------------
+   SOURCE
+--------------------------------------------------------- */
+
 async function createLeadSource(
   userId,
   companyId,
@@ -816,16 +1093,18 @@ async function createLeadSource(
     await supabase
       .from("lead_sources")
       .insert({
-        user_id: userId,
+        user_id:
+          userId,
 
         company_id:
           companyId,
 
         lead_search_id:
-          searchId || null,
+          searchId ||
+          null,
 
         source_type:
-          "google_search",
+          "ai_search",
 
         source_url:
           company.source_url ||
@@ -835,22 +1114,24 @@ async function createLeadSource(
 
   } catch (error) {
     console.error(
-      "[lead-search] lead_sources Fehler:",
+      "[lead-search] lead_sources:",
       error
     );
   }
 }
 
-/**
- * Haupt-API.
- */
+/* ---------------------------------------------------------
+   HAUPT-API
+--------------------------------------------------------- */
+
 export default async function handler(
   req,
   res
 ) {
   if (req.method !== "POST") {
     res.status(405).json({
-      error: "Method not allowed"
+      error:
+        "Method not allowed"
     });
 
     return;
@@ -859,24 +1140,17 @@ export default async function handler(
   let searchId = null;
 
   try {
-    // -----------------------------------------------------
-    // AUTH
-    // -----------------------------------------------------
-
     const user =
       await getAuthenticatedUser(req);
 
     if (!user?.id) {
       res.status(401).json({
-        error: "Nicht authentifiziert."
+        error:
+          "Nicht authentifiziert."
       });
 
       return;
     }
-
-    // -----------------------------------------------------
-    // INPUT
-    // -----------------------------------------------------
 
     const body =
       req.body || {};
@@ -944,10 +1218,6 @@ export default async function handler(
         body.ausschlusskriterien
       );
 
-    // -----------------------------------------------------
-    // PROMPT
-    // -----------------------------------------------------
-
     const prompt =
       buildResearchPrompt({
         industry,
@@ -960,10 +1230,6 @@ export default async function handler(
         exclusionCriteria
       });
 
-    // -----------------------------------------------------
-    // SEARCH IN SUPABASE ANLEGEN
-    // -----------------------------------------------------
-
     const searchInsert =
       await supabase
         .from("lead_searches")
@@ -972,10 +1238,12 @@ export default async function handler(
             user.id,
 
           industry:
-            industry || null,
+            industry ||
+            null,
 
           postal_code:
-            postalCode || null,
+            postalCode ||
+            null,
 
           radius_km:
             radiusKm,
@@ -1011,111 +1279,38 @@ export default async function handler(
     }
 
     const search =
-      firstRow(searchInsert.data);
+      firstRow(
+        searchInsert.data
+      );
 
     searchId =
       search?.id ||
       null;
 
-    // -----------------------------------------------------
-    // GEMINI FALLBACK
-    // -----------------------------------------------------
+    /* -----------------------------------------------------
+       KI ROUTER
+    ----------------------------------------------------- */
 
-    let geminiResult;
+    let aiResult;
 
     try {
-      geminiResult =
-        await callGeminiWithFallback(
+      aiResult =
+        await callAIWithFallback(
           prompt
         );
 
     } catch (error) {
       console.error(
-        "[lead-search] ALLE GEMINI-MODELLE FEHLGESCHLAGEN"
+        "[lead-search] Alle KI-Anbieter fehlgeschlagen",
+        error
       );
 
-      console.error(
-        JSON.stringify(
-          {
-            attempted_models:
-              error.attemptedModels ||
-              GEMINI_MODELS,
-
-            errors:
-              error.errors ||
-              []
-          },
-          null,
-          2
-        )
-      );
-
-      // Suche als fehlgeschlagen markieren.
-      if (searchId) {
-        try {
-          await supabase
-            .from("lead_searches")
-            .update({
-              status: "failed"
-            })
-            .eq(
-              "id",
-              searchId
-            )
-            .eq(
-              "user_id",
-              user.id
-            );
-        } catch {
-          // Hauptfehler behalten.
-        }
-      }
-
-      const detailedErrors =
-        (error.errors || [])
-          .map((item) => {
-            const status =
-              item.status
-                ? `HTTP ${item.status}`
-                : "ohne HTTP-Status";
-
-            return `${item.model}: ${status} – ${item.message}`;
-          })
-          .join("\n");
-
-      res.status(502).json({
-        error:
-          detailedErrors ||
-          error.message,
-
-        attempted_models:
-          error.attemptedModels ||
-          GEMINI_MODELS,
-
-        model_errors:
-          error.errors ||
-          []
-      });
-
-      return;
-    }
-
-    // -----------------------------------------------------
-    // GEMINI ERGEBNIS VERARBEITEN
-    // -----------------------------------------------------
-
-    const companies =
-      normalizeCompanies(
-        geminiResult.parsed
-      );
-
-    if (!companies.length) {
       if (searchId) {
         await supabase
           .from("lead_searches")
           .update({
             status:
-              "completed"
+              "failed"
           })
           .eq(
             "id",
@@ -1127,6 +1322,43 @@ export default async function handler(
           );
       }
 
+      res.status(502).json({
+        error:
+          error.message,
+
+        attempts:
+          error.attempts ||
+          [],
+
+        provider_errors:
+          error.errors ||
+          []
+      });
+
+      return;
+    }
+
+    const companies =
+      normalizeCompanies(
+        aiResult.parsed
+      );
+
+    if (!companies.length) {
+      await supabase
+        .from("lead_searches")
+        .update({
+          status:
+            "completed"
+        })
+        .eq(
+          "id",
+          searchId
+        )
+        .eq(
+          "user_id",
+          user.id
+        );
+
       res.status(200).json({
         success:
           true,
@@ -1134,11 +1366,11 @@ export default async function handler(
         search_id:
           searchId,
 
-        model:
-          geminiResult.model,
+        provider:
+          aiResult.provider,
 
-        attempted_models:
-          geminiResult.attemptedModels,
+        model:
+          aiResult.model,
 
         companies:
           [],
@@ -1155,10 +1387,6 @@ export default async function handler(
 
       return;
     }
-
-    // -----------------------------------------------------
-    // UNTERNEHMEN UND LEADS SPEICHERN
-    // -----------------------------------------------------
 
     const savedCompanies = [];
     const savedLeads = [];
@@ -1207,43 +1435,26 @@ export default async function handler(
 
       } catch (error) {
         console.error(
-          `[lead-search] Fehler bei Unternehmen "${company.name}":`,
+          `[lead-search] Unternehmen "${company.name}":`,
           error
         );
       }
     }
 
-    // -----------------------------------------------------
-    // SUCHE ABSCHLIESSEN
-    // -----------------------------------------------------
-
-    if (searchId) {
-      try {
-        await supabase
-          .from("lead_searches")
-          .update({
-            status:
-              "completed"
-          })
-          .eq(
-            "id",
-            searchId
-          )
-          .eq(
-            "user_id",
-            user.id
-          );
-      } catch (error) {
-        console.error(
-          "[lead-search] Status konnte nicht aktualisiert werden:",
-          error
-        );
-      }
-    }
-
-    // -----------------------------------------------------
-    // ERFOLGSANTWORT
-    // -----------------------------------------------------
+    await supabase
+      .from("lead_searches")
+      .update({
+        status:
+          "completed"
+      })
+      .eq(
+        "id",
+        searchId
+      )
+      .eq(
+        "user_id",
+        user.id
+      );
 
     res.status(200).json({
       success:
@@ -1252,11 +1463,11 @@ export default async function handler(
       search_id:
         searchId,
 
-      model:
-        geminiResult.model,
+      provider:
+        aiResult.provider,
 
-      attempted_models:
-        geminiResult.attemptedModels,
+      model:
+        aiResult.model,
 
       companies:
         savedCompanies,
@@ -1269,6 +1480,9 @@ export default async function handler(
 
       requested_count:
         requestedCount,
+
+      attempts:
+        aiResult.attempts,
 
       message:
         `${savedCompanies.length} Unternehmen wurden recherchiert und im CRM gespeichert.`
@@ -1293,7 +1507,7 @@ export default async function handler(
             searchId
           );
       } catch {
-        // Nichts weiter tun.
+        // Hauptfehler behalten.
       }
     }
 
