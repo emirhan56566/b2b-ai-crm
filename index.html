@@ -1,0 +1,2091 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B2B AI CRM</title>
+
+<style>
+:root {
+    --bg: #f5f7fb;
+    --sidebar: #101828;
+    --sidebar-hover: #1d2939;
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --text: #101828;
+    --muted: #667085;
+    --border: #e4e7ec;
+    --white: #ffffff;
+    --green: #12b76a;
+    --orange: #f79009;
+    --red: #f04438;
+    --purple: #7f56d9;
+    --shadow: 0 4px 16px rgba(16,24,40,.06);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+}
+
+/* APP */
+
+.app {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* SIDEBAR */
+
+.sidebar {
+    width: 250px;
+    background: var(--sidebar);
+    color: white;
+    padding: 22px 14px;
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+}
+
+.logo {
+    font-size: 21px;
+    font-weight: 800;
+    padding: 0 12px 30px;
+}
+
+.logo span {
+    color: #60a5fa;
+}
+
+.nav-title {
+    color: #98a2b3;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    padding: 0 12px 9px;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 12px;
+    margin-bottom: 4px;
+    border-radius: 8px;
+    color: #d0d5dd;
+    cursor: pointer;
+    font-size: 14px;
+    transition: .2s;
+}
+
+.nav-item:hover,
+.nav-item.active {
+    background: var(--sidebar-hover);
+    color: white;
+}
+
+.nav-icon {
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-bottom {
+    position: absolute;
+    bottom: 20px;
+    left: 14px;
+    right: 14px;
+}
+
+/* MAIN */
+
+.main {
+    margin-left: 250px;
+    width: calc(100% - 250px);
+}
+
+/* TOPBAR */
+
+.topbar {
+    height: 70px;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 30px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.top-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #f2f4f7;
+    padding: 9px 14px;
+    border-radius: 8px;
+    width: 330px;
+}
+
+.top-search input {
+    border: 0;
+    outline: none;
+    background: transparent;
+    width: 100%;
+    font-size: 14px;
+}
+
+.user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #dbeafe;
+    color: #1d4ed8;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+}
+
+/* CONTENT */
+
+.content {
+    padding: 30px;
+    max-width: 1600px;
+}
+
+.page {
+    display: none;
+}
+
+.page.active {
+    display: block;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.page-header h1 {
+    font-size: 27px;
+    margin-bottom: 5px;
+}
+
+.page-header p {
+    color: var(--muted);
+    font-size: 14px;
+}
+
+/* BUTTONS */
+
+.btn {
+    border: 0;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn-primary {
+    background: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: var(--primary-dark);
+}
+
+.btn-secondary {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text);
+}
+
+/* CARDS */
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.card-title {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.card-number {
+    font-size: 29px;
+    font-weight: 750;
+}
+
+.card-change {
+    font-size: 12px;
+    margin-top: 9px;
+}
+
+.green {
+    color: var(--green);
+}
+
+.orange {
+    color: var(--orange);
+}
+
+.red {
+    color: var(--red);
+}
+
+/* GRID */
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 20px;
+}
+
+.panel {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.panel-header h3 {
+    font-size: 16px;
+}
+
+.panel-body {
+    padding: 20px;
+}
+
+/* TABLE */
+
+.table-wrap {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #f9fafb;
+    color: #667085;
+    font-size: 12px;
+    text-align: left;
+    padding: 13px 16px;
+    font-weight: 650;
+}
+
+td {
+    padding: 15px 16px;
+    border-top: 1px solid var(--border);
+    font-size: 13px;
+}
+
+tr:hover td {
+    background: #fafcff;
+}
+
+.company {
+    font-weight: 650;
+}
+
+.company-sub {
+    color: var(--muted);
+    font-size: 12px;
+    margin-top: 3px;
+}
+
+/* BADGES */
+
+.badge {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.badge-new {
+    background: #eff8ff;
+    color: #175cd3;
+}
+
+.badge-contact {
+    background: #fff6ed;
+    color: #c4320a;
+}
+
+.badge-qualified {
+    background: #ecfdf3;
+    color: #027a48;
+}
+
+.badge-callback {
+    background: #f4f3ff;
+    color: #6941c6;
+}
+
+/* LEAD SEARCH */
+
+.ai-box {
+    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+    border: 1px solid #dbeafe;
+    border-radius: 14px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.ai-title {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 7px;
+}
+
+.ai-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: #2563eb;
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 21px;
+}
+
+.ai-title h2 {
+    font-size: 20px;
+}
+
+.ai-box p {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 22px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.form-group label {
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 13px;
+    outline: none;
+    background: white;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    border-color: var(--primary);
+}
+
+.full {
+    grid-column: 1 / -1;
+}
+
+.search-actions {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+}
+
+/* PIPELINE */
+
+.pipeline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+
+.pipeline-column {
+    background: #f2f4f7;
+    border-radius: 10px;
+    min-height: 400px;
+    padding: 12px;
+}
+
+.pipeline-title {
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.deal {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 13px;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.04);
+}
+
+.deal-company {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.deal-value {
+    color: var(--green);
+    font-weight: 700;
+    margin-top: 8px;
+    font-size: 13px;
+}
+
+.deal-info {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 5px;
+}
+
+/* ACTIVITY */
+
+.activity {
+    display: flex;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.activity:last-child {
+    border-bottom: 0;
+}
+
+.activity-icon {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: #eff6ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.activity-main {
+    font-size: 13px;
+}
+
+.activity-time {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 3px;
+}
+
+/* TOAST */
+
+.toast {
+    position: fixed;
+    bottom: 25px;
+    right: 25px;
+    background: #101828;
+    color: white;
+    padding: 13px 18px;
+    border-radius: 9px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    display: none;
+    z-index: 999;
+}
+
+/* MODAL */
+
+.modal-bg {
+    position: fixed;
+    inset: 0;
+    background: rgba(16,24,40,.45);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 500;
+}
+
+.modal {
+    background: white;
+    width: 500px;
+    max-width: calc(100% - 30px);
+    border-radius: 14px;
+    padding: 25px;
+}
+
+.modal h2 {
+    margin-bottom: 20px;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* MOBILE */
+
+.mobile-menu {
+    display: none;
+}
+
+@media(max-width: 1100px) {
+    .cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .pipeline {
+        overflow-x: auto;
+        grid-template-columns: repeat(5, 240px);
+    }
+}
+
+@media(max-width: 750px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: .25s;
+    }
+
+    .sidebar.open {
+        transform: translateX(0);
+    }
+
+    .main {
+        margin-left: 0;
+        width: 100%;
+    }
+
+    .mobile-menu {
+        display: block;
+        border: 0;
+        background: transparent;
+        font-size: 22px;
+        cursor: pointer;
+    }
+
+    .topbar {
+        padding: 0 15px;
+    }
+
+    .top-search {
+        display: none;
+    }
+
+    .content {
+        padding: 18px;
+    }
+
+    .cards {
+        grid-template-columns: 1fr;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .full {
+        grid-column: auto;
+    }
+
+    .page-header {
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .page-header h1 {
+        font-size: 22px;
+    }
+
+    .table-wrap {
+        overflow-x: auto;
+    }
+
+    table {
+        min-width: 800px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<!-- SIDEBAR -->
+
+<aside class="sidebar" id="sidebar">
+
+    <div class="logo">
+        B2B<span>AI</span> CRM
+    </div>
+
+    <div class="nav-title">Übersicht</div>
+
+    <div class="nav-item active" onclick="showPage('dashboard', this)">
+        <span class="nav-icon">▦</span>
+        Dashboard
+    </div>
+
+    <div class="nav-title" style="margin-top:22px;">Vertrieb</div>
+
+    <div class="nav-item" onclick="showPage('leadsearch', this)">
+        <span class="nav-icon">✦</span>
+        KI Leadssuche
+    </div>
+
+    <div class="nav-item" onclick="showPage('leads', this)">
+        <span class="nav-icon">◉</span>
+        Leads
+    </div>
+
+    <div class="nav-item" onclick="showPage('contacts', this)">
+        <span class="nav-icon">♙</span>
+        Kontakte
+    </div>
+
+    <div class="nav-item" onclick="showPage('calls', this)">
+        <span class="nav-icon">☎</span>
+        Anrufe
+    </div>
+
+    <div class="nav-item" onclick="showPage('tasks', this)">
+        <span class="nav-icon">✓</span>
+        Aufgaben
+    </div>
+
+    <div class="nav-item" onclick="showPage('pipeline', this)">
+        <span class="nav-icon">▥</span>
+        Pipeline
+    </div>
+
+    <div class="nav-title" style="margin-top:22px;">System</div>
+
+    <div class="nav-item" onclick="showPage('settings', this)">
+        <span class="nav-icon">⚙</span>
+        Einstellungen
+    </div>
+
+    <div class="sidebar-bottom">
+        <div class="nav-item">
+            <div class="avatar" style="width:32px;height:32px;background:#344054;color:white;">
+                M
+            </div>
+            <div>
+                <div style="font-size:13px;color:white;">Max Mustermann</div>
+                <div style="font-size:11px;color:#98a2b3;">Admin</div>
+            </div>
+        </div>
+    </div>
+
+</aside>
+
+<!-- MAIN -->
+
+<main class="main">
+
+<header class="topbar">
+
+    <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+
+    <div class="top-search">
+        🔎
+        <input
+            type="text"
+            placeholder="CRM durchsuchen..."
+            oninput="globalSearch(this.value)"
+        >
+    </div>
+
+    <div class="user">
+        <span style="font-size:20px;">🔔</span>
+        <div class="avatar">M</div>
+    </div>
+
+</header>
+
+<div class="content">
+
+<!-- DASHBOARD -->
+
+<section id="dashboard" class="page active">
+
+    <div class="page-header">
+        <div>
+            <h1>Dashboard</h1>
+            <p>Willkommen zurück. Hier ist dein Vertriebsüberblick.</p>
+        </div>
+
+        <button class="btn btn-primary" onclick="showPage('leadsearch')">
+            ✦ Neue Leads suchen
+        </button>
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <div class="card-title">Leads gesamt</div>
+            <div class="card-number" id="dashboardLeads">127</div>
+            <div class="card-change green">↑ 18 diese Woche</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Heute zu kontaktieren</div>
+            <div class="card-number">14</div>
+            <div class="card-change orange">7 Rückrufe fällig</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Termine</div>
+            <div class="card-number">8</div>
+            <div class="card-change green">↑ 3 diese Woche</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Pipeline</div>
+            <div class="card-number">€84.500</div>
+            <div class="card-change green">12 offene Deals</div>
+        </div>
+
+    </div>
+
+    <div class="grid-2">
+
+        <div class="panel">
+            <div class="panel-header">
+                <h3>Letzte Leads</h3>
+                <button class="btn btn-secondary" onclick="showPage('leads')">
+                    Alle anzeigen
+                </button>
+            </div>
+
+            <div class="panel-body" style="padding:0;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Unternehmen</th>
+                            <th>Ort</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="dashboardLeadTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="panel">
+
+            <div class="panel-header">
+                <h3>Aktivitäten</h3>
+            </div>
+
+            <div class="panel-body">
+
+                <div class="activity">
+                    <div class="activity-icon">☎</div>
+                    <div class="activity-main">
+                        <b>Anruf abgeschlossen</b><br>
+                        Müller Industrie GmbH
+                        <div class="activity-time">vor 12 Minuten</div>
+                    </div>
+                </div>
+
+                <div class="activity">
+                    <div class="activity-icon">📅</div>
+                    <div class="activity-main">
+                        <b>Termin vereinbart</b><br>
+                        Schneider Technik GmbH
+                        <div class="activity-time">vor 45 Minuten</div>
+                    </div>
+                </div>
+
+                <div class="activity">
+                    <div class="activity-icon">✦</div>
+                    <div class="activity-main">
+                        <b>23 neue Leads gefunden</b><br>
+                        KI Leadssuche
+                        <div class="activity-time">vor 2 Stunden</div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- KI LEAD SEARCH -->
+
+<section id="leadsearch" class="page">
+
+    <div class="page-header">
+        <div>
+            <h1>KI Leadssuche</h1>
+            <p>Finde passende B2B-Unternehmen anhand deiner Kriterien.</p>
+        </div>
+    </div>
+
+    <div class="ai-box">
+
+        <div class="ai-title">
+
+            <div class="ai-icon">✦</div>
+
+            <div>
+                <h2>AI Lead Research</h2>
+            </div>
+
+        </div>
+
+        <p>
+            Definiere deinen Zielkunden. Die spätere KI recherchiert Unternehmen,
+            prüft die Kriterien und übernimmt passende Leads automatisch ins CRM.
+        </p>
+
+        <div class="form-grid">
+
+            <div class="form-group">
+                <label>Branche</label>
+                <input id="industry" placeholder="z. B. Maschinenbau">
+            </div>
+
+            <div class="form-group">
+                <label>Postleitzahl</label>
+                <input id="postal" placeholder="z. B. 56068">
+            </div>
+
+            <div class="form-group">
+                <label>Radius</label>
+                <select id="radius">
+                    <option>10 km</option>
+                    <option>25 km</option>
+                    <option selected>50 km</option>
+                    <option>100 km</option>
+                    <option>200 km</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Mitarbeiter von</label>
+                <input id="employeesMin" type="number" placeholder="z. B. 10">
+            </div>
+
+            <div class="form-group">
+                <label>Mitarbeiter bis</label>
+                <input id="employeesMax" type="number" placeholder="z. B. 250">
+            </div>
+
+            <div class="form-group">
+                <label>Anzahl Leads</label>
+                <select id="leadCount">
+                    <option>10</option>
+                    <option>25</option>
+                    <option selected>50</option>
+                    <option>100</option>
+                </select>
+            </div>
+
+            <div class="form-group full">
+                <label>Zusätzliche Kriterien</label>
+                <textarea
+                    id="additionalCriteria"
+                    rows="3"
+                    placeholder="Welche Unternehmen möchtest du besonders finden?"
+                ></textarea>
+            </div>
+
+            <div class="form-group full">
+                <label>Ausschlusskriterien</label>
+                <textarea
+                    id="excludeCriteria"
+                    rows="2"
+                    placeholder="Welche Unternehmen sollen ausgeschlossen werden?"
+                ></textarea>
+            </div>
+
+        </div>
+
+        <div class="search-actions">
+
+            <button
+                class="btn btn-primary"
+                onclick="startLeadSearch()"
+                id="searchButton"
+            >
+                ✦ KI-Suche starten
+            </button>
+
+            <button class="btn btn-secondary" onclick="resetSearch()">
+                Zurücksetzen
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="panel">
+
+        <div class="panel-header">
+            <h3>Letzte Suchvorgänge</h3>
+        </div>
+
+        <div class="panel-body">
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Suchanfrage</th>
+                        <th>Gebiet</th>
+                        <th>Ergebnisse</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+
+                <tbody id="searchHistory">
+
+                    <tr>
+                        <td>Maschinenbau</td>
+                        <td>56068 + 50 km</td>
+                        <td>50</td>
+                        <td><span class="badge badge-qualified">Abgeschlossen</span></td>
+                    </tr>
+
+                    <tr>
+                        <td>IT-Dienstleister</td>
+                        <td>56068 + 100 km</td>
+                        <td>37</td>
+                        <td><span class="badge badge-qualified">Abgeschlossen</span></td>
+                    </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- LEADS -->
+
+<section id="leads" class="page">
+
+    <div class="page-header">
+
+        <div>
+            <h1>Leads</h1>
+            <p>Alle Unternehmen und Verkaufschancen.</p>
+        </div>
+
+        <button class="btn btn-primary" onclick="openLeadModal()">
+            + Lead hinzufügen
+        </button>
+
+    </div>
+
+    <div class="panel" style="margin-bottom:18px;">
+
+        <div class="panel-body">
+
+            <div style="display:flex;gap:10px;">
+
+                <input
+                    id="leadFilter"
+                    oninput="filterLeads(this.value)"
+                    placeholder="Unternehmen, Ort oder Branche suchen..."
+                    style="flex:1;padding:11px;border:1px solid #d0d5dd;border-radius:8px;"
+                >
+
+                <select
+                    onchange="filterStatus(this.value)"
+                    style="padding:11px;border:1px solid #d0d5dd;border-radius:8px;"
+                >
+                    <option value="">Alle Status</option>
+                    <option value="Neu">Neu</option>
+                    <option value="Zu kontaktieren">Zu kontaktieren</option>
+                    <option value="Qualifiziert">Qualifiziert</option>
+                    <option value="Rückruf">Rückruf</option>
+                </select>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Unternehmen</th>
+                    <th>Telefon</th>
+                    <th>Adresse</th>
+                    <th>Branche</th>
+                    <th>Status</th>
+                    <th>Aktion</th>
+                </tr>
+            </thead>
+
+            <tbody id="leadsTable"></tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<!-- CONTACTS -->
+
+<section id="contacts" class="page">
+
+    <div class="page-header">
+        <div>
+            <h1>Kontakte</h1>
+            <p>Ansprechpartner deiner Unternehmen.</p>
+        </div>
+
+        <button class="btn btn-primary">
+            + Kontakt hinzufügen
+        </button>
+    </div>
+
+    <div class="table-wrap">
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Unternehmen</th>
+                    <th>Position</th>
+                    <th>E-Mail</th>
+                    <th>Telefon</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <tr>
+                    <td><b>Thomas Schneider</b></td>
+                    <td>Schneider Technik GmbH</td>
+                    <td>Geschäftsführer</td>
+                    <td>t.schneider@example.de</td>
+                    <td>0261 123456</td>
+                </tr>
+
+                <tr>
+                    <td><b>Anna Müller</b></td>
+                    <td>Müller Industrie GmbH</td>
+                    <td>Einkaufsleitung</td>
+                    <td>a.mueller@example.de</td>
+                    <td>0261 987654</td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</section>
+
+
+<!-- CALLS -->
+
+<section id="calls" class="page">
+
+    <div class="page-header">
+
+        <div>
+            <h1>Anrufe</h1>
+            <p>Telefonaktivitäten und Gesprächsergebnisse.</p>
+        </div>
+
+        <button class="btn btn-primary">
+            ☎ Anruf starten
+        </button>
+
+    </div>
+
+    <div class="cards">
+
+        <div class="card">
+            <div class="card-title">Anrufe heute</div>
+            <div class="card-number">32</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Erreicht</div>
+            <div class="card-number">18</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Rückrufe</div>
+            <div class="card-number">7</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Termine</div>
+            <div class="card-number">4</div>
+        </div>
+
+    </div>
+
+    <div class="panel">
+
+        <div class="panel-header">
+            <h3>Letzte Anrufe</h3>
+        </div>
+
+        <div class="panel-body">
+
+            <div class="activity">
+                <div class="activity-icon">☎</div>
+                <div class="activity-main">
+                    <b>Müller Industrie GmbH</b><br>
+                    Erreicht – Interesse vorhanden
+                    <div class="activity-time">Heute, 20:31</div>
+                </div>
+            </div>
+
+            <div class="activity">
+                <div class="activity-icon">☎</div>
+                <div class="activity-main">
+                    <b>Schneider Technik GmbH</b><br>
+                    Rückruf vereinbart
+                    <div class="activity-time">Heute, 18:12</div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- TASKS -->
+
+<section id="tasks" class="page">
+
+    <div class="page-header">
+
+        <div>
+            <h1>Aufgaben</h1>
+            <p>Deine offenen Rückrufe und Follow-ups.</p>
+        </div>
+
+        <button class="btn btn-primary">
+            + Aufgabe
+        </button>
+
+    </div>
+
+    <div class="panel">
+
+        <div class="panel-body">
+
+            <div class="activity">
+                <div class="activity-icon">📞</div>
+                <div class="activity-main">
+                    <b>Rückruf bei Müller Industrie GmbH</b>
+                    <div class="activity-time">Heute · 14:30</div>
+                </div>
+                <span class="badge badge-callback">Fällig</span>
+            </div>
+
+            <div class="activity">
+                <div class="activity-icon">📅</div>
+                <div class="activity-main">
+                    <b>Angebot vorbereiten – Schneider Technik</b>
+                    <div class="activity-time">Morgen · 09:00</div>
+                </div>
+                <span class="badge badge-new">Offen</span>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- PIPELINE -->
+
+<section id="pipeline" class="page">
+
+    <div class="page-header">
+
+        <div>
+            <h1>Sales Pipeline</h1>
+            <p>Verfolge deine Deals vom Erstkontakt bis zum Abschluss.</p>
+        </div>
+
+        <button class="btn btn-primary">
+            + Deal
+        </button>
+
+    </div>
+
+    <div class="pipeline">
+
+        <div class="pipeline-column">
+
+            <div class="pipeline-title">
+                Neuer Lead
+            </div>
+
+            <div class="deal">
+                <div class="deal-company">Müller Industrie GmbH</div>
+                <div class="deal-value">€8.500</div>
+                <div class="deal-info">Erstkontakt</div>
+            </div>
+
+            <div class="deal">
+                <div class="deal-company">ABC Maschinenbau</div>
+                <div class="deal-value">€5.200</div>
+                <div class="deal-info">Neu</div>
+            </div>
+
+        </div>
+
+        <div class="pipeline-column">
+
+            <div class="pipeline-title">
+                Kontakt
+            </div>
+
+            <div class="deal">
+                <div class="deal-company">Schneider Technik GmbH</div>
+                <div class="deal-value">€12.000</div>
+                <div class="deal-info">Gespräch läuft</div>
+            </div>
+
+        </div>
+
+        <div class="pipeline-column">
+
+            <div class="pipeline-title">
+                Qualifiziert
+            </div>
+
+            <div class="deal">
+                <div class="deal-company">Rheinland Automation</div>
+                <div class="deal-value">€18.500</div>
+                <div class="deal-info">Termin gehabt</div>
+            </div>
+
+        </div>
+
+        <div class="pipeline-column">
+
+            <div class="pipeline-title">
+                Angebot
+            </div>
+
+            <div class="deal">
+                <div class="deal-company">Tech Solutions GmbH</div>
+                <div class="deal-value">€24.000</div>
+                <div class="deal-info">Angebot versendet</div>
+            </div>
+
+        </div>
+
+        <div class="pipeline-column">
+
+            <div class="pipeline-title">
+                Abschluss
+            </div>
+
+            <div class="deal">
+                <div class="deal-company">Industrie Partner KG</div>
+                <div class="deal-value">€16.300</div>
+                <div class="deal-info">Verhandlung</div>
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<!-- SETTINGS -->
+
+<section id="settings" class="page">
+
+    <div class="page-header">
+
+        <div>
+            <h1>Einstellungen</h1>
+            <p>CRM und KI-Konfiguration.</p>
+        </div>
+
+    </div>
+
+    <div class="grid-2">
+
+        <div class="panel">
+
+            <div class="panel-header">
+                <h3>KI Leadssuche</h3>
+            </div>
+
+            <div class="panel-body">
+
+                <div class="form-group">
+                    <label>KI-System</label>
+
+                    <select>
+                        <option>OpenAI</option>
+                        <option>Anthropic</option>
+                        <option>Google</option>
+                    </select>
+                </div>
+
+                <br>
+
+                <div class="form-group">
+
+                    <label>Lead-Recherche Prompt</label>
+
+                    <textarea rows="10">
+Du bist ein B2B Lead Research Agent.
+
+Finde Unternehmen anhand der vom Benutzer definierten Kriterien.
+
+Prüfe:
+- Unternehmen existiert tatsächlich
+- Branche passt
+- geografische Kriterien passen
+- Unternehmensgröße passt
+- keine Duplikate
+- keine erfundenen Kontaktdaten
+
+Gib strukturierte Unternehmensdaten zurück.
+                    </textarea>
+
+                </div>
+
+                <br>
+
+                <button class="btn btn-primary" onclick="showToast('Einstellungen gespeichert')">
+                    Speichern
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="panel">
+
+            <div class="panel-header">
+                <h3>CRM Einstellungen</h3>
+            </div>
+
+            <div class="panel-body">
+
+                <div class="form-group">
+                    <label>Standard Lead-Status</label>
+
+                    <select>
+                        <option>Neu</option>
+                        <option>Zu kontaktieren</option>
+                    </select>
+                </div>
+
+                <br>
+
+                <div class="form-group">
+                    <label>Automatische Follow-ups</label>
+
+                    <select>
+                        <option>Aktiviert</option>
+                        <option>Deaktiviert</option>
+                    </select>
+                </div>
+
+                <br>
+
+                <div class="form-group">
+                    <label>Zeitzone</label>
+
+                    <select>
+                        <option>Europe/Berlin</option>
+                    </select>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+</div>
+
+</main>
+
+</div>
+
+
+<!-- LEAD MODAL -->
+
+<div class="modal-bg" id="leadModal">
+
+    <div class="modal">
+
+        <h2>Neuen Lead hinzufügen</h2>
+
+        <div class="form-group">
+            <label>Unternehmen</label>
+            <input id="newCompany" placeholder="Unternehmen">
+        </div>
+
+        <br>
+
+        <div class="form-group">
+            <label>Telefon</label>
+            <input id="newPhone" placeholder="Telefonnummer">
+        </div>
+
+        <br>
+
+        <div class="form-group">
+            <label>Adresse</label>
+            <input id="newAddress" placeholder="Adresse">
+        </div>
+
+        <br>
+
+        <div class="form-group">
+            <label>Branche</label>
+            <input id="newIndustry" placeholder="Branche">
+        </div>
+
+        <div class="modal-actions">
+
+            <button class="btn btn-secondary" onclick="closeLeadModal()">
+                Abbrechen
+            </button>
+
+            <button class="btn btn-primary" onclick="addLead()">
+                Lead erstellen
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+
+/* =========================
+   DEMO DATA
+========================= */
+
+let leads = [
+
+    {
+        company: "Müller Industrie GmbH",
+        phone: "0261 123456",
+        address: "56068 Koblenz",
+        industry: "Maschinenbau",
+        status: "Qualifiziert"
+    },
+
+    {
+        company: "Schneider Technik GmbH",
+        phone: "0261 654321",
+        address: "56112 Lahnstein",
+        industry: "Automatisierung",
+        status: "Rückruf"
+    },
+
+    {
+        company: "Rheinland Automation GmbH",
+        phone: "02602 445566",
+        address: "56410 Montabaur",
+        industry: "Industrieautomation",
+        status: "Zu kontaktieren"
+    },
+
+    {
+        company: "ABC Maschinenbau KG",
+        phone: "0261 778899",
+        address: "56218 Mülheim-Kärlich",
+        industry: "Maschinenbau",
+        status: "Neu"
+    },
+
+    {
+        company: "Tech Solutions GmbH",
+        phone: "0261 445566",
+        address: "56070 Koblenz",
+        industry: "IT",
+        status: "Neu"
+    }
+
+];
+
+
+/* =========================
+   NAVIGATION
+========================= */
+
+function showPage(pageId, element) {
+
+    document.querySelectorAll(".page").forEach(page => {
+        page.classList.remove("active");
+    });
+
+    const page = document.getElementById(pageId);
+
+    if(page) {
+        page.classList.add("active");
+    }
+
+    document.querySelectorAll(".nav-item").forEach(item => {
+        item.classList.remove("active");
+    });
+
+    if(element) {
+        element.classList.add("active");
+    }
+
+    document.getElementById("sidebar").classList.remove("open");
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+}
+
+
+/* =========================
+   MOBILE SIDEBAR
+========================= */
+
+function toggleSidebar() {
+
+    document
+        .getElementById("sidebar")
+        .classList.toggle("open");
+
+}
+
+
+/* =========================
+   STATUS BADGE
+========================= */
+
+function statusBadge(status) {
+
+    let cls = "badge-new";
+
+    if(status === "Qualifiziert") {
+        cls = "badge-qualified";
+    }
+
+    if(status === "Rückruf") {
+        cls = "badge-callback";
+    }
+
+    if(status === "Zu kontaktieren") {
+        cls = "badge-contact";
+    }
+
+    return `<span class="badge ${cls}">${status}</span>`;
+}
+
+
+/* =========================
+   RENDER LEADS
+========================= */
+
+function renderLeads(data = leads) {
+
+    const table = document.getElementById("leadsTable");
+
+    if(!table) return;
+
+    table.innerHTML = "";
+
+    data.forEach((lead, index) => {
+
+        table.innerHTML += `
+
+        <tr>
+
+            <td>
+                <div class="company">${lead.company}</div>
+                <div class="company-sub">B2B Unternehmen</div>
+            </td>
+
+            <td>${lead.phone}</td>
+
+            <td>${lead.address}</td>
+
+            <td>${lead.industry}</td>
+
+            <td>${statusBadge(lead.status)}</td>
+
+            <td>
+
+                <button
+                    class="btn btn-secondary"
+                    style="padding:6px 10px;"
+                    onclick="callLead(${index})"
+                >
+                    ☎
+                </button>
+
+            </td>
+
+        </tr>
+
+        `;
+    });
+
+}
+
+
+/* =========================
+   DASHBOARD LEADS
+========================= */
+
+function renderDashboard() {
+
+    const table = document.getElementById("dashboardLeadTable");
+
+    if(!table) return;
+
+    table.innerHTML = "";
+
+    leads.slice(0,5).forEach(lead => {
+
+        table.innerHTML += `
+
+        <tr>
+
+            <td>
+                <div class="company">${lead.company}</div>
+            </td>
+
+            <td>${lead.address}</td>
+
+            <td>${statusBadge(lead.status)}</td>
+
+        </tr>
+
+        `;
+    });
+
+    document.getElementById("dashboardLeads").innerText = leads.length;
+
+}
+
+
+/* =========================
+   SEARCH
+========================= */
+
+function startLeadSearch() {
+
+    const button = document.getElementById("searchButton");
+
+    const industry =
+        document.getElementById("industry").value || "B2B";
+
+    const postal =
+        document.getElementById("postal").value || "Deutschland";
+
+    const radius =
+        document.getElementById("radius").value;
+
+    const count =
+        document.getElementById("leadCount").value;
+
+    button.disabled = true;
+
+    button.innerHTML = "⏳ KI recherchiert...";
+
+    showToast("KI Lead-Recherche gestartet");
+
+    /*
+        HIER KOMMT SPÄTER DIE ECHTE API:
+
+        POST /api/lead-search
+
+        {
+            industry,
+            postal,
+            radius,
+            count,
+            employeesMin,
+            employeesMax,
+            additionalCriteria,
+            excludeCriteria
+        }
+
+        Die API ruft dann die KI und Web-Recherche auf.
+    */
+
+    setTimeout(() => {
+
+        const demoLead = {
+
+            company: `${industry} Beispiel GmbH`,
+
+            phone: "0261 000000",
+
+            address: `${postal} Deutschland`,
+
+            industry: industry,
+
+            status: "Neu"
+
+        };
+
+        leads.unshift(demoLead);
+
+        renderLeads();
+
+        renderDashboard();
+
+        button.disabled = false;
+
+        button.innerHTML = "✦ KI-Suche starten";
+
+        showToast(
+            `${count} Leads werden nach der API-Anbindung recherchiert.`
+        );
+
+        addSearchHistory(industry, postal, radius);
+
+    }, 1600);
+
+}
+
+
+/* =========================
+   SEARCH HISTORY
+========================= */
+
+function addSearchHistory(industry, postal, radius) {
+
+    const table =
+        document.getElementById("searchHistory");
+
+    table.insertAdjacentHTML(
+        "afterbegin",
+
+        `
+
+        <tr>
+
+            <td>${industry}</td>
+
+            <td>
+                ${postal} + ${radius}
+            </td>
+
+            <td>
+                –
+            </td>
+
+            <td>
+                <span class="badge badge-contact">
+                    Wird verarbeitet
+                </span>
+            </td>
+
+        </tr>
+
+        `
+    );
+
+}
+
+
+/* =========================
+   RESET SEARCH
+========================= */
+
+function resetSearch() {
+
+    document.getElementById("industry").value = "";
+    document.getElementById("postal").value = "";
+    document.getElementById("employeesMin").value = "";
+    document.getElementById("employeesMax").value = "";
+    document.getElementById("additionalCriteria").value = "";
+    document.getElementById("excludeCriteria").value = "";
+
+}
+
+
+/* =========================
+   FILTER LEADS
+========================= */
+
+function filterLeads(value) {
+
+    value = value.toLowerCase();
+
+    const filtered = leads.filter(lead =>
+
+        lead.company.toLowerCase().includes(value) ||
+        lead.address.toLowerCase().includes(value) ||
+        lead.industry.toLowerCase().includes(value)
+
+    );
+
+    renderLeads(filtered);
+
+}
+
+
+/* =========================
+   FILTER STATUS
+========================= */
+
+function filterStatus(status) {
+
+    if(!status) {
+
+        renderLeads();
+
+        return;
+
+    }
+
+    renderLeads(
+        leads.filter(
+            lead => lead.status === status
+        )
+    );
+
+}
+
+
+/* =========================
+   ADD LEAD
+========================= */
+
+function openLeadModal() {
+
+    document.getElementById("leadModal").style.display = "flex";
+
+}
+
+
+function closeLeadModal() {
+
+    document.getElementById("leadModal").style.display = "none";
+
+}
+
+
+function addLead() {
+
+    const company =
+        document.getElementById("newCompany").value;
+
+    if(!company) {
+
+        showToast("Bitte Unternehmen eingeben.");
+
+        return;
+
+    }
+
+    leads.unshift({
+
+        company,
+
+        phone:
+            document.getElementById("newPhone").value
+            || "–",
+
+        address:
+            document.getElementById("newAddress").value
+            || "–",
+
+        industry:
+            document.getElementById("newIndustry").value
+            || "–",
+
+        status: "Neu"
+
+    });
+
+    renderLeads();
+
+    renderDashboard();
+
+    closeLeadModal();
+
+    showToast("Lead wurde erstellt.");
+
+    document.getElementById("newCompany").value = "";
+    document.getElementById("newPhone").value = "";
+    document.getElementById("newAddress").value = "";
+    document.getElementById("newIndustry").value = "";
+
+}
+
+
+/* =========================
+   CALL
+========================= */
+
+function callLead(index) {
+
+    const lead = leads[index];
+
+    showToast(
+        `Anruf bei ${lead.company}: ${lead.phone}`
+    );
+
+}
+
+
+/* =========================
+   GLOBAL SEARCH
+========================= */
+
+function globalSearch(value) {
+
+    if(!value) return;
+
+    const found = leads.filter(lead =>
+
+        lead.company
+            .toLowerCase()
+            .includes(value.toLowerCase())
+
+    );
+
+    if(found.length > 0) {
+
+        showPage("leads");
+
+        document.getElementById("leadFilter").value = value;
+
+        filterLeads(value);
+
+    }
+
+}
+
+
+/* =========================
+   TOAST
+========================= */
+
+function showToast(message) {
+
+    const toast =
+        document.getElementById("toast");
+
+    toast.innerText = message;
+
+    toast.style.display = "block";
+
+    setTimeout(() => {
+
+        toast.style.display = "none";
+
+    }, 3000);
+
+}
+
+
+/* =========================
+   INIT
+========================= */
+
+renderLeads();
+renderDashboard();
+
+</script>
+
+</body>
+</html>
