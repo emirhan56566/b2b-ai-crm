@@ -1,492 +1,574 @@
+// api/lead-search.js
+
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "./supabase.js";
 
-const OPENAI_API_URL = "https://api.openai.com/v1/responses";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.6-luna";
+const supabaseAuth = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY,
+    {
+        auth: {
+            autoRefreshToken: false,
+            persistSession: false
+        }
+    }
+);
 
-export default async function handler(req, res) {
-    if (req.method !== "POST") {
-        res.setHeader("Allow", ["POST"]);
+async function authenticate(req) {
+    const authorization =
+        req.headers.authorization || "";
 
-        return res.status(405).json({
-            success: false,
-            error: "Method not allowed"
-        });
+    if (!authorization.startsWith("Bearer ")) {
+        return {
+            user: null,
+            error: "Nicht authentifiziert."
+        };
     }
 
+    const token =
+        authorization.substring(7).trim();
+
+    if (!token) {
+        return {
+            user: null,
+            error: "Kein Access Token vorhanden."
+        };
+    }
+
+    const {
+        data,
+        error
+    } = await supabaseAuth.auth.getUser(token);
+
+    if (error || !data?.user) {
+        return {
+            user: null,
+            error: "Ungültige oder abgelaufene Sitzung."
+        };
+    }
+
+    return {
+        user: data.user,
+        error: null
+    };
+}
+
+function clean(value) {
+    if (value === undefined || value === null) {
+        return "";
+    }
+
+    return String(value).trim();
+}
+
+function normalize(value) {
+    return clean(value)
+        .toLowerCase()
+        .replace(/\s+/g, " ")
+        .trim();
+}
+
+function safeInteger(value, fallback) {
+    const number = Number(value);
+
+    if (!Number.isFinite(number)) {
+        return fallback;
+    }
+
+    return Math.round(number);
+}
+
+export default async function handler(req, res) {
     let searchId = null;
 
     try {
-        // =====================================================
-        // 1. API KEY PRÜFEN
-        // =====================================================
+        // ==========================================
+        // Nur POST erlauben
+        // ==========================================
 
-        if (!process.env.OPENAI_API_KEY) {
-            return res.status(500).json({
+        if (req.method !== "POST") {
+            return res.status(405).json({
                 success: false,
-                error: "OPENAI_API_KEY ist nicht konfiguriert."
+                error: "Method not allowed"
             });
         }
 
-        // =====================================================
-        // 2. EINGABEN
-        // =====================================================
+        // ==========================================
+        // Benutzer authentifizieren
+        // ==========================================
 
         const {
-            user_id,
+            user,
+            error: authError
+        } = await authenticate(req);
 
-            industry,
-            postal,
-            radius,
-
-            employeesMin,
-            employeesMax,
-
-            leadCount,
-
-            additionalCriteria,
-            excludeCriteria
-        } = req.body || {};
-
-        // =====================================================
-        // 3. VALIDIERUNG
-        // =====================================================
-
-        if (!user_id) {
-            return res.status(400).json({
+        if (!user) {
+            return res.status(401).json({
                 success: false,
-                error: "user_id ist erforderlich."
+                error: authError || "Nicht authentifiziert."
             });
         }
 
-        if (!industry || !String(industry).trim()) {
+        // ==========================================
+        // Request lesen
+        // ==========================================
+
+        const body =
+            typeof req.body === "string"
+                ? JSON.parse(req.body)
+                : req.body || {};
+
+        const industry =
+            clean(body.industry);
+
+        const postal =
+            clean(body.postal);
+
+        const radiusKm =
+            safeInteger(
+                body.radius_km,
+                25
+            );
+
+        const employeesFrom =
+            body.mitarbeiter_von === ""
+                ? null
+                : safeInteger(
+                    body.mitarbeiter_von,
+                    null
+                );
+
+        const employeesTo =
+            body.mitarbeiter_bis === ""
+                ? null
+                : safeInteger(
+                    body.mitarbeiter_bis,
+                    null
+                );
+
+        const amount =
+            Math.min(
+                Math.max(
+                    safeInteger(
+                        body.anzahl,
+                        50
+                    ),
+                    1
+                ),
+                100
+            );
+
+        const additionalCriteria =
+            clean(
+                body.zusatzkriterien
+            );
+
+        const exclusionCriteria =
+            clean(
+                body.ausschlusskriterien
+            );
+
+        // ==========================================
+        // Pflichtfelder
+        // ==========================================
+
+        if (!industry) {
             return res.status(400).json({
                 success: false,
-                error: "Branche ist erforderlich."
+                error: "Branche fehlt."
             });
         }
 
-        if (!postal || !String(postal).trim()) {
+        if (!postal) {
             return res.status(400).json({
                 success: false,
-                error: "Postleitzahl ist erforderlich."
+                error: "Postleitzahl fehlt."
             });
         }
 
-        const requestedCount = Math.min(
-            Math.max(Number(leadCount) || 50, 1),
-            100
-        );
+        if (radiusKm < 1 || radiusKm > 500) {
+            return res.status(400).json({
+                success: false,
+                error:
+                    "Der Radius muss zwischen 1 und 500 km liegen."
+            });
+        }
 
-        const radiusKm = Number(radius) || 25;
+        // ==========================================
+        // Suchauftrag speichern
+        // ==========================================
 
-        // =====================================================
-        // 4. LEAD-SUCHE IN SUPABASE ANLEGEN
-        // =====================================================
+        const {
+            data: search,
+            error: searchInsertError
+        } = await supabase
+            .from("lead_searches")
+            .insert({
+                user_id: user.id,
+                status: "running",
+                industry,
+                postal_code: postal,
+                radius_km: radiusKm,
+                employees_from: employeesFrom,
+                employees_to: employeesTo,
+                amount_requested: amount,
+                additional_criteria:
+                    additionalCriteria || null,
+                exclusion_criteria:
+                    exclusionCriteria || null
+            })
+            .select()
+            .single();
 
-        const { data: searchRecord, error: searchError } =
-            await supabase
-                .from("lead_searches")
-                .insert({
-                    user_id,
-
-                    industry: String(industry).trim(),
-                    postal_code: String(postal).trim(),
-
-                    radius_km: radiusKm,
-
-                    employees_min:
-                        employeesMin !== undefined &&
-                        employeesMin !== ""
-                            ? Number(employeesMin)
-                            : null,
-
-                    employees_max:
-                        employeesMax !== undefined &&
-                        employeesMax !== ""
-                            ? Number(employeesMax)
-                            : null,
-
-                    requested_count: requestedCount,
-
-                    additional_criteria:
-                        additionalCriteria || null,
-
-                    exclude_criteria:
-                        excludeCriteria || null,
-
-                    status: "running",
-
-                    search_parameters: {
-                        industry,
-                        postal,
-                        radius: radiusKm,
-                        employeesMin,
-                        employeesMax,
-                        leadCount: requestedCount,
-                        additionalCriteria,
-                        excludeCriteria
-                    },
-
-                    started_at: new Date().toISOString()
-                })
-                .select()
-                .single();
-
-        if (searchError) {
+        if (searchInsertError) {
             console.error(
-                "Lead search record error:",
-                searchError
+                "Lead search insert error:",
+                searchInsertError
             );
 
             return res.status(500).json({
                 success: false,
-                error: searchError.message
+                error:
+                    "Suchauftrag konnte nicht gespeichert werden."
             });
         }
 
-        searchId = searchRecord.id;
+        searchId = search.id;
 
-        // =====================================================
-        // 5. BESTEHENDE FIRMEN LADEN
-        // =====================================================
-        // Diese werden an die KI übergeben, damit möglichst
-        // keine bereits bekannten Firmen erneut gefunden werden.
+        // ==========================================
+        // Bereits vorhandene Firmen laden
+        // ==========================================
 
-        const { data: existingCompanies } = await supabase
+        const {
+            data: existingCompanies,
+            error: existingCompaniesError
+        } = await supabase
             .from("companies")
-            .select(
-                "name, postal_code, city, website, phone"
-            )
-            .eq("user_id", user_id)
-            .limit(1000);
+            .select(`
+                id,
+                name,
+                website,
+                phone,
+                postal_code,
+                city
+            `)
+            .eq("user_id", user.id)
+            .limit(5000);
 
-        const existingCompanyText =
-            (existingCompanies || [])
-                .map((company) => {
-                    return [
-                        company.name,
-                        company.postal_code,
-                        company.city,
-                        company.website
-                    ]
-                        .filter(Boolean)
-                        .join(" | ");
-                })
-                .join("\n");
+        if (existingCompaniesError) {
+            throw new Error(
+                existingCompaniesError.message
+            );
+        }
 
-        // =====================================================
-        // 6. MASTER PROMPT
-        // =====================================================
-        //
-        // WICHTIG:
-        // Dieser Prompt ist zunächst eine belastbare technische
-        // Version. Die endgültige Version bauen wir später
-        // exakt nach deinen Lead-Suchregeln.
-        //
+        const existingCompanyKeys =
+            new Set(
+                (existingCompanies || [])
+                    .map((company) => {
+                        return [
+                            normalize(company.name),
+                            normalize(company.website)
+                        ]
+                            .filter(Boolean)
+                            .join("|");
+                    })
+                    .filter(Boolean)
+            );
+
+        // ==========================================
+        // Master Prompt
+        // ==========================================
 
         const systemPrompt = `
-Du bist ein professioneller B2B Lead Research Agent.
+Du bist die Lead-Recherche-KI eines professionellen
+B2B-CRMs.
 
-Deine Aufgabe ist es, reale Unternehmen im Internet zu
-recherchieren und ausschließlich Unternehmen zurückzugeben,
-die anhand öffentlich verfügbarer Informationen plausibel
-verifiziert werden können.
+Deine Aufgabe ist es, reale Unternehmen im Internet
+zu recherchieren und strukturierte B2B-Leads zu liefern.
 
-ZIEL:
-Finde B2B-Unternehmen entsprechend den Suchkriterien.
-
-SUCHKRITERIEN:
-
-Branche:
-${industry}
-
-Ausgangs-Postleitzahl:
-${postal}
-
-Maximaler Radius:
-${radiusKm} km
-
-Mitarbeiter von:
-${employeesMin || "nicht angegeben"}
-
-Mitarbeiter bis:
-${employeesMax || "nicht angegeben"}
-
-Gewünschte Anzahl:
-${requestedCount}
-
-Zusätzliche Kriterien:
-${additionalCriteria || "keine"}
-
-Ausschlusskriterien:
-${excludeCriteria || "keine"}
-
-ABSOLUT WICHTIGE REGELN:
+WICHTIGE REGELN:
 
 1. Erfinde niemals Unternehmen.
-
 2. Erfinde niemals Telefonnummern.
+3. Erfinde niemals E-Mail-Adressen.
+4. Erfinde niemals Webseiten.
+5. Wenn eine Information nicht verifiziert werden kann,
+   setze sie auf null.
+6. Verwende bevorzugt offizielle Unternehmenswebseiten
+   und andere seriöse öffentliche Quellen.
+7. Ein Unternehmen darf nur aufgenommen werden, wenn
+   es tatsächlich existiert und die Recherche dafür
+   ausreichende Belege liefert.
+8. Keine Duplikate.
+9. Keine offensichtlich geschlossenen Unternehmen.
+10. Keine Unternehmen, die ausdrücklich ausgeschlossen
+    wurden.
+11. Private Personen ohne klaren geschäftlichen Bezug
+    sind keine Leads.
+12. Keine erfundenen Mitarbeiterzahlen.
+13. Mitarbeiterzahlen dürfen nur angegeben werden,
+    wenn sie aus einer belastbaren öffentlichen Quelle
+    hervorgehen.
+14. Telefonnummern müssen möglichst direkt aus einer
+    öffentlich zugänglichen Unternehmensquelle stammen.
+15. Die Entfernung zum angegebenen Ausgangs-PLZ-Gebiet
+    darf nicht als exakt behauptet werden, wenn keine
+    belastbare geografische Prüfung möglich ist.
+16. Wenn die Entfernung nicht verifiziert werden kann,
+    setze distance_km auf null.
+17. Liefere maximal die angeforderte Anzahl an Leads.
+18. Qualität ist wichtiger als die Anzahl.
+19. Verwende keine Suchmaschinen-Snippets als alleinige
+    Grundlage, wenn eine bessere Primärquelle verfügbar ist.
+20. Gib für jeden Lead mindestens eine überprüfbare
+    öffentliche Quelle an.
 
-3. Erfinde niemals Websites.
+ZIEL:
 
-4. Erfinde niemals Adressen.
+Finde Unternehmen, die möglichst genau zu den
+angegebenen Suchkriterien passen.
 
-5. Erfinde niemals Mitarbeiterzahlen.
+Die Ergebnisse werden anschließend automatisch
+in ein CRM übernommen.
 
-6. Verwende nur Informationen, die du durch Web-Recherche
-   nachvollziehen kannst.
-
-7. Bevorzuge offizielle Unternehmenswebsites.
-
-8. Verwende zusätzlich seriöse Unternehmensverzeichnisse
-   oder andere öffentlich zugängliche Quellen, wenn nötig.
-
-9. Ein Unternehmen muss tatsächlich existieren.
-
-10. Prüfe möglichst:
-    - Unternehmensname
-    - Branche
-    - Adresse
-    - Postleitzahl
-    - Ort
-    - Telefonnummer
-    - Website
-    - Mitarbeiterzahl, falls öffentlich belegbar
-
-11. Telefonnummern dürfen nur eingetragen werden, wenn sie
-    öffentlich gefunden und dem Unternehmen zugeordnet werden
-    können.
-
-12. Wenn eine Information nicht verifiziert werden kann,
-    verwende null oder einen leeren Wert.
-
-13. Keine erfundenen Kontaktdaten.
-
-14. Keine privaten Telefonnummern oder privaten E-Mail-Adressen
-    von Personen erfinden.
-
-15. Suche ausschließlich nach Unternehmen, die für B2B-Vertrieb
-    relevant sind.
-
-16. Berücksichtige den angegebenen geografischen Radius.
-    Wenn die Entfernung nicht ausreichend verifizierbar ist,
-    soll das Unternehmen nicht aufgenommen werden.
-
-17. Beachte die Ausschlusskriterien strikt.
-
-18. Entferne Duplikate.
-
-19. Bereits bekannte Unternehmen dürfen nicht erneut als neue
-    Leads aufgenommen werden.
-
-20. Die Qualität ist wichtiger als die Anzahl.
-    Wenn weniger als die gewünschte Anzahl seriös verifizierbare
-    Unternehmen gefunden werden, gib weniger zurück.
-
-21. Gib niemals Platzhalter wie:
-    "Beispiel GmbH",
-    "Muster GmbH",
-    "12345",
-    "nicht bekannt"
-    als echte Unternehmensdaten aus.
-
-22. Die Daten müssen für ein CRM geeignet sein.
-
-23. Gib ausschließlich das definierte JSON-Format zurück.
-
-BEREITS BEKANNTE UNTERNEHMEN:
-
-${existingCompanyText || "Keine bereits bekannten Unternehmen."}
+Deshalb müssen die Daten strukturiert, sauber und
+konservativ sein.
 `;
 
-        // =====================================================
-        // 7. STRUCTURED OUTPUT SCHEMA
-        // =====================================================
+        // ==========================================
+        // Benutzer-Prompt
+        // ==========================================
 
-        const leadSchema = {
-            type: "object",
+        const userPrompt = `
+Suche reale B2B-Unternehmen anhand dieser Kriterien:
 
-            additionalProperties: false,
+BRANCHE:
+${industry}
 
-            properties: {
-                leads: {
-                    type: "array",
+AUSGANGS-PLZ:
+${postal}
 
-                    items: {
-                        type: "object",
+MAXIMALER RADIUS:
+${radiusKm} km
 
-                        additionalProperties: false,
+MITARBEITER VON:
+${employeesFrom ?? "keine Vorgabe"}
 
-                        properties: {
-                            company_name: {
-                                type: ["string", "null"]
-                            },
+MITARBEITER BIS:
+${employeesTo ?? "keine Vorgabe"}
 
-                            legal_name: {
-                                type: ["string", "null"]
-                            },
+GEWÜNSCHTE ANZAHL:
+${amount}
 
-                            industry: {
-                                type: ["string", "null"]
-                            },
+ZUSÄTZLICHE KRITERIEN:
+${additionalCriteria || "keine"}
 
-                            phone: {
-                                type: ["string", "null"]
-                            },
+AUSSCHLUSSKRITERIEN:
+${exclusionCriteria || "keine"}
 
-                            email: {
-                                type: ["string", "null"]
-                            },
+BEREITS IM CRM VORHANDENE UNTERNEHMEN:
+${JSON.stringify(
+    existingCompanies || []
+)}
 
-                            website: {
-                                type: ["string", "null"]
-                            },
+Versuche, neue Unternehmen zu finden, die noch nicht
+im CRM vorhanden sind.
 
-                            street: {
-                                type: ["string", "null"]
-                            },
+Wenn ein Unternehmen bereits anhand von Name oder
+Webseite eindeutig vorhanden ist, überspringe es.
 
-                            house_number: {
-                                type: ["string", "null"]
-                            },
+Suche gründlich im Internet.
 
-                            postal_code: {
-                                type: ["string", "null"]
-                            },
+Gib nur Unternehmen zurück, deren Existenz und
+geschäftliche Tätigkeit ausreichend überprüfbar sind.
+`;
 
-                            city: {
-                                type: ["string", "null"]
-                            },
+        // ==========================================
+        // OpenAI prüfen
+        // ==========================================
 
-                            country: {
-                                type: ["string", "null"]
-                            },
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error(
+                "OPENAI_API_KEY fehlt."
+            );
+        }
 
-                            employees: {
-                                type: ["integer", "null"]
-                            },
+        const model =
+            process.env.OPENAI_MODEL ||
+            "gpt-5.6-luna";
 
-                            description: {
-                                type: ["string", "null"]
-                            },
+        // ==========================================
+        // OpenAI Responses API
+        // ==========================================
 
-                            source_url: {
-                                type: ["string", "null"]
-                            },
+        const openaiResponse =
+            await fetch(
+                "https://api.openai.com/v1/responses",
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                        "Authorization":
+                            `Bearer ${process.env.OPENAI_API_KEY}`
+                    },
+                    body: JSON.stringify({
+                        model,
 
-                            source_name: {
-                                type: ["string", "null"]
-                            },
-
-                            verification_notes: {
-                                type: ["string", "null"]
+                        tools: [
+                            {
+                                type: "web_search"
                             }
-                        },
+                        ],
 
-                        required: [
-                            "company_name",
-                            "legal_name",
-                            "industry",
-                            "phone",
-                            "email",
-                            "website",
-                            "street",
-                            "house_number",
-                            "postal_code",
-                            "city",
-                            "country",
-                            "employees",
-                            "description",
-                            "source_url",
-                            "source_name",
-                            "verification_notes"
-                        ]
-                    }
+                        input: [
+                            {
+                                role: "system",
+                                content: systemPrompt
+                            },
+                            {
+                                role: "user",
+                                content: userPrompt
+                            }
+                        ],
+
+                        text: {
+                            format: {
+                                type: "json_schema",
+                                name: "b2b_leads",
+                                strict: true,
+                                schema: {
+                                    type: "object",
+                                    additionalProperties: false,
+                                    properties: {
+                                        leads: {
+                                            type: "array",
+                                            items: {
+                                                type: "object",
+                                                additionalProperties:
+                                                    false,
+                                                properties: {
+                                                    company_name: {
+                                                        type: "string"
+                                                    },
+                                                    legal_name: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    industry: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    website: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    phone: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    email: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    address: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    postal_code: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    city: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    country: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    employee_count: {
+                                                        type: [
+                                                            "integer",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    distance_km: {
+                                                        type: [
+                                                            "number",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    description: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    source_url: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    },
+                                                    source_name: {
+                                                        type: [
+                                                            "string",
+                                                            "null"
+                                                        ]
+                                                    }
+                                                },
+                                                required: [
+                                                    "company_name",
+                                                    "legal_name",
+                                                    "industry",
+                                                    "website",
+                                                    "phone",
+                                                    "email",
+                                                    "address",
+                                                    "postal_code",
+                                                    "city",
+                                                    "country",
+                                                    "employee_count",
+                                                    "distance_km",
+                                                    "description",
+                                                    "source_url",
+                                                    "source_name"
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    required: [
+                                        "leads"
+                                    ]
+                                }
+                            }
+                        }
+                    })
                 }
-            },
+            );
 
-            required: ["leads"]
-        };
-
-        // =====================================================
-        // 8. OPENAI WEB SEARCH
-        // =====================================================
-
-        const openaiResponse = await fetch(
-            OPENAI_API_URL,
-            {
-                method: "POST",
-
-                headers: {
-                    "Content-Type": "application/json",
-
-                    "Authorization":
-                        `Bearer ${process.env.OPENAI_API_KEY}`
-                },
-
-                body: JSON.stringify({
-                    model: OPENAI_MODEL,
-
-                    tools: [
-                        {
-                            type: "web_search"
-                        }
-                    ],
-
-                    tool_choice: {
-                        type: "web_search"
-                    },
-
-                    instructions: systemPrompt,
-
-                    input: `
-Führe jetzt eine echte Web-Recherche durch.
-
-Suche nach ungefähr ${requestedCount} passenden Unternehmen.
-
-Nutze mehrere unterschiedliche Suchanfragen, wenn dies
-notwendig ist.
-
-Prüfe die gefundenen Unternehmen anhand öffentlich
-verfügbarer Quellen.
-
-Achte besonders auf:
-- tatsächliche Existenz
-- Branche
-- Standort
-- Entfernung
-- Telefonnummer
-- Website
-- Unternehmensgröße
-- Ausschlusskriterien
-- Duplikate
-
-Gib anschließend ausschließlich das geforderte JSON zurück.
-`,
-
-                    text: {
-                        format: {
-                            type: "json_schema",
-
-                            name: "b2b_leads",
-
-                            description:
-                                "Verifizierte B2B-Unternehmen für ein CRM.",
-
-                            strict: true,
-
-                            schema: leadSchema
-                        }
-                    },
-
-                    max_output_tokens: 20000
-                })
-            }
-        );
-
-        // =====================================================
-        // 9. OPENAI FEHLER
-        // =====================================================
+        // ==========================================
+        // OpenAI Fehler
+        // ==========================================
 
         if (!openaiResponse.ok) {
             const errorText =
@@ -497,408 +579,321 @@ Gib anschließend ausschließlich das geforderte JSON zurück.
                 errorText
             );
 
-            await supabase
-                .from("lead_searches")
-                .update({
-                    status: "failed",
-
-                    error_message:
-                        "OpenAI Web-Recherche fehlgeschlagen.",
-
-                    completed_at:
-                        new Date().toISOString()
-                })
-                .eq("id", searchId);
-
-            return res.status(502).json({
-                success: false,
-                error:
-                    "Die KI-Websuche konnte nicht ausgeführt werden.",
-                details:
-                    process.env.NODE_ENV === "development"
-                        ? errorText
-                        : undefined
-            });
-        }
-
-        const openaiData =
-            await openaiResponse.json();
-
-        // =====================================================
-        // 10. TEXT AUS RESPONSE HOLEN
-        // =====================================================
-
-        let outputText =
-            openaiData.output_text || "";
-
-        // Fallback für Responses-API-Ausgaben
-        if (!outputText && Array.isArray(openaiData.output)) {
-            for (const item of openaiData.output) {
-                if (
-                    item.type === "message" &&
-                    Array.isArray(item.content)
-                ) {
-                    for (const content of item.content) {
-                        if (
-                            content.type === "output_text" &&
-                            content.text
-                        ) {
-                            outputText += content.text;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (!outputText) {
             throw new Error(
-                "Die KI hat keine Lead-Daten zurückgegeben."
+                `OpenAI API Fehler: ${errorText}`
             );
         }
 
-        // =====================================================
-        // 11. JSON PARSEN
-        // =====================================================
+        const aiResult =
+            await openaiResponse.json();
+
+        // ==========================================
+        // JSON-Ausgabe extrahieren
+        // ==========================================
 
         let parsed;
 
-        try {
-            parsed = JSON.parse(outputText);
-        } catch (jsonError) {
-            console.error(
-                "JSON parse error:",
-                outputText
-            );
+        if (aiResult.output_text) {
+            parsed =
+                JSON.parse(
+                    aiResult.output_text
+                );
+        } else {
+            const textParts = [];
 
-            throw new Error(
-                "Die KI-Antwort konnte nicht als JSON verarbeitet werden."
-            );
+            for (
+                const outputItem
+                of aiResult.output || []
+            ) {
+                for (
+                    const contentItem
+                    of outputItem.content || []
+                ) {
+                    if (
+                        contentItem.type ===
+                        "output_text"
+                    ) {
+                        textParts.push(
+                            contentItem.text
+                        );
+                    }
+                }
+            }
+
+            if (!textParts.length) {
+                throw new Error(
+                    "Die KI hat keine verwertbare Antwort geliefert."
+                );
+            }
+
+            parsed =
+                JSON.parse(
+                    textParts.join("")
+                );
         }
 
-        const rawLeads =
-            Array.isArray(parsed.leads)
+        const aiLeads =
+            Array.isArray(parsed?.leads)
                 ? parsed.leads
                 : [];
 
-        // =====================================================
-        // 12. DUPLIKATE INNERHALB DER SUCHE ENTFERNEN
-        // =====================================================
+        // ==========================================
+        // Ergebnisse bereinigen + Duplikate entfernen
+        // ==========================================
 
+        const uniqueLeads = [];
         const seen = new Set();
 
-        const leads = rawLeads.filter((lead) => {
-            const key = [
-                lead.company_name,
-                lead.postal_code,
-                lead.city,
-                lead.website
-            ]
-                .filter(Boolean)
-                .join("|")
-                .toLowerCase()
-                .trim();
+        for (const item of aiLeads) {
+            const companyName =
+                clean(item.company_name);
 
-            if (!key) {
-                return false;
+            if (!companyName) {
+                continue;
             }
 
-            if (seen.has(key)) {
-                return false;
+            const website =
+                clean(item.website);
+
+            const key =
+                [
+                    normalize(companyName),
+                    normalize(website)
+                ]
+                    .filter(Boolean)
+                    .join("|");
+
+            if (!key) {
+                continue;
+            }
+
+            if (
+                seen.has(key) ||
+                existingCompanyKeys.has(key)
+            ) {
+                continue;
             }
 
             seen.add(key);
 
-            return true;
-        });
+            uniqueLeads.push({
+                ...item,
+                company_name:
+                    companyName,
+                website:
+                    website || null,
+                phone:
+                    clean(item.phone) || null,
+                email:
+                    clean(item.email) || null,
+                address:
+                    clean(item.address) || null,
+                postal_code:
+                    clean(item.postal_code) || null,
+                city:
+                    clean(item.city) || null,
+                country:
+                    clean(item.country) ||
+                    "Deutschland",
+                source_url:
+                    clean(item.source_url) ||
+                    null,
+                source_name:
+                    clean(item.source_name) ||
+                    null
+            });
 
-        // =====================================================
-        // 13. MAXIMALE ANZAHL EINHALTEN
-        // =====================================================
+            if (
+                uniqueLeads.length >= amount
+            ) {
+                break;
+            }
+        }
 
-        const finalLeads =
-            leads.slice(0, requestedCount);
-
-        // =====================================================
-        // 14. LEADS IN SUPABASE SPEICHERN
-        // =====================================================
+        // ==========================================
+        // Leads speichern
+        // ==========================================
 
         const savedLeads = [];
 
-        for (const lead of finalLeads) {
-            if (!lead.company_name) {
-                continue;
-            }
-
-            // -----------------------------------------------
-            // Bestehende Firma prüfen
-            // -----------------------------------------------
-
-            let companyQuery =
-                supabase
-                    .from("companies")
-                    .select("*")
-                    .eq("user_id", user_id)
-                    .ilike(
-                        "name",
-                        lead.company_name
-                    )
-                    .limit(1);
+        for (const item of uniqueLeads) {
+            // --------------------------------------
+            // Unternehmen
+            // --------------------------------------
 
             const {
-                data: existingMatches,
-                error: existingError
-            } = await companyQuery;
+                data: company,
+                error: companyError
+            } = await supabase
+                .from("companies")
+                .insert({
+                    user_id: user.id,
+                    name:
+                        item.company_name,
+                    legal_name:
+                        item.legal_name || null,
+                    industry:
+                        item.industry ||
+                        industry,
+                    website:
+                        item.website,
+                    phone:
+                        item.phone,
+                    email:
+                        item.email,
+                    address:
+                        item.address,
+                    postal_code:
+                        item.postal_code,
+                    city:
+                        item.city,
+                    country:
+                        item.country ||
+                        "Deutschland",
+                    employee_count:
+                        item.employee_count ??
+                        null
+                })
+                .select()
+                .single();
 
-            if (existingError) {
+            if (companyError) {
                 console.error(
-                    "Company duplicate check error:",
-                    existingError
+                    "Company save error:",
+                    companyError
                 );
 
                 continue;
             }
 
-            let company =
-                existingMatches?.[0] || null;
-
-            // -----------------------------------------------
-            // Firma erstellen
-            // -----------------------------------------------
-
-            if (!company) {
-                const {
-                    data: newCompany,
-                    error: companyError
-                } = await supabase
-                    .from("companies")
-                    .insert({
-                        user_id,
-
-                        name: lead.company_name,
-                        legal_name:
-                            lead.legal_name || null,
-
-                        industry:
-                            lead.industry || null,
-
-                        phone:
-                            lead.phone || null,
-
-                        email:
-                            lead.email || null,
-
-                        website:
-                            lead.website || null,
-
-                        street:
-                            lead.street || null,
-
-                        house_number:
-                            lead.house_number || null,
-
-                        postal_code:
-                            lead.postal_code || null,
-
-                        city:
-                            lead.city || null,
-
-                        country:
-                            lead.country ||
-                            "Deutschland",
-
-                        employees:
-                            lead.employees !== null &&
-                            lead.employees !== undefined
-                                ? lead.employees
-                                : null,
-
-                        description:
-                            lead.description || null,
-
-                        source:
-                            lead.source_name ||
-                            "OpenAI Web Search",
-
-                        source_url:
-                            lead.source_url || null
-                    })
-                    .select()
-                    .single();
-
-                if (companyError) {
-                    console.error(
-                        "Company insert error:",
-                        companyError
-                    );
-
-                    continue;
-                }
-
-                company = newCompany;
-            }
-
-            // -----------------------------------------------
-            // Prüfen, ob bereits ein Lead existiert
-            // -----------------------------------------------
+            // --------------------------------------
+            // Lead
+            // --------------------------------------
 
             const {
-                data: existingLeads
-            } = await supabase
-                .from("leads")
-                .select("id")
-                .eq("user_id", user_id)
-                .eq("company_id", company.id)
-                .limit(1);
-
-            if (
-                existingLeads &&
-                existingLeads.length > 0
-            ) {
-                continue;
-            }
-
-            // -----------------------------------------------
-            // Lead erstellen
-            // -----------------------------------------------
-
-            const {
-                data: newLead,
+                data: lead,
                 error: leadError
             } = await supabase
                 .from("leads")
                 .insert({
-                    user_id,
-
+                    user_id: user.id,
                     company_id:
                         company.id,
-
                     status: "new",
-
                     priority: "normal",
-
+                    score: null,
                     notes:
-                        lead.verification_notes ||
-                        null
+                        item.description ||
+                        null,
+                    assigned_to:
+                        user.id
                 })
                 .select()
                 .single();
 
             if (leadError) {
                 console.error(
-                    "Lead insert error:",
+                    "Lead save error:",
                     leadError
                 );
+
+                // Unternehmen wieder entfernen,
+                // wenn der Lead nicht erstellt wurde.
+                await supabase
+                    .from("companies")
+                    .delete()
+                    .eq("id", company.id)
+                    .eq("user_id", user.id);
 
                 continue;
             }
 
-            // -----------------------------------------------
+            // --------------------------------------
             // Quelle speichern
-            // -----------------------------------------------
+            // --------------------------------------
 
-            await supabase
-                .from("lead_sources")
-                .insert({
-                    user_id,
-
-                    lead_id:
-                        newLead.id,
-
-                    company_id:
-                        company.id,
-
-                    source_name:
-                        lead.source_name ||
-                        "OpenAI Web Search",
-
-                    source_url:
-                        lead.source_url ||
-                        null,
-
-                    source_type:
-                        "web_search",
-
-                    metadata: {
-                        verification_notes:
-                            lead.verification_notes ||
+            if (item.source_url) {
+                const {
+                    error: sourceError
+                } = await supabase
+                    .from("lead_sources")
+                    .insert({
+                        user_id: user.id,
+                        lead_id:
+                            lead.id,
+                        company_id:
+                            company.id,
+                        source_url:
+                            item.source_url,
+                        source_name:
+                            item.source_name ||
                             null
-                    }
-                });
+                    });
 
-            // -----------------------------------------------
-            // Activity speichern
-            // -----------------------------------------------
+                if (sourceError) {
+                    console.error(
+                        "Source save error:",
+                        sourceError
+                    );
+                }
+            }
+
+            // --------------------------------------
+            // Aktivität speichern
+            // --------------------------------------
 
             await supabase
                 .from("activities")
                 .insert({
-                    user_id,
-
+                    user_id: user.id,
                     lead_id:
-                        newLead.id,
-
+                        lead.id,
                     company_id:
                         company.id,
-
                     type:
                         "lead_created",
-
                     subject:
-                        "Lead durch KI-Websuche gefunden",
-
+                        "Lead durch KI-Recherche erstellt",
                     description:
-                        `Lead wurde durch die KI-Websuche gefunden: ${company.name}`,
-
-                    metadata: {
-                        source:
-                            "OpenAI Web Search",
-
-                        search_id:
-                            searchId
-                    }
+                        `Unternehmen wurde durch die KI-Lead-Suche gefunden. Suchauftrag: ${searchId}`
                 });
 
             savedLeads.push({
-                ...newLead,
-
+                ...lead,
                 company
             });
         }
 
-        // =====================================================
-        // 15. SUCHVORGANG AKTUALISIEREN
-        // =====================================================
+        // ==========================================
+        // Suchauftrag abschließen
+        // ==========================================
 
         await supabase
             .from("lead_searches")
             .update({
                 status: "completed",
-
                 results_count:
                     savedLeads.length,
-
                 completed_at:
                     new Date().toISOString()
             })
-            .eq("id", searchId);
+            .eq("id", searchId)
+            .eq("user_id", user.id);
 
-        // =====================================================
-        // 16. ERGEBNIS ZURÜCKGEBEN
-        // =====================================================
+        // ==========================================
+        // Antwort
+        // ==========================================
 
         return res.status(200).json({
             success: true,
-
             search_id: searchId,
-
-            count:
+            requested: amount,
+            found:
+                aiLeads.length,
+            saved:
                 savedLeads.length,
-
             leads:
-                savedLeads,
-
-            message:
-                `${savedLeads.length} neue Leads wurden recherchiert und in Supabase gespeichert.`
+                savedLeads
         });
 
     } catch (error) {
@@ -907,29 +902,33 @@ Gib anschließend ausschließlich das geforderte JSON zurück.
             error
         );
 
-        // Suchvorgang bei Fehler als failed markieren
+        // Suchauftrag auf Fehler setzen
         if (searchId) {
-            await supabase
-                .from("lead_searches")
-                .update({
-                    status: "failed",
-
-                    error_message:
-                        error.message ||
-                        "Unbekannter Fehler",
-
-                    completed_at:
-                        new Date().toISOString()
-                })
-                .eq("id", searchId);
+            try {
+                await supabase
+                    .from("lead_searches")
+                    .update({
+                        status: "failed",
+                        error_message:
+                            error.message ||
+                            "Unbekannter Fehler",
+                        completed_at:
+                            new Date().toISOString()
+                    })
+                    .eq("id", searchId);
+            } catch (updateError) {
+                console.error(
+                    "Could not update search status:",
+                    updateError
+                );
+            }
         }
 
         return res.status(500).json({
             success: false,
-
             error:
                 error.message ||
-                "Interner Serverfehler."
+                "Die Lead-Suche ist fehlgeschlagen."
         });
     }
 }
