@@ -2,8 +2,13 @@
   "name": "b2b-ai-crm",
   "version": "1.0.0",
   "private": true,
+  "description": "B2B AI CRM mit KI-gestützter Lead-Recherche",
   "type": "module",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.57.0"
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "vercel dev"
+  },
+  "devDependencies": {
+    "vercel": "^48.0.0"
   }
 }
