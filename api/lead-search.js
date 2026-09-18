@@ -1,397 +1,414 @@
+// api/lead-search.js
+
 import { supabase } from "./supabase.js";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-
-if (!supabaseUrl) {
-  throw new Error("SUPABASE_URL fehlt.");
-}
-
-if (!supabaseAnonKey) {
-  throw new Error("SUPABASE_ANON_KEY fehlt.");
-}
-
-const supabaseAuth = createClient(
-  supabaseUrl,
-  supabaseAnonKey,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
 
 async function authenticate(req) {
   const authorization = req.headers.authorization || "";
 
   if (!authorization.startsWith("Bearer ")) {
-    return null;
+    return { user: null, error: "Nicht authentifiziert." };
   }
 
   const token = authorization.substring(7).trim();
 
   if (!token) {
-    return null;
+    return { user: null, error: "Kein Access Token vorhanden." };
   }
 
-  const { data, error } = await supabaseAuth.auth.getUser(token);
+  const response = await fetch(
+    `${process.env.SUPABASE_URL}/auth/v1/user`,
+    {
+      method: "GET",
+      headers: {
+        apikey: process.env.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`
+      }
+    }
+  );
 
-  if (error || !data?.user) {
-    return null;
+  if (!response.ok) {
+    return {
+      user: null,
+      error: "Ungültige oder abgelaufene Sitzung."
+    };
   }
 
-  return data.user;
+  const user = await response.json();
+
+  if (!user?.id) {
+    return {
+      user: null,
+      error: "Benutzer konnte nicht ermittelt werden."
+    };
+  }
+
+  return { user, error: null };
 }
 
-function normalizeCompanyName(value) {
-  return String(value || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
-}
+function parseBody(req) {
+  if (!req.body) return {};
 
-function normalizeWebsite(value) {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/\/.*$/, "");
-}
-
-function companyKey(company) {
-  const name = normalizeCompanyName(company.company_name);
-  const website = normalizeWebsite(company.website);
-
-  return `${name}|${website}`;
-}
-
-function cleanValue(value) {
-  if (value === undefined || value === null) {
-    return null;
-  }
-
-  const text = String(value).trim();
-
-  return text || null;
-}
-
-function cleanInteger(value) {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return null;
-  }
-
-  return Math.round(number);
-}
-
-function cleanNumber(value) {
-  if (value === null || value === undefined || value === "") {
-    return null;
-  }
-
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return null;
-  }
-
-  return number;
-}
-
-function extractJson(text) {
-  if (!text) {
-    throw new Error("Gemini hat keine Antwort geliefert.");
-  }
-
-  let cleaned = text.trim();
-
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned
-      .replace(/^```json\s*/i, "")
-      .replace(/^```\s*/i, "")
-      .replace(/\s*```$/i, "")
-      .trim();
+  if (typeof req.body === "object") {
+    return req.body;
   }
 
   try {
-    return JSON.parse(cleaned);
+    return JSON.parse(req.body);
   } catch {
-    const firstBrace = cleaned.indexOf("{");
-    const lastBrace = cleaned.lastIndexOf("}");
-
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      return JSON.parse(
-        cleaned.slice(firstBrace, lastBrace + 1)
-      );
-    }
-
-    throw new Error("Gemini-Antwort konnte nicht als JSON gelesen werden.");
+    return {};
   }
 }
 
-function getGeminiText(response) {
-  const candidate = response?.candidates?.[0];
+function cleanText(value) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+}
 
-  if (!candidate?.content?.parts) {
-    return "";
-  }
-
-  return candidate.content.parts
-    .map((part) => part?.text || "")
-    .join("")
+function normalizeCompanyName(name) {
+  return cleanText(name)
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[.,/\\'"`´]/g, "")
     .trim();
 }
 
-function getGroundingSources(response) {
-  const chunks =
-    response?.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+async function callGemini(prompt, model) {
+  const apiKey = process.env.GEMINI_API_KEY;
 
-  return chunks
-    .map((chunk) => {
-      const web = chunk?.web;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY fehlt.");
+  }
 
-      if (!web?.uri) {
-        return null;
+  const url =
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent` +
+    `?key=${encodeURIComponent(apiKey)}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: prompt
+            }
+          ]
+        }
+      ],
+      tools: [
+        {
+          google_search: {}
+        }
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json"
       }
-
-      return {
-        url: web.uri,
-        name: web.title || web.uri
-      };
     })
-    .filter(Boolean);
+  });
+
+  const raw = await response.text();
+
+  let data = null;
+
+  try {
+    data = raw ? JSON.parse(raw) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data?.error?.message ||
+      raw ||
+      `Gemini Fehler ${response.status}`
+    );
+  }
+
+  return data;
 }
 
-function buildPrompt({
-  industry,
-  postal,
-  radiusKm,
-  employeesFrom,
-  employeesTo,
-  amount,
-  additionalCriteria,
-  exclusionCriteria,
-  existingCompanies
-}) {
-  const existingList = existingCompanies.length
-    ? existingCompanies
-        .slice(0, 500)
-        .map((company) => {
-          return `- ${company.legal_name || company.name || ""} | ${
-            company.website || ""
-          }`;
-        })
-        .join("\n")
-    : "Keine bestehenden Unternehmen vorhanden.";
+function extractGeminiText(data) {
+  const candidates = data?.candidates || [];
+
+  for (const candidate of candidates) {
+    const parts = candidate?.content?.parts || [];
+
+    for (const part of parts) {
+      if (typeof part?.text === "string" && part.text.trim()) {
+        return part.text.trim();
+      }
+    }
+  }
+
+  return "";
+}
+
+function parseJson(text) {
+  if (!text) {
+    throw new Error("Gemini hat keine verwertbare Antwort geliefert.");
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {}
+
+  const fenced = text
+    .replace(/^```json\s*/i, "")
+    .replace(/^```\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
+
+  try {
+    return JSON.parse(fenced);
+  } catch {}
+
+  const first = fenced.indexOf("{");
+  const last = fenced.lastIndexOf("}");
+
+  if (first !== -1 && last > first) {
+    try {
+      return JSON.parse(fenced.slice(first, last + 1));
+    } catch {}
+  }
+
+  const firstArray = fenced.indexOf("[");
+  const lastArray = fenced.lastIndexOf("]");
+
+  if (firstArray !== -1 && lastArray > firstArray) {
+    try {
+      return JSON.parse(
+        fenced.slice(firstArray, lastArray + 1)
+      );
+    } catch {}
+  }
+
+  throw new Error("Gemini-Antwort konnte nicht als JSON gelesen werden.");
+}
+
+function normalizeLead(raw) {
+  if (!raw || typeof raw !== "object") return null;
+
+  const company = raw.company || raw.company_data || raw;
+
+  const name = cleanText(
+    company.name ||
+    company.company_name ||
+    company.firm_name
+  );
+
+  if (!name) return null;
+
+  return {
+    name,
+    legal_name: cleanText(company.legal_name) || null,
+    industry: cleanText(company.industry) || null,
+    website: cleanText(company.website) || null,
+    phone: cleanText(company.phone) || null,
+    email: cleanText(company.email) || null,
+    address: cleanText(company.address) || null,
+    postal_code: cleanText(
+      company.postal_code ||
+      company.zip ||
+      company.plz
+    ) || null,
+    city: cleanText(company.city) || null,
+    country: cleanText(company.country) || "Deutschland",
+    employee_count:
+      Number.isFinite(Number(company.employee_count))
+        ? Number(company.employee_count)
+        : null,
+
+    contact: raw.contact || null,
+
+    source_url: cleanText(
+      raw.source_url ||
+      raw.source ||
+      company.source_url
+    ) || null,
+
+    source_title: cleanText(
+      raw.source_title ||
+      company.source_title
+    ) || null,
+
+    reason: cleanText(
+      raw.reason ||
+      raw.qualification_reason ||
+      raw.match_reason
+    ) || null
+  };
+}
+
+function buildPrompt(input) {
+  const branche = cleanText(input.branche);
+  const plz = cleanText(input.plz);
+  const radius = cleanText(input.radius_km);
+  const mitarbeiterVon = cleanText(input.mitarbeiter_von);
+  const mitarbeiterBis = cleanText(input.mitarbeiter_bis);
+  const anzahl = Number(input.anzahl) || 50;
+  const zusatz = cleanText(input.zusatzkriterien);
+  const ausschluss = cleanText(input.ausschlusskriterien);
 
   return `
-Du bist ein professioneller B2B-Lead-Recherche-Agent für ein deutsches CRM.
+Du bist ein B2B-Lead-Recherche-System.
 
-DEINE AUFGABE:
-Finde reale B2B-Unternehmen, die exakt zu den Suchkriterien passen.
+Finde reale Unternehmen in Deutschland, die zu den folgenden Suchkriterien passen.
 
 SUCHKRITERIEN:
-Branche:
-${industry}
+Branche: ${branche || "keine Angabe"}
+PLZ / Standort: ${plz || "keine Angabe"}
+Radius: ${radius ? `${radius} km` : "keine Angabe"}
+Mitarbeiter von: ${mitarbeiterVon || "keine Angabe"}
+Mitarbeiter bis: ${mitarbeiterBis || "keine Angabe"}
+Gewünschte Anzahl: ${anzahl}
+Zusatzkriterien: ${zusatz || "keine"}
+Ausschlusskriterien: ${ausschluss || "keine"}
 
-PLZ / Region:
-${postal}
+RECHERCHE:
+- Nutze Websuche, um reale Unternehmen zu finden.
+- Erfinde niemals Unternehmen.
+- Verwende nur Unternehmen, die anhand öffentlich verfügbarer Informationen nachvollziehbar sind.
+- Prüfe möglichst mehrere Informationen pro Unternehmen.
+- Bevorzuge offizielle Unternehmenswebsites und andere seriöse Quellen.
+- Keine Privatpersonen als Unternehmen ausgeben.
+- Keine erfundenen Telefonnummern, E-Mail-Adressen, Websites oder Mitarbeiterzahlen.
+- Wenn eine Information nicht verlässlich gefunden werden kann, setze sie auf null.
+- Unternehmen dürfen nicht doppelt ausgegeben werden.
+- Beachte die Ausschlusskriterien strikt.
+- Wenn die exakte gewünschte Anzahl nicht seriös gefunden werden kann, gib weniger Ergebnisse zurück.
+- Gib keine Erklärung außerhalb des JSON zurück.
 
-Radius:
-${radiusKm} km
-
-Mitarbeiter von:
-${employeesFrom ?? "keine Angabe"}
-
-Mitarbeiter bis:
-${employeesTo ?? "keine Angabe"}
-
-Gewünschte Anzahl:
-${amount}
-
-Zusätzliche Kriterien:
-${additionalCriteria || "Keine"}
-
-Ausschlusskriterien:
-${exclusionCriteria || "Keine"}
-
-WICHTIGE REGELN:
-
-1. Suche ausschließlich nach real existierenden Unternehmen.
-2. Verwende Google Search zur Recherche.
-3. Erfinde niemals Unternehmen, Telefonnummern, Websites, E-Mail-Adressen oder Mitarbeiterzahlen.
-4. Wenn eine Information nicht verlässlich gefunden werden kann, setze sie auf null.
-5. Bevorzuge offizielle Unternehmenswebsites und seriöse Unternehmensquellen.
-6. Unternehmen müssen zur angegebenen Branche passen.
-7. Unternehmen müssen geografisch zur angegebenen Region passen.
-8. Berücksichtige den gewünschten Mitarbeiterbereich.
-9. Beachte alle zusätzlichen Kriterien.
-10. Beachte alle Ausschlusskriterien.
-11. Liefere keine Duplikate.
-12. Liefere keine Unternehmen aus der bereits vorhandenen Liste.
-13. Eine Mitarbeiterzahl darf nur eingetragen werden, wenn sie aus einer verlässlichen Quelle hervorgeht.
-14. Telefonnummern dürfen nicht erfunden oder geraten werden.
-15. E-Mail-Adressen dürfen nicht erfunden oder geraten werden.
-16. Persönliche Kontaktdaten nur dann liefern, wenn sie öffentlich und eindeutig als geschäftliche Kontaktdaten veröffentlicht sind.
-17. Wenn die Entfernung nicht zuverlässig bestimmbar ist, setze distance_km auf null.
-18. source_url muss möglichst die wichtigste gefundene Quelle für das Unternehmen sein.
-19. company_name muss der tatsächlich verwendete Unternehmensname sein.
-20. legal_name nur ausfüllen, wenn die offizielle Firmierung eindeutig gefunden wurde.
-21. Keine Fantasie-Daten.
-22. Qualität ist wichtiger als eine künstlich erreichte Anzahl.
-
-BEREITS VORHANDENE UNTERNEHMEN:
-${existingList}
-
-Gib ausschließlich ein JSON-Objekt nach folgendem Schema zurück:
+AUSGABE:
+Antworte ausschließlich mit gültigem JSON im folgenden Format:
 
 {
-  "leads": [
+  "companies": [
     {
-      "company_name": "string",
-      "legal_name": "string|null",
-      "industry": "string|null",
-      "website": "string|null",
-      "phone": "string|null",
-      "email": "string|null",
-      "address": "string|null",
-      "postal_code": "string|null",
-      "city": "string|null",
-      "country": "string|null",
-      "employee_count": "integer|null",
-      "distance_km": "number|null",
-      "description": "string|null",
-      "source_url": "string|null",
-      "source_name": "string|null"
+      "name": "Firmenname",
+      "legal_name": null,
+      "industry": null,
+      "website": null,
+      "phone": null,
+      "email": null,
+      "address": null,
+      "postal_code": null,
+      "city": null,
+      "country": "Deutschland",
+      "employee_count": null,
+      "source_url": null,
+      "source_title": null,
+      "reason": null
     }
   ]
 }
-`;
+
+Die Anzahl der Unternehmen soll maximal ${anzahl} betragen.
+  `.trim();
 }
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({
-      success: false,
-      error: "Method not allowed"
-    });
-  }
-
-  const user = await authenticate(req);
-
-  if (!user) {
-    return res.status(401).json({
-      success: false,
-      error: "Nicht authentifiziert."
-    });
-  }
-
-  let searchId = null;
-
   try {
-    const body = req.body || {};
+    if (req.method !== "POST") {
+      return res.status(405).json({
+        success: false,
+        error: "Nur POST erlaubt."
+      });
+    }
 
-    const industry = cleanValue(body.industry);
-    const postal = cleanValue(body.postal);
+    const { user, error: authError } =
+      await authenticate(req);
 
-    const radiusKm = Math.max(
-      1,
-      Math.min(
-        250,
-        Number(body.radius_km || 25)
-      )
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: authError || "Nicht authentifiziert."
+      });
+    }
+
+    const body = parseBody(req);
+
+    const anzahl = Math.min(
+      Math.max(Number(body.anzahl) || 50, 1),
+      100
     );
 
-    const amount = Math.max(
-      1,
-      Math.min(
-        100,
-        Number(body.anzahl || 50)
-      )
-    );
+    const searchInput = {
+      branche: body.branche,
+      plz: body.plz,
+      radius_km: body.radius_km,
+      mitarbeiter_von: body.mitarbeiter_von,
+      mitarbeiter_bis: body.mitarbeiter_bis,
+      anzahl,
+      zusatzkriterien: body.zusatzkriterien,
+      ausschlusskriterien: body.ausschlusskriterien
+    };
 
-    const employeesFrom =
-      body.mitarbeiter_von === "" ||
-      body.mitarbeiter_von === undefined
-        ? null
-        : cleanInteger(body.mitarbeiter_von);
+    const prompt = buildPrompt(searchInput);
 
-    const employeesTo =
-      body.mitarbeiter_bis === "" ||
-      body.mitarbeiter_bis === undefined
-        ? null
-        : cleanInteger(body.mitarbeiter_bis);
+    const model =
+      process.env.GEMINI_MODEL ||
+      "gemini-2.5-flash";
 
-    const additionalCriteria =
-      cleanValue(body.zusatzkriterien) || "";
-
-    const exclusionCriteria =
-      cleanValue(body.ausschlusskriterien) || "";
-
-    if (!industry) {
-      return res.status(400).json({
-        success: false,
-        error: "Branche fehlt."
-      });
-    }
-
-    if (!postal) {
-      return res.status(400).json({
-        success: false,
-        error: "PLZ fehlt."
-      });
-    }
-
-    if (
-      employeesFrom !== null &&
-      employeesTo !== null &&
-      employeesFrom > employeesTo
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: "Mitarbeiter-von darf nicht größer als Mitarbeiter-bis sein."
-      });
-    }
-
-    const { data: search, error: searchInsertError } =
+    const { data: searchRecord, error: searchInsertError } =
       await supabase
         .from("lead_searches")
         .insert({
           user_id: user.id,
-          status: "running",
-          industry,
-          postal_code: postal,
-          radius_km: radiusKm,
-          employees_from: employeesFrom,
-          employees_to: employeesTo,
-          amount_requested: amount,
-          additional_criteria: additionalCriteria,
-          exclusion_criteria: exclusionCriteria
-        })
-        .select()
-        .single();
+          query: JSON.stringify(searchInput),
+          status: "running"
+        });
 
     if (searchInsertError) {
-      throw new Error(
-        `Lead-Suche konnte nicht gespeichert werden: ${searchInsertError.message}`
+      console.error(
+        "lead_searches INSERT:",
+        searchInsertError
       );
     }
 
-    searchId = search.id;
+    const geminiResponse = await callGemini(
+      prompt,
+      model
+    );
 
-    const { data: existingCompanies, error: existingError } =
-      await supabase
-        .from("companies")
-        .select("legal_name,website,name");
+    const text = extractGeminiText(geminiResponse);
+    const parsed = parseJson(text);
+
+    const rawCompanies = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed?.companies)
+        ? parsed.companies
+        : [];
+
+    const normalizedCompanies =
+      rawCompanies
+        .map(normalizeLead)
+        .filter(Boolean);
+
+    /*
+     * Bestehende Unternehmen dieses Benutzers laden.
+     * Wichtig: user_id verhindert Cross-User-Datenzugriff.
+     */
+    const {
+      data: existingCompanies,
+      error: existingError
+    } = await supabase
+      .from("companies")
+      .select(`
+        id,
+        name,
+        legal_name,
+        website,
+        phone,
+        postal_code,
+        city
+      `)
+      .eq("user_id", user.id)
+      .limit(1000);
 
     if (existingError) {
       throw new Error(
@@ -399,343 +416,203 @@ export default async function handler(req, res) {
       );
     }
 
-    const existing = existingCompanies || [];
-
-    const prompt = buildPrompt({
-      industry,
-      postal,
-      radiusKm,
-      employeesFrom,
-      employeesTo,
-      amount,
-      additionalCriteria,
-      exclusionCriteria,
-      existingCompanies: existing
-    });
-
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-
-    if (!geminiApiKey) {
-      throw new Error("GEMINI_API_KEY fehlt in den Vercel Environment Variables.");
-    }
-
-    const model =
-      process.env.GEMINI_MODEL || "gemini-3.8-flash";
-
-    const schema = {
-      type: "OBJECT",
-      properties: {
-        leads: {
-          type: "ARRAY",
-          items: {
-            type: "OBJECT",
-            properties: {
-              company_name: { type: "STRING" },
-              legal_name: { type: "STRING", nullable: true },
-              industry: { type: "STRING", nullable: true },
-              website: { type: "STRING", nullable: true },
-              phone: { type: "STRING", nullable: true },
-              email: { type: "STRING", nullable: true },
-              address: { type: "STRING", nullable: true },
-              postal_code: { type: "STRING", nullable: true },
-              city: { type: "STRING", nullable: true },
-              country: { type: "STRING", nullable: true },
-              employee_count: { type: "INTEGER", nullable: true },
-              distance_km: { type: "NUMBER", nullable: true },
-              description: { type: "STRING", nullable: true },
-              source_url: { type: "STRING", nullable: true },
-              source_name: { type: "STRING", nullable: true }
-            },
-            required: [
-              "company_name",
-              "legal_name",
-              "industry",
-              "website",
-              "phone",
-              "email",
-              "address",
-              "postal_code",
-              "city",
-              "country",
-              "employee_count",
-              "distance_km",
-              "description",
-              "source_url",
-              "source_name"
-            ]
-          }
-        }
-      },
-      required: ["leads"]
-    };
-
-    const geminiUrl =
-      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-        model
-      )}:generateContent`;
-
-    const geminiResponse = await fetch(geminiUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": geminiApiKey
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text:
-                "Du bist ein extrem sorgfältiger B2B-Recherche-Agent. " +
-                "Arbeite faktenbasiert, nutze Websuche und erfinde niemals Daten."
-            }
-          ]
-        },
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: prompt
-              }
-            ]
-          }
-        ],
-        tools: [
-          {
-            googleSearch: {}
-          }
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: "application/json",
-          responseSchema: schema
-        }
-      })
-    });
-
-    const geminiRaw = await geminiResponse.text();
-
-    if (!geminiResponse.ok) {
-      throw new Error(
-        `Gemini API Fehler (${geminiResponse.status}): ${geminiRaw}`
-      );
-    }
-
-    let geminiJson;
-
-    try {
-      geminiJson = JSON.parse(geminiRaw);
-    } catch {
-      throw new Error("Gemini API hat keine gültige JSON-Antwort geliefert.");
-    }
-
-    const text = getGeminiText(geminiJson);
-
-    const parsed = extractJson(text);
-
-    const rawLeads = Array.isArray(parsed?.leads)
-      ? parsed.leads
-      : [];
-
-    const groundingSources =
-      getGroundingSources(geminiJson);
-
-    const existingKeys = new Set(
-      existing.map((company) => {
-        return companyKey({
-          company_name:
-            company.legal_name || company.name || "",
-          website: company.website || ""
-        });
-      })
+    const existingNames = new Set(
+      (existingCompanies || [])
+        .map((company) =>
+          normalizeCompanyName(company.name)
+        )
+        .filter(Boolean)
     );
 
-    const seenKeys = new Set(existingKeys);
-    const uniqueLeads = [];
+    const newCompanies = [];
+    const skippedDuplicates = [];
 
-    for (const rawLead of rawLeads) {
-      const lead = {
-        company_name: cleanValue(rawLead.company_name),
-        legal_name: cleanValue(rawLead.legal_name),
-        industry: cleanValue(rawLead.industry),
-        website: cleanValue(rawLead.website),
-        phone: cleanValue(rawLead.phone),
-        email: cleanValue(rawLead.email),
-        address: cleanValue(rawLead.address),
-        postal_code: cleanValue(rawLead.postal_code),
-        city: cleanValue(rawLead.city),
-        country: cleanValue(rawLead.country),
-        employee_count: cleanInteger(rawLead.employee_count),
-        distance_km: cleanNumber(rawLead.distance_km),
-        description: cleanValue(rawLead.description),
-        source_url: cleanValue(rawLead.source_url),
-        source_name: cleanValue(rawLead.source_name)
-      };
+    for (const company of normalizedCompanies) {
+      const normalizedName =
+        normalizeCompanyName(company.name);
 
-      if (!lead.company_name) {
+      if (!normalizedName) continue;
+
+      if (existingNames.has(normalizedName)) {
+        skippedDuplicates.push(company.name);
         continue;
       }
 
-      const key = companyKey(lead);
-
-      if (seenKeys.has(key)) {
+      if (
+        newCompanies.some(
+          (item) =>
+            normalizeCompanyName(item.name) ===
+            normalizedName
+        )
+      ) {
+        skippedDuplicates.push(company.name);
         continue;
       }
 
-      seenKeys.add(key);
-      uniqueLeads.push(lead);
+      newCompanies.push(company);
 
-      if (uniqueLeads.length >= amount) {
+      if (newCompanies.length >= anzahl) {
         break;
       }
     }
 
-    const savedLeads = [];
+    const createdLeads = [];
 
-    for (const lead of uniqueLeads) {
-      const { data: company, error: companyError } =
-        await supabase
-          .from("companies")
-          .insert({
-            user_id: user.id,
-            legal_name: lead.legal_name || lead.company_name,
-            industry: lead.industry || industry,
-            website: lead.website,
-            phone: lead.phone,
-            email: lead.email,
-            address: lead.address,
-            postal_code: lead.postal_code,
-            city: lead.city,
-            country: lead.country || "Deutschland",
-            employee_count: lead.employee_count
-          })
-          .select()
-          .single();
+    for (const company of newCompanies) {
+      const {
+        data: insertedCompany,
+        error: companyError
+      } = await supabase
+        .from("companies")
+        .insert({
+          user_id: user.id,
+          name: company.name,
+          legal_name: company.legal_name,
+          industry: company.industry,
+          website: company.website,
+          phone: company.phone,
+          email: company.email,
+          address: company.address,
+          postal_code: company.postal_code,
+          city: company.city,
+          country: company.country,
+          employee_count: company.employee_count
+        })
+        .single();
 
       if (companyError) {
         console.error(
-          "Company insert error:",
+          "Company INSERT:",
           companyError
         );
         continue;
       }
 
-      const { data: createdLead, error: leadError } =
-        await supabase
-          .from("leads")
+      let contactId = null;
+
+      if (company.contact) {
+        const contact = company.contact;
+
+        const {
+          data: insertedContact,
+          error: contactError
+        } = await supabase
+          .from("contacts")
           .insert({
             user_id: user.id,
-            company_id: company.id,
-            status: "new",
-            priority: "normal",
-            score: null,
-            notes: lead.description,
-            assigned_to: user.id
+            company_id: insertedCompany.id,
+            first_name:
+              cleanText(contact.first_name) || null,
+            last_name:
+              cleanText(contact.last_name) || null,
+            job_title:
+              cleanText(contact.job_title) || null,
+            email:
+              cleanText(contact.email) || null,
+            phone:
+              cleanText(contact.phone) || null,
+            mobile:
+              cleanText(contact.mobile) || null,
+            linkedin_url:
+              cleanText(contact.linkedin_url) || null
           })
-          .select()
           .single();
+
+        if (!contactError) {
+          contactId = insertedContact?.id || null;
+        }
+      }
+
+      const {
+        data: insertedLead,
+        error: leadError
+      } = await supabase
+        .from("leads")
+        .insert({
+          user_id: user.id,
+          company_id: insertedCompany.id,
+          contact_id: contactId,
+          status: "new",
+          priority: "medium",
+          score: null,
+          notes: company.reason || null,
+          assigned_to: user.id
+        })
+        .single();
 
       if (leadError) {
         console.error(
-          "Lead insert error:",
+          "Lead INSERT:",
           leadError
         );
-
-        await supabase
-          .from("companies")
-          .delete()
-          .eq("id", company.id)
-          .eq("user_id", user.id);
-
         continue;
       }
 
-      if (lead.source_url || groundingSources.length) {
-        const sourceUrl =
-          lead.source_url ||
-          groundingSources[0]?.url ||
-          null;
-
-        const sourceName =
-          lead.source_name ||
-          groundingSources[0]?.name ||
-          "Google Search";
-
-        if (sourceUrl) {
-          await supabase
-            .from("lead_sources")
-            .insert({
-              user_id: user.id,
-              lead_id: createdLead.id,
-              company_id: company.id,
-              source_type: "web",
-              source_name: sourceName,
-              source_url: sourceUrl,
-              metadata: {
-                distance_km: lead.distance_km,
-                grounding_sources: groundingSources
-              }
-            });
-        }
+      if (company.source_url) {
+        await supabase
+          .from("lead_sources")
+          .insert({
+            user_id: user.id,
+            lead_id: insertedLead.id,
+            source_url: company.source_url,
+            source_title:
+              company.source_title || null
+          });
       }
 
       await supabase
         .from("activities")
         .insert({
           user_id: user.id,
-          lead_id: createdLead.id,
-          company_id: company.id,
+          lead_id: insertedLead.id,
+          company_id: insertedCompany.id,
           type: "lead_created",
-          subject: "Lead durch Gemini KI-Recherche erstellt",
+          subject: "Lead durch KI-Recherche erstellt",
           description:
-            lead.description ||
-            "Lead wurde automatisch durch die KI-Recherche gefunden."
+            company.reason ||
+            "Lead wurde durch die KI-Leadsuche gefunden."
         });
 
-      savedLeads.push({
-        ...lead,
-        id: createdLead.id,
-        company_id: company.id
+      createdLeads.push({
+        lead_id: insertedLead.id,
+        company_id: insertedCompany.id,
+        company_name: company.name,
+        city: company.city,
+        postal_code: company.postal_code,
+        phone: company.phone,
+        website: company.website,
+        employee_count: company.employee_count,
+        source_url: company.source_url
       });
     }
 
-    await supabase
-      .from("lead_searches")
-      .update({
-        status: "completed",
-        results_count: savedLeads.length,
-        completed_at: new Date().toISOString()
-      })
-      .eq("id", searchId)
-      .eq("user_id", user.id);
+    if (searchRecord?.id) {
+      await supabase
+        .from("lead_searches")
+        .update({
+          status: "completed",
+          results_count: createdLeads.length,
+          completed_at: new Date().toISOString()
+        })
+        .eq("id", searchRecord.id)
+        .eq("user_id", user.id);
+    }
 
     return res.status(200).json({
       success: true,
-      search_id: searchId,
-      requested: amount,
-      found: uniqueLeads.length,
-      saved: savedLeads.length,
-      leads: savedLeads
+      count: createdLeads.length,
+      leads: createdLeads,
+      skipped_duplicates: skippedDuplicates.length
     });
 
   } catch (error) {
     console.error("lead-search error:", error);
 
-    if (searchId) {
-      await supabase
-        .from("lead_searches")
-        .update({
-          status: "failed",
-          error_message: error.message,
-          completed_at: new Date().toISOString()
-        })
-        .eq("id", searchId)
-        .eq("user_id", user.id);
-    }
-
     return res.status(500).json({
       success: false,
-      error: error.message || "Lead-Suche fehlgeschlagen."
+      error:
+        error?.message ||
+        "Fehler bei der KI-Leadsuche."
     });
   }
 }
