@@ -1,85 +1,93 @@
 // api/auth-user.js
 
-import { createClient } from "@supabase/supabase-js";
+async function authenticate(req) {
+  const authorization = req.headers.authorization || "";
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+  if (!authorization.startsWith("Bearer ")) {
+    return {
+      user: null,
+      error: "Nicht authentifiziert."
+    };
+  }
 
-if (!supabaseUrl) {
-    throw new Error("SUPABASE_URL fehlt.");
-}
+  const token = authorization.substring(7).trim();
 
-if (!supabaseAnonKey) {
-    throw new Error("SUPABASE_ANON_KEY fehlt.");
-}
+  if (!token) {
+    return {
+      user: null,
+      error: "Kein Access Token vorhanden."
+    };
+  }
 
-const supabase = createClient(
-    supabaseUrl,
-    supabaseAnonKey,
+  const response = await fetch(
+    `${process.env.SUPABASE_URL}/auth/v1/user`,
     {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false
-        }
+      method: "GET",
+      headers: {
+        apikey: process.env.SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${token}`
+      }
     }
-);
+  );
+
+  if (!response.ok) {
+    return {
+      user: null,
+      error: "Ungültige oder abgelaufene Sitzung."
+    };
+  }
+
+  const user = await response.json();
+
+  if (!user?.id) {
+    return {
+      user: null,
+      error: "Benutzer konnte nicht ermittelt werden."
+    };
+  }
+
+  return {
+    user,
+    error: null
+  };
+}
 
 export default async function handler(req, res) {
+  try {
     if (req.method !== "GET") {
-        return res.status(405).json({
-            success: false,
-            error: "Method not allowed"
-        });
+      return res.status(405).json({
+        success: false,
+        error: "Nur GET erlaubt."
+      });
     }
 
-    try {
-        const authorization =
-            req.headers.authorization || "";
+    const { user, error } = await authenticate(req);
 
-        if (!authorization.startsWith("Bearer ")) {
-            return res.status(401).json({
-                success: false,
-                error: "Nicht authentifiziert."
-            });
-        }
-
-        const token =
-            authorization.substring(7).trim();
-
-        if (!token) {
-            return res.status(401).json({
-                success: false,
-                error: "Kein Access Token vorhanden."
-            });
-        }
-
-        const {
-            data,
-            error
-        } = await supabase.auth.getUser(token);
-
-        if (error || !data?.user) {
-            return res.status(401).json({
-                success: false,
-                error: "Ungültige oder abgelaufene Sitzung."
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            user: {
-                id: data.user.id,
-                email: data.user.email,
-                created_at: data.user.created_at
-            }
-        });
-
-    } catch (error) {
-        console.error("auth-user error:", error);
-
-        return res.status(500).json({
-            success: false,
-            error: "Interner Serverfehler."
-        });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: error || "Nicht authentifiziert."
+      });
     }
+
+    return res.status(200).json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email || null,
+        created_at: user.created_at || null,
+        last_sign_in_at: user.last_sign_in_at || null
+      }
+    });
+
+  } catch (error) {
+    console.error("auth-user error:", error);
+
+    return res.status(500).json({
+      success: false,
+      error:
+        error?.message ||
+        "Fehler beim Abrufen des Benutzers."
+    });
+  }
 }
