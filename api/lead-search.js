@@ -13,27 +13,15 @@ const PROVIDERS = [
   },
 
   {
-    name: "openrouter",
-    envKey: "OPENROUTER_API_KEY",
-    models: [
-      "openrouter/free"
-    ]
-  },
-
-  {
-    name: "huggingface",
-    envKey: "HF_TOKEN",
-    models: [
-      "openai/gpt-oss-120b"
-    ]
-  },
-
-  {
     name: "gemini",
     envKey: "GEMINI_API_KEY",
     models: []
   }
 ];
+
+/* ---------------------------------------------------------
+   HILFSFUNKTIONEN
+--------------------------------------------------------- */
 
 function getBearerToken(req) {
   const header = req.headers.authorization || "";
@@ -70,6 +58,10 @@ function firstRow(data) {
 
   return data || null;
 }
+
+/* ---------------------------------------------------------
+   TEXT / JSON
+--------------------------------------------------------- */
 
 function extractText(value) {
   if (!value) {
@@ -166,6 +158,10 @@ function parseJsonFromText(text) {
   return null;
 }
 
+/* ---------------------------------------------------------
+   UNTERNEHMEN NORMALISIEREN
+--------------------------------------------------------- */
+
 function normalizeCompany(company) {
   if (!company || typeof company !== "object") {
     return null;
@@ -232,8 +228,8 @@ function normalizeCompany(company) {
     ),
 
     employees: cleanInteger(
-      company.employees ||
-        company.employee_count ||
+      company.employees ??
+        company.employee_count ??
         company.mitarbeiter
     ),
 
@@ -255,22 +251,30 @@ function normalizeCompanies(parsed) {
 
   if (Array.isArray(parsed)) {
     companies = parsed;
-  } else if (
+  }
+
+  else if (
     parsed &&
     Array.isArray(parsed.companies)
   ) {
     companies = parsed.companies;
-  } else if (
+  }
+
+  else if (
     parsed &&
     Array.isArray(parsed.leads)
   ) {
     companies = parsed.leads;
-  } else if (
+  }
+
+  else if (
     parsed &&
     Array.isArray(parsed.results)
   ) {
     companies = parsed.results;
-  } else if (
+  }
+
+  else if (
     parsed &&
     Array.isArray(parsed.unternehmen)
   ) {
@@ -303,6 +307,10 @@ function normalizeCompanies(parsed) {
 
   return unique.slice(0, MAX_RESULTS);
 }
+
+/* ---------------------------------------------------------
+   RESEARCH PROMPT
+--------------------------------------------------------- */
 
 function buildResearchPrompt({
   industry,
@@ -352,7 +360,7 @@ RECHERCHE-REGELN
 
 1. Suche ausschließlich nach real existierenden Unternehmen.
 2. Nutze öffentlich zugängliche Informationen.
-3. Nutze die Websuche, wenn der Anbieter diese unterstützt.
+3. Nutze die Websuche für die Recherche.
 4. Bevorzuge offizielle Unternehmenswebseiten.
 5. Erfinde niemals Unternehmen.
 6. Erfinde niemals Telefonnummern.
@@ -370,6 +378,10 @@ RECHERCHE-REGELN
 18. Liefere maximal ${requestedCount} Unternehmen.
 19. Wenn weniger passende Unternehmen gefunden werden, liefere nur tatsächlich gefundene Unternehmen.
 20. Jede Firma muss nachvollziehbar recherchiert sein.
+21. Gib nach Möglichkeit eine direkte Quelle für jedes Unternehmen an.
+22. Verwende keine Suchergebnisse, die offensichtlich veraltet oder unzuverlässig sind.
+23. Wenn Telefonnummer oder Mitarbeiterzahl nicht verifiziert werden können, lasse das Feld leer.
+24. Gib niemals Informationen nur aufgrund einer Vermutung an.
 
 AUSGABE
 
@@ -395,6 +407,14 @@ Format:
     }
   ]
 }
+
+WICHTIG:
+
+Die JSON-Struktur muss gültig sein.
+
+Keine Markdown-Codeblöcke.
+
+Keine Erklärungen außerhalb des JSON.
 `;
 }
 
@@ -421,15 +441,30 @@ async function callOpenAICompatible({
       }
     ],
 
-    temperature: 0,
-
-    response_format: {
-      type: "json_object"
-    }
+    temperature: 0
   };
+
+  /*
+   * WICHTIG:
+   *
+   * Groq Browser Search darf nicht zusammen
+   * mit Structured Outputs / response_format
+   * verwendet werden.
+   *
+   * Deshalb verwenden wir JSON-Modus nur,
+   * wenn KEINE Tools aktiviert sind.
+   */
+
+  if (!tools) {
+    body.response_format = {
+      type: "json_object"
+    };
+  }
 
   if (tools) {
     body.tools = tools;
+
+    body.tool_choice = "required";
   }
 
   const response = await fetch(
@@ -469,16 +504,45 @@ async function callOpenAICompatible({
 
     const error = new Error(message);
 
-    error.status = response.status;
-    error.provider = provider;
-    error.model = model;
+    error.status =
+      response.status;
+
+    error.provider =
+      provider;
+
+    error.model =
+      model;
 
     throw error;
   }
 
-  const text =
-    data?.choices?.[0]?.message?.content ||
-    extractText(data);
+  const message =
+    data?.choices?.[0]?.message;
+
+  let text =
+    message?.content ||
+    "";
+
+  /*
+   * Bei Tool-Nutzung kann der Text
+   * auch innerhalb verschiedener
+   * Antwortstrukturen liegen.
+   */
+
+  if (!text) {
+    text = extractText(data);
+  }
+
+  /*
+   * Falls Groq Tool-Resultate liefert,
+   * versuchen wir zuerst den normalen Text.
+   */
+
+  if (!text && message?.tool_calls) {
+    text = extractText(
+      message.tool_calls
+    );
+  }
 
   if (!text) {
     throw new Error(
@@ -522,86 +586,25 @@ async function callGroq(
 
   return callOpenAICompatible({
     provider: "groq",
+
     model,
+
     apiKey,
+
     prompt,
 
     baseUrl:
       "https://api.groq.com/openai/v1",
 
-    tools:
-      model === "openai/gpt-oss-120b" ||
-      model === "openai/gpt-oss-20b"
-        ? [
-            {
-              type: "browser_search"
-            }
-          ]
-        : undefined
-  });
-}
+    /*
+     * Echte Web-Recherche über Groq.
+     */
 
-/* ---------------------------------------------------------
-   OPENROUTER
---------------------------------------------------------- */
-
-async function callOpenRouter(
-  model,
-  prompt
-) {
-  const apiKey =
-    process.env.OPENROUTER_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      "OPENROUTER_API_KEY ist nicht gesetzt."
-    );
-  }
-
-  return callOpenAICompatible({
-    provider: "openrouter",
-    model,
-    apiKey,
-    prompt,
-
-    baseUrl:
-      "https://openrouter.ai/api/v1",
-
-    extraHeaders: {
-      "HTTP-Referer":
-        "https://b2b-ai-crm.vercel.app",
-
-      "X-Title":
-        "B2B AI CRM"
-    }
-  });
-}
-
-/* ---------------------------------------------------------
-   HUGGING FACE
---------------------------------------------------------- */
-
-async function callHuggingFace(
-  model,
-  prompt
-) {
-  const apiKey =
-    process.env.HF_TOKEN;
-
-  if (!apiKey) {
-    throw new Error(
-      "HF_TOKEN ist nicht gesetzt."
-    );
-  }
-
-  return callOpenAICompatible({
-    provider: "huggingface",
-    model,
-    apiKey,
-    prompt,
-
-    baseUrl:
-      "https://router.huggingface.co/v1"
+    tools: [
+      {
+        type: "browser_search"
+      }
+    ]
   });
 }
 
@@ -621,38 +624,51 @@ async function callGemini(
     );
   }
 
+  const model =
+    "gemini-3-flash-preview";
+
   const response = await fetch(
     "https://generativelanguage.googleapis.com/v1beta/interactions",
     {
       method: "POST",
 
       headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": apiKey
+        "Content-Type":
+          "application/json",
+
+        "x-goog-api-key":
+          apiKey
       },
 
       body: JSON.stringify({
-        model: "gemini-3-flash-preview",
+        model,
 
-        input: prompt,
+        input:
+          prompt,
 
         tools: [
           {
-            type: "google_search"
+            type:
+              "google_search"
           }
         ],
 
-        store: false
+        store:
+          false
       })
     }
   );
 
-  const raw = await response.text();
+  const raw =
+    await response.text();
 
   let data = null;
 
   try {
-    data = raw ? JSON.parse(raw) : null;
+    data =
+      raw
+        ? JSON.parse(raw)
+        : null;
   } catch {
     data = null;
   }
@@ -664,11 +680,17 @@ async function callGemini(
       raw ||
       `HTTP ${response.status}`;
 
-    const error = new Error(message);
+    const error =
+      new Error(message);
 
-    error.status = response.status;
-    error.provider = "gemini";
-    error.model = "gemini-3-flash-preview";
+    error.status =
+      response.status;
+
+    error.provider =
+      "gemini";
+
+    error.model =
+      model;
 
     throw error;
   }
@@ -692,9 +714,13 @@ async function callGemini(
   }
 
   return {
-    provider: "gemini",
-    model: "gemini-3-flash-preview",
+    provider:
+      "gemini",
+
+    model,
+
     parsed,
+
     data
   };
 }
@@ -717,15 +743,29 @@ async function callAIWithFallback(
       continue;
     }
 
-    for (const model of provider.models) {
+    /*
+     * Gemini hat keine Model-Liste
+     * in PROVIDERS, sondern wird
+     * über callGemini aufgerufen.
+     */
+
+    const models =
+      provider.models.length
+        ? provider.models
+        : [null];
+
+    for (const model of models) {
       try {
         console.log(
-          `[lead-search] Versuch: ${provider.name}/${model}`
+          `[lead-search] Versuch: ${provider.name}/${model || "default"}`
         );
 
         let result;
 
-        if (provider.name === "groq") {
+        if (
+          provider.name ===
+          "groq"
+        ) {
           result =
             await callGroq(
               model,
@@ -734,30 +774,19 @@ async function callAIWithFallback(
         }
 
         else if (
-          provider.name === "openrouter"
+          provider.name ===
+          "gemini"
         ) {
           result =
-            await callOpenRouter(
-              model,
-              prompt
-            );
-        }
-
-        else if (
-          provider.name === "huggingface"
-        ) {
-          result =
-            await callHuggingFace(
-              model,
+            await callGemini(
               prompt
             );
         }
 
         else {
-          result =
-            await callGemini(
-              prompt
-            );
+          throw new Error(
+            `Unbekannter Provider: ${provider.name}`
+          );
         }
 
         attempts.push({
@@ -779,6 +808,7 @@ async function callAIWithFallback(
           ...result,
 
           attempts,
+
           errors
         };
 
@@ -802,7 +832,9 @@ async function callAIWithFallback(
 
         attempts.push({
           ...entry,
-          success: false
+
+          success:
+            false
         });
 
         errors.push(entry);
@@ -821,16 +853,19 @@ async function callAIWithFallback(
     ),
     {
       attempts,
+
       errors
     }
   );
 }
 
 /* ---------------------------------------------------------
-   AUTH
+   AUTHENTIFIZIERUNG
 --------------------------------------------------------- */
 
-async function getAuthenticatedUser(req) {
+async function getAuthenticatedUser(
+  req
+) {
   const token =
     getBearerToken(req);
 
@@ -872,14 +907,17 @@ async function getAuthenticatedUser(req) {
 }
 
 /* ---------------------------------------------------------
-   COMPANY
+   COMPANY DUPLIKATE PRÜFEN
 --------------------------------------------------------- */
 
 async function findExistingCompany(
   userId,
   company
 ) {
-  if (!userId || !company?.name) {
+  if (
+    !userId ||
+    !company?.name
+  ) {
     return null;
   }
 
@@ -889,12 +927,20 @@ async function findExistingCompany(
         await supabase
           .from("companies")
           .select("*")
-          .eq("user_id", userId)
-          .eq("website", company.website)
+          .eq(
+            "user_id",
+            userId
+          )
+          .eq(
+            "website",
+            company.website
+          )
           .limit(1);
 
       const existing =
-        firstRow(result.data);
+        firstRow(
+          result.data
+        );
 
       if (existing) {
         return existing;
@@ -905,11 +951,19 @@ async function findExistingCompany(
       await supabase
         .from("companies")
         .select("*")
-        .eq("user_id", userId)
-        .eq("name", company.name)
+        .eq(
+          "user_id",
+          userId
+        )
+        .eq(
+          "name",
+          company.name
+        )
         .limit(1);
 
-    return firstRow(result.data);
+    return firstRow(
+      result.data
+    );
 
   } catch (error) {
     console.error(
@@ -920,6 +974,10 @@ async function findExistingCompany(
     return null;
   }
 }
+
+/* ---------------------------------------------------------
+   COMPANY SPEICHERN
+--------------------------------------------------------- */
 
 async function createCompany(
   userId,
@@ -933,8 +991,11 @@ async function createCompany(
 
   if (existing) {
     return {
-      company: existing,
-      created: false
+      company:
+        existing,
+
+      created:
+        false
     };
   }
 
@@ -982,7 +1043,7 @@ async function createCompany(
           null,
 
         employees:
-          company.employees ||
+          company.employees ??
           null,
 
         description:
@@ -998,7 +1059,9 @@ async function createCompany(
 
   return {
     company:
-      firstRow(result.data),
+      firstRow(
+        result.data
+      ),
 
     created:
       true
@@ -1006,7 +1069,7 @@ async function createCompany(
 }
 
 /* ---------------------------------------------------------
-   LEAD
+   LEAD SPEICHERN
 --------------------------------------------------------- */
 
 async function createLead(
@@ -1023,8 +1086,14 @@ async function createLead(
       await supabase
         .from("leads")
         .select("*")
-        .eq("user_id", userId)
-        .eq("company_id", companyId)
+        .eq(
+          "user_id",
+          userId
+        )
+        .eq(
+          "company_id",
+          companyId
+        )
         .limit(1);
 
     const existing =
@@ -1063,7 +1132,9 @@ async function createLead(
       );
     }
 
-    return firstRow(result.data);
+    return firstRow(
+      result.data
+    );
 
   } catch (error) {
     console.error(
@@ -1076,7 +1147,7 @@ async function createLead(
 }
 
 /* ---------------------------------------------------------
-   SOURCE
+   LEAD SOURCE
 --------------------------------------------------------- */
 
 async function createLeadSource(
@@ -1137,11 +1208,18 @@ export default async function handler(
     return;
   }
 
-  let searchId = null;
+  let searchId =
+    null;
 
   try {
+    /* -----------------------------------------------------
+       USER
+    ----------------------------------------------------- */
+
     const user =
-      await getAuthenticatedUser(req);
+      await getAuthenticatedUser(
+        req
+      );
 
     if (!user?.id) {
       res.status(401).json({
@@ -1151,6 +1229,10 @@ export default async function handler(
 
       return;
     }
+
+    /* -----------------------------------------------------
+       REQUEST
+    ----------------------------------------------------- */
 
     const body =
       req.body || {};
@@ -1218,17 +1300,32 @@ export default async function handler(
         body.ausschlusskriterien
       );
 
+    /* -----------------------------------------------------
+       PROMPT
+    ----------------------------------------------------- */
+
     const prompt =
       buildResearchPrompt({
         industry,
+
         postalCode,
+
         radiusKm,
+
         employeesFrom,
+
         employeesTo,
+
         requestedCount,
+
         additionalCriteria,
+
         exclusionCriteria
       });
+
+    /* -----------------------------------------------------
+       SEARCH IN SUPABASE ANLEGEN
+    ----------------------------------------------------- */
 
     const searchInsert =
       await supabase
@@ -1288,7 +1385,7 @@ export default async function handler(
       null;
 
     /* -----------------------------------------------------
-       KI ROUTER
+       KI
     ----------------------------------------------------- */
 
     let aiResult;
@@ -1337,6 +1434,10 @@ export default async function handler(
 
       return;
     }
+
+    /* -----------------------------------------------------
+       ERGEBNISSE NORMALISIEREN
+    ----------------------------------------------------- */
 
     const companies =
       normalizeCompanies(
@@ -1388,6 +1489,10 @@ export default async function handler(
       return;
     }
 
+    /* -----------------------------------------------------
+       SPEICHERN
+    ----------------------------------------------------- */
+
     const savedCompanies = [];
     const savedLeads = [];
 
@@ -1416,7 +1521,9 @@ export default async function handler(
         const lead =
           await createLead(
             user.id,
+
             savedCompany.id,
+
             searchId
           );
 
@@ -1428,8 +1535,11 @@ export default async function handler(
 
         await createLeadSource(
           user.id,
+
           savedCompany.id,
+
           searchId,
+
           company
         );
 
@@ -1440,6 +1550,10 @@ export default async function handler(
         );
       }
     }
+
+    /* -----------------------------------------------------
+       SEARCH ABSCHLIESSEN
+    ----------------------------------------------------- */
 
     await supabase
       .from("lead_searches")
@@ -1455,6 +1569,10 @@ export default async function handler(
         "user_id",
         user.id
       );
+
+    /* -----------------------------------------------------
+       RESPONSE
+    ----------------------------------------------------- */
 
     res.status(200).json({
       success:
