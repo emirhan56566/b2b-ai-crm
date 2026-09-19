@@ -30,8 +30,10 @@ button{cursor:pointer}
 .auth-button,.btn-primary{border:0;background:#4f46e5;color:#fff;font-weight:700;border-radius:8px;padding:11px 15px}
 .auth-button{width:100%;margin-top:5px}
 .btn-primary:hover,.auth-button:hover{background:#4338ca}
+.btn-primary:disabled,.auth-button:disabled{opacity:.6;cursor:not-allowed}
 .btn-secondary{border:1px solid #d9dee8;background:#fff;color:#344054;border-radius:8px;padding:10px 15px}
-.auth-message,.status-message{padding:11px 13px;border-radius:8px;font-size:14px;margin-top:14px}
+
+.auth-message,.status-message{padding:11px 13px;border-radius:8px;font-size:14px;margin-top:14px;line-height:1.5}
 .auth-message.error,.status-message.error{background:#fef2f2;color:#b42318}
 .auth-message.success,.status-message.success{background:#ecfdf3;color:#027a48}
 
@@ -99,6 +101,7 @@ th{color:#667085;font-size:12px;font-weight:650}
 .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 .content-grid{grid-template-columns:1fr}
 }
+
 @media(max-width:760px){
 #app{display:block}
 .sidebar{position:static;width:100%;min-height:auto}
@@ -148,7 +151,7 @@ Registrieren
 
 </div>
 
-<form id="authForm">
+<form id="authForm" data-mode="login">
 
 <div
 id="nameGroup"
@@ -434,8 +437,6 @@ Unternehmen importieren, filtern und ausgewählte Unternehmen als Leads überneh
 </div>
 
 
-<!-- IMPORT -->
-
 <div class="card search-card">
 
 <h2>
@@ -489,8 +490,6 @@ class="search-status">
 
 </div>
 
-
-<!-- FILTER -->
 
 <div
 class="card search-card"
@@ -590,8 +589,6 @@ class="search-status">
 
 </div>
 
-
-<!-- RESULTS -->
 
 <div
 id="companySearchResultsCard"
@@ -766,8 +763,6 @@ Noch keine Leads vorhanden.
 </section>
 
 
-<!-- RESTLICHE BEREICHE -->
-
 <section
 id="page-contacts"
 class="page">
@@ -931,6 +926,8 @@ submit.textContent="Anmelden";
 
 document.getElementById("authForm").dataset.mode=mode;
 
+clearAuthMessage();
+
 }
 
 
@@ -952,6 +949,38 @@ document.getElementById("authMessage");
 
 element.textContent="";
 element.className="auth-message hidden";
+
+}
+
+
+function formatAuthError(error){
+
+if(!error){
+
+return "Anmeldung fehlgeschlagen.";
+
+}
+
+const parts=[];
+
+if(error.code){
+parts.push("Code: "+error.code);
+}
+
+if(error.status){
+parts.push("Status: "+error.status);
+}
+
+if(error.message){
+parts.push(error.message);
+}
+
+if(error.hint){
+parts.push("Hinweis: "+error.hint);
+}
+
+return parts.join(" — ") ||
+"Anmeldung fehlgeschlagen.";
 
 }
 
@@ -982,51 +1011,128 @@ document.getElementById("authSubmit");
 
 button.disabled=true;
 
+button.textContent=
+mode==="register"
+? "⏳ Account wird erstellt..."
+: "⏳ Anmeldung...";
+
 try{
+
+if(!email){
+
+throw new Error(
+"Bitte gib deine E-Mail-Adresse ein."
+);
+
+}
+
+if(!password){
+
+throw new Error(
+"Bitte gib dein Passwort ein."
+);
+
+}
 
 if(mode==="register"){
 
 if(!name){
+
 throw new Error(
 "Bitte gib deinen Namen ein."
 );
+
 }
 
-const {error} =
+if(password.length<6){
+
+throw new Error(
+"Das Passwort muss mindestens 6 Zeichen lang sein."
+);
+
+}
+
+const {data,error} =
 await supabase.auth.signUp({
+
 email,
 password,
+
 options:{
 data:{
 full_name:name
 }
 }
+
 });
 
-if(error) throw error;
+if(error){
+
+console.error(
+"SUPABASE REGISTRIERUNGSFEHLER:",
+error
+);
+
+throw error;
+
+}
+
+if(data?.session){
 
 showAuthMessage(
-"Account wurde erstellt. Bitte prüfe deine E-Mail.",
+"Account erstellt. Du wirst angemeldet...",
 "success"
 );
 
 }else{
 
-const {error} =
+showAuthMessage(
+"Account wurde erstellt. Bitte prüfe deine E-Mail zur Bestätigung.",
+"success"
+);
+
+}
+
+}else{
+
+const {data,error} =
 await supabase.auth.signInWithPassword({
+
 email,
 password
+
 });
 
-if(error) throw error;
+if(error){
+
+console.error(
+"SUPABASE LOGIN FEHLER:",
+error
+);
+
+throw error;
+
+}
+
+if(!data?.session){
+
+throw new Error(
+"Login wurde akzeptiert, aber es wurde keine Sitzung erstellt."
+);
+
+}
 
 }
 
 }catch(error){
 
+console.error(
+"AUTH FEHLER:",
+error
+);
+
 showAuthMessage(
-error.message ||
-"Anmeldung fehlgeschlagen.",
+formatAuthError(error),
 "error"
 );
 
@@ -1092,12 +1198,18 @@ document
 
 async function checkSession(){
 
+try{
+
 const {data,error} =
 await supabase.auth.getSession();
 
 if(error){
 
-console.error(error);
+console.error(
+"SESSION FEHLER:",
+error
+);
+
 showLogin();
 return;
 
@@ -1113,11 +1225,27 @@ showLogin();
 
 }
 
+}catch(error){
+
+console.error(
+"SESSION CHECK FEHLER:",
+error
+);
+
+showLogin();
+
+}
+
 }
 
 
 supabase.auth.onAuthStateChange(
 (event,session)=>{
+
+console.log(
+"AUTH EVENT:",
+event
+);
 
 if(session?.user){
 
@@ -1136,7 +1264,18 @@ document
 .getElementById("logoutButton")
 .addEventListener("click",async()=>{
 
+try{
+
 await supabase.auth.signOut();
+
+}catch(error){
+
+console.error(
+"LOGOUT FEHLER:",
+error
+);
+
+}
 
 showLogin();
 
@@ -1193,11 +1332,15 @@ button.dataset.page===page
 });
 
 if(page==="leads"){
+
 loadLeads();
+
 }
 
 if(page==="lead-search"){
+
 loadCompanyIndustries();
+
 }
 
 };
@@ -1209,8 +1352,14 @@ TOKEN
 
 async function getApiToken(){
 
-const {data} =
+const {data,error} =
 await supabase.auth.getSession();
+
+if(error){
+
+throw error;
+
+}
 
 const token =
 data?.session?.access_token;
@@ -1341,7 +1490,9 @@ element.className=
 "search-status show";
 
 if(type){
+
 element.classList.add(type);
+
 }
 
 }
@@ -1409,7 +1560,9 @@ select.appendChild(option);
 
 if(
 [...select.options]
-.some(option=>option.value===oldValue)
+.some(
+option=>option.value===oldValue
+)
 ){
 
 select.value=oldValue;
@@ -1813,7 +1966,9 @@ element.className=
 "search-status show";
 
 if(type){
+
 element.classList.add(type);
+
 }
 
 }
