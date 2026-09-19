@@ -1,674 +1,616 @@
-import { supabase } from "./supabase.js";
+// api/lead-search.js
+// Ablauf:
+// 1. Benutzer authentifizieren
+// 2. Tavily durchsucht das Web
+// 3. Groq analysiert die gefundenen Webseiten
+// 4. Unternehmen werden dedupliziert
+// 5. Unternehmen + Leads werden in Supabase gespeichert
 
-const MAX_RESULTS = 50;
-
-const PROVIDERS = [
-  {
-    name: "groq",
-    envKey: "GROQ_API_KEY",
-    models: [
-      "openai/gpt-oss-120b",
-      "openai/gpt-oss-20b"
-    ]
-  },
-
-  {
-    name: "gemini",
-    envKey: "GEMINI_API_KEY",
-    models: []
-  }
+const GROQ_MODELS = [
+  "openai/gpt-oss-120b",
+  "openai/gpt-oss-20b"
 ];
 
-/* ---------------------------------------------------------
-   HILFSFUNKTIONEN
---------------------------------------------------------- */
+const TAVILY_URL = "https://api.tavily.com/search";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-function getBearerToken(req) {
-  const header = req.headers.authorization || "";
+const MAX_TAVILY_RESULTS_PER_QUERY = 8;
+const SEARCH_QUERY_COUNT = 3;
 
-  if (!header.toLowerCase().startsWith("bearer ")) {
-    return null;
-  }
+// ---------------------------------------------------------
+// Allgemeine Hilfsfunktionen
+// ---------------------------------------------------------
 
-  return header.slice(7).trim();
+function json(res, status, data) {
+  res.status(status).json(data);
 }
 
 function cleanString(value) {
-  if (value === undefined || value === null) {
-    return "";
-  }
-
+  if (value === undefined || value === null) return "";
   return String(value).trim();
 }
 
-function cleanInteger(value, fallback = null) {
+function toNumberOrNull(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
   const number = Number(value);
 
   if (!Number.isFinite(number)) {
-    return fallback;
+    return null;
+  }
+
+  return number;
+}
+
+function normalizeEmployees(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Math.round(value);
+  }
+
+  const text = String(value).trim();
+
+  // Beispiele:
+  // "25"
+  // "25 Mitarbeiter"
+  // "25-50"
+  // "ca. 40"
+  const match = text.match(/\d[\d.,]*/);
+
+  if (!match) {
+    return null;
+  }
+
+  const normalized = match[0]
+    .replace(/\./g, "")
+    .replace(",", ".");
+
+  const number = Number(normalized);
+
+  if (!Number.isFinite(number)) {
+    return null;
   }
 
   return Math.round(number);
 }
 
-function firstRow(data) {
-  if (Array.isArray(data)) {
-    return data[0] || null;
-  }
-
-  return data || null;
-}
-
-/* ---------------------------------------------------------
-   TEXT / JSON
---------------------------------------------------------- */
-
-function extractText(value) {
-  if (!value) {
-    return "";
-  }
-
-  if (typeof value === "string") {
-    return value;
-  }
-
-  if (Array.isArray(value)) {
-    return value
-      .map(extractText)
-      .filter(Boolean)
-      .join("\n");
-  }
-
-  if (typeof value === "object") {
-    const preferredKeys = [
-      "text",
-      "output_text",
-      "content",
-      "message",
-      "output"
-    ];
-
-    for (const key of preferredKeys) {
-      if (value[key]) {
-        const result = extractText(value[key]);
-
-        if (result) {
-          return result;
-        }
-      }
-    }
-
-    for (const part of Object.values(value)) {
-      const result = extractText(part);
-
-      if (result) {
-        return result;
-      }
-    }
-  }
-
-  return "";
-}
-
-function parseJsonFromText(text) {
-  if (!text) {
-    return null;
-  }
-
-  let cleaned = text.trim();
-
-  cleaned = cleaned
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
+function normalizeUrl(url) {
+  if (!url) return "";
 
   try {
-    return JSON.parse(cleaned);
+    const parsed = new URL(url);
+    return parsed.href;
   } catch {
-    // Weiter versuchen.
+    return String(url).trim();
   }
-
-  const firstBrace = cleaned.indexOf("{");
-  const lastBrace = cleaned.lastIndexOf("}");
-
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    try {
-      return JSON.parse(
-        cleaned.slice(firstBrace, lastBrace + 1)
-      );
-    } catch {
-      // Weiter versuchen.
-    }
-  }
-
-  const firstBracket = cleaned.indexOf("[");
-  const lastBracket = cleaned.lastIndexOf("]");
-
-  if (firstBracket !== -1 && lastBracket > firstBracket) {
-    try {
-      return JSON.parse(
-        cleaned.slice(firstBracket, lastBracket + 1)
-      );
-    } catch {
-      // Weiter versuchen.
-    }
-  }
-
-  return null;
 }
 
-/* ---------------------------------------------------------
-   UNTERNEHMEN NORMALISIEREN
---------------------------------------------------------- */
+function domainFromUrl(url) {
+  try {
+    return new URL(url).hostname
+      .replace(/^www\./, "")
+      .toLowerCase();
+  } catch {
+    return "";
+  }
+}
 
-function normalizeCompany(company) {
-  if (!company || typeof company !== "object") {
-    return null;
+// ---------------------------------------------------------
+// Timeout-fähiger Fetch
+// ---------------------------------------------------------
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error?.name === "AbortError") {
+      throw new Error(`Zeitüberschreitung bei ${url}`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+// ---------------------------------------------------------
+// Supabase
+// ---------------------------------------------------------
+
+function getSupabaseConfig() {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL fehlt in Vercel.");
   }
 
-  const name = cleanString(
-    company.name ||
-      company.company_name ||
-      company.firma ||
-      company.unternehmen ||
-      company.legal_name
-  );
-
-  if (!name) {
-    return null;
+  if (!serviceRoleKey) {
+    throw new Error("SUPABASE_SERVICE_ROLE_KEY fehlt in Vercel.");
   }
 
   return {
-    name,
-
-    legal_name: cleanString(
-      company.legal_name ||
-        company.name
-    ),
-
-    phone: cleanString(
-      company.phone ||
-        company.telefon ||
-        company.phone_number
-    ),
-
-    website: cleanString(
-      company.website ||
-        company.url ||
-        company.homepage
-    ),
-
-    street: cleanString(
-      company.street ||
-        company.strasse ||
-        company.address_street
-    ),
-
-    postal_code: cleanString(
-      company.postal_code ||
-        company.plz ||
-        company.zip
-    ),
-
-    city: cleanString(
-      company.city ||
-        company.ort
-    ),
-
-    country: cleanString(
-      company.country ||
-        company.land ||
-        "Deutschland"
-    ),
-
-    industry: cleanString(
-      company.industry ||
-        company.branche
-    ),
-
-    employees: cleanInteger(
-      company.employees ??
-        company.employee_count ??
-        company.mitarbeiter
-    ),
-
-    description: cleanString(
-      company.description ||
-        company.beschreibung
-    ),
-
-    source_url: cleanString(
-      company.source_url ||
-        company.source ||
-        company.website
-    )
+    supabaseUrl: supabaseUrl.replace(/\/$/, ""),
+    serviceRoleKey
   };
 }
 
-function normalizeCompanies(parsed) {
-  let companies = [];
+async function supabaseRequest(path, options = {}, timeoutMs = 15000) {
+  const {
+    supabaseUrl,
+    serviceRoleKey
+  } = getSupabaseConfig();
 
-  if (Array.isArray(parsed)) {
-    companies = parsed;
+  const response = await fetchWithTimeout(
+    `${supabaseUrl}/rest/v1/${path}`,
+    {
+      ...options,
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+        ...options.headers
+      }
+    },
+    timeoutMs
+  );
+
+  const text = await response.text();
+
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = text;
   }
 
-  else if (
-    parsed &&
-    Array.isArray(parsed.companies)
-  ) {
-    companies = parsed.companies;
+  if (!response.ok) {
+    const errorMessage =
+      typeof data === "object" && data?.message
+        ? data.message
+        : typeof data === "object" && data?.hint
+          ? data.hint
+          : text || `Supabase HTTP ${response.status}`;
+
+    throw new Error(
+      `Supabase HTTP ${response.status}: ${errorMessage}`
+    );
   }
 
-  else if (
-    parsed &&
-    Array.isArray(parsed.leads)
-  ) {
-    companies = parsed.leads;
+  return data;
+}
+
+// ---------------------------------------------------------
+// Authentifizierung
+// ---------------------------------------------------------
+
+async function getAuthenticatedUser(req) {
+  const authorization =
+    req.headers.authorization ||
+    req.headers.Authorization;
+
+  if (!authorization) {
+    throw new Error("Nicht authentifiziert.");
   }
 
-  else if (
-    parsed &&
-    Array.isArray(parsed.results)
-  ) {
-    companies = parsed.results;
+  const match = authorization.match(/^Bearer\s+(.+)$/i);
+
+  if (!match) {
+    throw new Error("Ungültiger Authorization-Header.");
   }
 
-  else if (
-    parsed &&
-    Array.isArray(parsed.unternehmen)
-  ) {
-    companies = parsed.unternehmen;
+  const accessToken = match[1];
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL fehlt.");
   }
 
-  const normalized = companies
-    .map(normalizeCompany)
-    .filter(Boolean);
+  if (!anonKey) {
+    throw new Error("SUPABASE_ANON_KEY fehlt.");
+  }
 
-  const unique = [];
-  const seen = new Set();
+  const response = await fetchWithTimeout(
+    `${supabaseUrl.replace(/\/$/, "")}/auth/v1/user`,
+    {
+      method: "GET",
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${accessToken}`
+      }
+    },
+    10000
+  );
 
-  for (const company of normalized) {
-    const key = (
-      company.website ||
-      `${company.name}|${company.postal_code}|${company.city}`
-    )
-      .toLowerCase()
+  if (!response.ok) {
+    throw new Error(
+      `Supabase Auth HTTP ${response.status}`
+    );
+  }
+
+  const user = await response.json();
+
+  if (!user?.id) {
+    throw new Error("Supabase konnte den Benutzer nicht ermitteln.");
+  }
+
+  return user;
+}
+
+// ---------------------------------------------------------
+// Tavily Websuche
+// ---------------------------------------------------------
+
+async function tavilySearch(query) {
+  const apiKey = process.env.TAVILY_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "TAVILY_API_KEY fehlt in den Vercel Environment Variables."
+    );
+  }
+
+  const response = await fetchWithTimeout(
+    TAVILY_URL,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        api_key: apiKey,
+        query,
+        search_depth: "basic",
+        topic: "general",
+        max_results: MAX_TAVILY_RESULTS_PER_QUERY,
+        include_answer: false,
+        include_raw_content: false,
+        include_images: false
+      })
+    },
+    20000
+  );
+
+  const text = await response.text();
+
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+
+  if (!response.ok) {
+    const message =
+      data?.detail ||
+      data?.message ||
+      text ||
+      `Tavily HTTP ${response.status}`;
+
+    throw new Error(
+      `Tavily HTTP ${response.status}: ${message}`
+    );
+  }
+
+  return Array.isArray(data?.results)
+    ? data.results
+    : [];
+}
+
+// ---------------------------------------------------------
+// Suchbegriffe erzeugen
+// ---------------------------------------------------------
+
+function buildSearchQueries(criteria) {
+  const industry =
+    cleanString(criteria.industry) ||
+    "B2B Unternehmen";
+
+  const postalCode =
+    cleanString(criteria.postal_code);
+
+  const radius =
+    cleanString(criteria.radius_km);
+
+  const employeesFrom =
+    cleanString(criteria.employees_from);
+
+  const employeesTo =
+    cleanString(criteria.employees_to);
+
+  const additionalCriteria =
+    cleanString(criteria.additional_criteria);
+
+  const exclusionCriteria =
+    cleanString(criteria.exclusion_criteria);
+
+  const locationPart = postalCode
+    ? `in der Nähe von ${postalCode}${radius ? ` innerhalb von ${radius} km` : ""}`
+    : "in Deutschland";
+
+  const employeePart =
+    employeesFrom || employeesTo
+      ? `Unternehmen mit ungefähr ${employeesFrom || "1"} bis ${employeesTo || "unbegrenzt"} Mitarbeitern`
+      : "";
+
+  const queries = [
+    `${industry} ${locationPart} ${employeePart} ${additionalCriteria}`,
+
+    `${industry} Deutschland ${postalCode || ""} Firmen Unternehmen ${additionalCriteria}`,
+
+    `${industry} ${locationPart} ${employeePart} Kontakt Telefon Adresse Website`
+  ];
+
+  // Ausschlusskriterien in Suchanfrage einbauen
+  return queries.map(query => {
+    let result = query;
+
+    if (exclusionCriteria) {
+      result += ` Ausschließen: ${exclusionCriteria}`;
+    }
+
+    return result
       .replace(/\s+/g, " ")
       .trim();
+  });
+}
+
+// ---------------------------------------------------------
+// Suchergebnisse normalisieren
+// ---------------------------------------------------------
+
+function normalizeSearchResults(results) {
+  const seen = new Set();
+  const normalized = [];
+
+  for (const result of results) {
+    const url = normalizeUrl(
+      result?.url ||
+      result?.link
+    );
+
+    const title = cleanString(
+      result?.title
+    );
+
+    const content = cleanString(
+      result?.content ||
+      result?.snippet ||
+      result?.description
+    );
+
+    const domain = domainFromUrl(url);
+
+    if (!url || !domain) {
+      continue;
+    }
+
+    const key = `${domain}|${title}`.toLowerCase();
 
     if (seen.has(key)) {
       continue;
     }
 
     seen.add(key);
-    unique.push(company);
+
+    normalized.push({
+      title,
+      url,
+      domain,
+      content
+    });
   }
 
-  return unique.slice(0, MAX_RESULTS);
+  return normalized;
 }
 
-/* ---------------------------------------------------------
-   RESEARCH PROMPT
---------------------------------------------------------- */
+// ---------------------------------------------------------
+// Groq
+// ---------------------------------------------------------
 
-function buildResearchPrompt({
-  industry,
-  postalCode,
-  radiusKm,
-  employeesFrom,
-  employeesTo,
-  requestedCount,
-  additionalCriteria,
-  exclusionCriteria
-}) {
+function buildGroqSchema() {
+  return {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      companies: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            name: {
+              type: "string"
+            },
+            legal_name: {
+              type: ["string", "null"]
+            },
+            website: {
+              type: ["string", "null"]
+            },
+            phone: {
+              type: ["string", "null"]
+            },
+            address: {
+              type: ["string", "null"]
+            },
+            city: {
+              type: ["string", "null"]
+            },
+            postal_code: {
+              type: ["string", "null"]
+            },
+            country: {
+              type: ["string", "null"]
+            },
+            industry: {
+              type: ["string", "null"]
+            },
+            employees: {
+              type: ["integer", "null"]
+            },
+            description: {
+              type: ["string", "null"]
+            },
+            source_url: {
+              type: ["string", "null"]
+            },
+            source_title: {
+              type: ["string", "null"]
+            }
+          },
+          required: [
+            "name",
+            "legal_name",
+            "website",
+            "phone",
+            "address",
+            "city",
+            "postal_code",
+            "country",
+            "industry",
+            "employees",
+            "description",
+            "source_url",
+            "source_title"
+          ]
+        }
+      }
+    },
+    required: ["companies"]
+  };
+}
+
+function buildGroqPrompt(criteria, searchResults) {
   return `
-Du bist eine professionelle B2B-Research-KI für ein deutsches CRM.
+Du bist ein B2B-Lead-Recherche-System für einen deutschen CRM.
 
-AUFGABE
+Aufgabe:
+Analysiere ausschließlich die unten gelieferten Websuchergebnisse.
 
-Recherchiere reale Unternehmen in Deutschland, die möglichst genau
-zu den angegebenen B2B-Suchkriterien passen.
+Finde reale Unternehmen in Deutschland, die möglichst gut zu den Suchkriterien passen.
 
-SUCHKRITERIEN
+WICHTIGE REGELN:
+
+1. Erfinde niemals Unternehmen.
+2. Erfinde niemals Telefonnummern.
+3. Erfinde niemals Adressen.
+4. Erfinde niemals Mitarbeiterzahlen.
+5. Verwende nur Informationen, die aus den gelieferten Quellen nachvollziehbar sind.
+6. Bevorzuge offizielle Unternehmenswebseiten.
+7. Bevorzuge echte Unternehmen gegenüber Verzeichnissen.
+8. Keine Privatpersonen.
+9. Keine Fake-Unternehmen.
+10. Keine offensichtlich irrelevanten Unternehmen.
+11. Wenn eine Information nicht sicher aus den Quellen hervorgeht, setze sie auf null.
+12. source_url muss eine tatsächlich gelieferte URL sein.
+13. Telefonnummer nur übernehmen, wenn sie in den Quellen erkennbar ist.
+14. Mitarbeiterzahl nur übernehmen, wenn sie in den Quellen erkennbar ist.
+15. Gib jedes Unternehmen höchstens einmal zurück.
+16. Berücksichtige die Ausschlusskriterien.
+17. Deutschland ist das Zielland.
+18. Die Ausgabe muss exakt dem vorgegebenen JSON-Schema entsprechen.
+
+SUCHKRITERIEN:
 
 Branche:
-${industry || "Keine spezielle Branche angegeben"}
+${cleanString(criteria.industry) || "nicht angegeben"}
 
-Postleitzahl:
-${postalCode || "Keine PLZ angegeben"}
+PLZ:
+${cleanString(criteria.postal_code) || "nicht angegeben"}
 
-Suchradius:
-${radiusKm || "Kein Radius angegeben"} km
+Radius:
+${cleanString(criteria.radius_km) || "nicht angegeben"} km
 
 Mitarbeiter von:
-${employeesFrom ?? "Keine Angabe"}
+${cleanString(criteria.employees_from) || "nicht angegeben"}
 
 Mitarbeiter bis:
-${employeesTo ?? "Keine Angabe"}
+${cleanString(criteria.employees_to) || "nicht angegeben"}
 
-Gewünschte Anzahl:
-${requestedCount}
-
-Zusätzliche Kriterien:
-${additionalCriteria || "Keine"}
+Zusatzkriterien:
+${cleanString(criteria.additional_criteria) || "keine"}
 
 Ausschlusskriterien:
-${exclusionCriteria || "Keine"}
+${cleanString(criteria.exclusion_criteria) || "keine"}
 
-RECHERCHE-REGELN
+Anzahl gewünschter Leads:
+${cleanString(criteria.amount_requested || criteria.requested_count) || "50"}
 
-1. Suche ausschließlich nach real existierenden Unternehmen.
-2. Nutze öffentlich zugängliche Informationen.
-3. Nutze die Websuche für die Recherche.
-4. Bevorzuge offizielle Unternehmenswebseiten.
-5. Erfinde niemals Unternehmen.
-6. Erfinde niemals Telefonnummern.
-7. Erfinde niemals Webseiten.
-8. Erfinde niemals Mitarbeiterzahlen.
-9. Wenn eine Information nicht zuverlässig gefunden wird, lasse sie leer.
-10. Keine Privatpersonen.
-11. Keine erfundenen Ansprechpartner.
-12. Keine Duplikate.
-13. Beachte die Branche.
-14. Beachte PLZ und Radius möglichst genau.
-15. Beachte die Mitarbeitergrenze.
-16. Beachte Zusatzkriterien.
-17. Beachte Ausschlusskriterien.
-18. Liefere maximal ${requestedCount} Unternehmen.
-19. Wenn weniger passende Unternehmen gefunden werden, liefere nur tatsächlich gefundene Unternehmen.
-20. Jede Firma muss nachvollziehbar recherchiert sein.
-21. Gib nach Möglichkeit eine direkte Quelle für jedes Unternehmen an.
-22. Verwende keine Suchergebnisse, die offensichtlich veraltet oder unzuverlässig sind.
-23. Wenn Telefonnummer oder Mitarbeiterzahl nicht verifiziert werden können, lasse das Feld leer.
-24. Gib niemals Informationen nur aufgrund einer Vermutung an.
+WEB-SUCHERGEBNISSE:
 
-AUSGABE
-
-Antworte ausschließlich mit gültigem JSON.
-
-Format:
-
-{
-  "companies": [
-    {
-      "name": "Firmenname",
-      "legal_name": "Rechtlicher Firmenname oder leer",
-      "phone": "Telefonnummer oder leer",
-      "website": "https://...",
-      "street": "Straße und Hausnummer oder leer",
-      "postal_code": "PLZ oder leer",
-      "city": "Ort oder leer",
-      "country": "Deutschland",
-      "industry": "Branche oder leer",
-      "employees": 0,
-      "description": "Kurze sachliche Beschreibung",
-      "source_url": "Quelle"
-    }
-  ]
-}
-
-WICHTIG:
-
-Die JSON-Struktur muss gültig sein.
-
-Keine Markdown-Codeblöcke.
-
-Keine Erklärungen außerhalb des JSON.
+${JSON.stringify(searchResults, null, 2)}
 `;
 }
 
-/* ---------------------------------------------------------
-   OPENAI-COMPATIBLE PROVIDER
---------------------------------------------------------- */
-
-async function callOpenAICompatible({
-  provider,
-  model,
-  apiKey,
-  prompt,
-  baseUrl,
-  extraHeaders = {},
-  tools = undefined
-}) {
-  const body = {
-    model,
-
-    messages: [
-      {
-        role: "user",
-        content: prompt
-      }
-    ],
-
-    temperature: 0
-  };
-
-  /*
-   * WICHTIG:
-   *
-   * Groq Browser Search darf nicht zusammen
-   * mit Structured Outputs / response_format
-   * verwendet werden.
-   *
-   * Deshalb verwenden wir JSON-Modus nur,
-   * wenn KEINE Tools aktiviert sind.
-   */
-
-  if (!tools) {
-    body.response_format = {
-      type: "json_object"
-    };
-  }
-
-  if (tools) {
-    body.tools = tools;
-
-    body.tool_choice = "required";
-  }
-
-  const response = await fetch(
-    `${baseUrl}/chat/completions`,
-    {
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json",
-
-        Authorization:
-          `Bearer ${apiKey}`,
-
-        ...extraHeaders
-      },
-
-      body: JSON.stringify(body)
-    }
-  );
-
-  const raw = await response.text();
-
-  let data = null;
-
-  try {
-    data = raw ? JSON.parse(raw) : null;
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    const message =
-      data?.error?.message ||
-      data?.message ||
-      raw ||
-      `HTTP ${response.status}`;
-
-    const error = new Error(message);
-
-    error.status =
-      response.status;
-
-    error.provider =
-      provider;
-
-    error.model =
-      model;
-
-    throw error;
-  }
-
-  const message =
-    data?.choices?.[0]?.message;
-
-  let text =
-    message?.content ||
-    "";
-
-  /*
-   * Bei Tool-Nutzung kann der Text
-   * auch innerhalb verschiedener
-   * Antwortstrukturen liegen.
-   */
-
-  if (!text) {
-    text = extractText(data);
-  }
-
-  /*
-   * Falls Groq Tool-Resultate liefert,
-   * versuchen wir zuerst den normalen Text.
-   */
-
-  if (!text && message?.tool_calls) {
-    text = extractText(
-      message.tool_calls
-    );
-  }
-
-  if (!text) {
-    throw new Error(
-      `${provider} ${model} hat keine Textantwort geliefert.`
-    );
-  }
-
-  const parsed =
-    parseJsonFromText(text);
-
-  if (!parsed) {
-    throw new Error(
-      `${provider} ${model} hat kein gültiges JSON geliefert.`
-    );
-  }
-
-  return {
-    provider,
-    model,
-    parsed,
-    data
-  };
-}
-
-/* ---------------------------------------------------------
-   GROQ
---------------------------------------------------------- */
-
-async function callGroq(
-  model,
-  prompt
-) {
-  const apiKey =
-    process.env.GROQ_API_KEY;
+async function callGroq(model, prompt) {
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
     throw new Error(
-      "GROQ_API_KEY ist nicht gesetzt."
+      "GROQ_API_KEY fehlt in den Vercel Environment Variables."
     );
   }
 
-  return callOpenAICompatible({
-    provider: "groq",
-
-    model,
-
-    apiKey,
-
-    prompt,
-
-    baseUrl:
-      "https://api.groq.com/openai/v1",
-
-    /*
-     * Echte Web-Recherche über Groq.
-     */
-
-    tools: [
-      {
-        type: "browser_search"
-      }
-    ]
-  });
-}
-
-/* ---------------------------------------------------------
-   GEMINI
---------------------------------------------------------- */
-
-async function callGemini(
-  prompt
-) {
-  const apiKey =
-    process.env.GEMINI_API_KEY;
-
-  if (!apiKey) {
-    throw new Error(
-      "GEMINI_API_KEY ist nicht gesetzt."
-    );
-  }
-
-  const model =
-    "gemini-3-flash-preview";
-
-  const response = await fetch(
-    "https://generativelanguage.googleapis.com/v1beta/interactions",
+  const response = await fetchWithTimeout(
+    GROQ_URL,
     {
       method: "POST",
-
       headers: {
-        "Content-Type":
-          "application/json",
-
-        "x-goog-api-key":
-          apiKey
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
       },
-
       body: JSON.stringify({
         model,
-
-        input:
-          prompt,
-
-        tools: [
+        temperature: 0.1,
+        messages: [
           {
-            type:
-              "google_search"
+            role: "system",
+            content:
+              "Du bist ein präzises B2B-Recherche-System. Antworte ausschließlich gemäß dem vorgegebenen JSON-Schema."
+          },
+          {
+            role: "user",
+            content: prompt
           }
         ],
-
-        store:
-          false
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "b2b_companies",
+            strict: true,
+            schema: buildGroqSchema()
+          }
+        }
       })
-    }
+    },
+    30000
   );
 
-  const raw =
-    await response.text();
+  const text = await response.text();
 
   let data = null;
 
   try {
-    data =
-      raw
-        ? JSON.parse(raw)
-        : null;
+    data = text ? JSON.parse(text) : null;
   } catch {
     data = null;
   }
@@ -677,962 +619,604 @@ async function callGemini(
     const message =
       data?.error?.message ||
       data?.message ||
-      raw ||
-      `HTTP ${response.status}`;
+      text ||
+      `Groq HTTP ${response.status}`;
 
-    const error =
-      new Error(message);
-
-    error.status =
-      response.status;
-
-    error.provider =
-      "gemini";
-
-    error.model =
-      model;
-
-    throw error;
-  }
-
-  const text =
-    extractText(data);
-
-  if (!text) {
     throw new Error(
-      "Gemini hat keine Textantwort geliefert."
+      `${model}: Groq HTTP ${response.status}: ${message}`
     );
   }
 
-  const parsed =
-    parseJsonFromText(text);
+  const content =
+    data?.choices?.[0]?.message?.content;
 
-  if (!parsed) {
+  if (!content) {
     throw new Error(
-      "Gemini hat kein gültiges JSON geliefert."
+      `${model}: Groq hat keine Antwort geliefert.`
     );
   }
 
-  return {
-    provider:
-      "gemini",
-
-    model,
-
-    parsed,
-
-    data
-  };
+  try {
+    return JSON.parse(content);
+  } catch {
+    throw new Error(
+      `${model}: Groq hat kein gültiges JSON geliefert.`
+    );
+  }
 }
 
-/* ---------------------------------------------------------
-   MULTI-PROVIDER ROUTER
---------------------------------------------------------- */
-
-async function callAIWithFallback(
-  prompt
-) {
-  const attempts = [];
+async function callGroqWithFallback(prompt) {
   const errors = [];
 
-  for (const provider of PROVIDERS) {
-    const apiKey =
-      process.env[provider.envKey];
+  for (const model of GROQ_MODELS) {
+    try {
+      return await callGroq(model, prompt);
+    } catch (error) {
+      errors.push(error?.message || String(error));
+    }
+  }
 
-    if (!apiKey) {
+  throw new Error(
+    `Alle Groq-Modelle sind fehlgeschlagen:\n${errors.join("\n")}`
+  );
+}
+
+// ---------------------------------------------------------
+// Unternehmen deduplizieren
+// ---------------------------------------------------------
+
+function deduplicateCompanies(companies) {
+  const map = new Map();
+
+  for (const company of companies) {
+    const name = cleanString(company?.name);
+    const website = cleanString(company?.website);
+
+    if (!name) {
       continue;
     }
 
-    /*
-     * Gemini hat keine Model-Liste
-     * in PROVIDERS, sondern wird
-     * über callGemini aufgerufen.
-     */
+    const domain = domainFromUrl(website);
 
-    const models =
-      provider.models.length
-        ? provider.models
-        : [null];
+    const key = (
+      domain ||
+      name
+        .toLowerCase()
+        .replace(/[^a-z0-9äöüß]/gi, "")
+    );
 
-    for (const model of models) {
-      try {
-        console.log(
-          `[lead-search] Versuch: ${provider.name}/${model || "default"}`
-        );
+    if (!key) {
+      continue;
+    }
 
-        let result;
+    if (!map.has(key)) {
+      map.set(key, company);
+    }
+  }
 
-        if (
-          provider.name ===
-          "groq"
-        ) {
-          result =
-            await callGroq(
-              model,
-              prompt
-            );
+  return Array.from(map.values());
+}
+
+// ---------------------------------------------------------
+// Bestehendes Unternehmen suchen
+// ---------------------------------------------------------
+
+async function findExistingCompany(userId, company) {
+  const name = cleanString(company.name);
+  const website = cleanString(company.website);
+
+  if (website) {
+    const domain = domainFromUrl(website);
+
+    if (domain) {
+      const rows = await supabaseRequest(
+        `companies?user_id=eq.${encodeURIComponent(userId)}&website=ilike.*${encodeURIComponent(domain)}*&select=*`,
+        {
+          method: "GET"
         }
+      );
 
-        else if (
-          provider.name ===
-          "gemini"
-        ) {
-          result =
-            await callGemini(
-              prompt
-            );
-        }
-
-        else {
-          throw new Error(
-            `Unbekannter Provider: ${provider.name}`
-          );
-        }
-
-        attempts.push({
-          provider:
-            result.provider,
-
-          model:
-            result.model,
-
-          success:
-            true
-        });
-
-        console.log(
-          `[lead-search] Erfolgreich: ${result.provider}/${result.model}`
-        );
-
-        return {
-          ...result,
-
-          attempts,
-
-          errors
-        };
-
-      } catch (error) {
-        const entry = {
-          provider:
-            provider.name,
-
-          model:
-            model ||
-            "default",
-
-          status:
-            error?.status ||
-            null,
-
-          message:
-            error?.message ||
-            "Unbekannter Fehler"
-        };
-
-        attempts.push({
-          ...entry,
-
-          success:
-            false
-        });
-
-        errors.push(entry);
-
-        console.error(
-          "[lead-search] Provider fehlgeschlagen:",
-          entry
-        );
+      if (Array.isArray(rows) && rows.length > 0) {
+        return rows[0];
       }
     }
   }
 
-  throw Object.assign(
-    new Error(
-      "Alle konfigurierten KI-Anbieter sind fehlgeschlagen."
-    ),
-    {
-      attempts,
+  if (name) {
+    const rows = await supabaseRequest(
+      `companies?user_id=eq.${encodeURIComponent(userId)}&name=ilike.${encodeURIComponent(name)}&select=*`,
+      {
+        method: "GET"
+      }
+    );
 
-      errors
+    if (Array.isArray(rows) && rows.length > 0) {
+      return rows[0];
+    }
+  }
+
+  return null;
+}
+
+// ---------------------------------------------------------
+// Unternehmen speichern
+// ---------------------------------------------------------
+
+async function saveCompany(userId, company) {
+  const existing = await findExistingCompany(
+    userId,
+    company
+  );
+
+  if (existing) {
+    return existing;
+  }
+
+  const payload = {
+    user_id: userId,
+    name: cleanString(company.name),
+    legal_name: company.legal_name
+      ? cleanString(company.legal_name)
+      : null,
+    website: company.website
+      ? normalizeUrl(company.website)
+      : null,
+    phone: company.phone
+      ? cleanString(company.phone)
+      : null,
+    address: company.address
+      ? cleanString(company.address)
+      : null,
+    city: company.city
+      ? cleanString(company.city)
+      : null,
+    postal_code: company.postal_code
+      ? cleanString(company.postal_code)
+      : null,
+    country: company.country
+      ? cleanString(company.country)
+      : "Deutschland",
+    industry: company.industry
+      ? cleanString(company.industry)
+      : null,
+    employees: normalizeEmployees(company.employees),
+    description: company.description
+      ? cleanString(company.description)
+      : null
+  };
+
+  const rows = await supabaseRequest(
+    "companies",
+    {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify(payload)
+    }
+  );
+
+  if (!Array.isArray(rows) || !rows[0]) {
+    throw new Error(
+      "Unternehmen konnte nicht in Supabase gespeichert werden."
+    );
+  }
+
+  return rows[0];
+}
+
+// ---------------------------------------------------------
+// Lead speichern
+// ---------------------------------------------------------
+
+async function saveLead(
+  userId,
+  companyId,
+  leadSearchId
+) {
+  const existing = await supabaseRequest(
+    `leads?user_id=eq.${encodeURIComponent(userId)}&company_id=eq.${encodeURIComponent(companyId)}&select=*`,
+    {
+      method: "GET"
+    }
+  );
+
+  if (Array.isArray(existing) && existing.length > 0) {
+    return existing[0];
+  }
+
+  const payload = {
+    user_id: userId,
+    company_id: companyId,
+    status: "new",
+    source: "ai_search",
+    lead_search_id: leadSearchId
+  };
+
+  const rows = await supabaseRequest(
+    "leads",
+    {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify(payload)
+    }
+  );
+
+  return Array.isArray(rows)
+    ? rows[0]
+    : null;
+}
+
+// ---------------------------------------------------------
+// Quelle speichern
+// ---------------------------------------------------------
+
+async function saveLeadSource(
+  userId,
+  leadSearchId,
+  companyId,
+  sourceUrl,
+  sourceTitle
+) {
+  if (!sourceUrl) {
+    return;
+  }
+
+  const payload = {
+    user_id: userId,
+    lead_search_id: leadSearchId,
+    company_id: companyId,
+    source_type: "tavily",
+    source_url: sourceUrl,
+    source_title: sourceTitle || null
+  };
+
+  try {
+    await supabaseRequest(
+      "lead_sources",
+      {
+        method: "POST",
+        headers: {
+          Prefer: "return=minimal"
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+  } catch (error) {
+    // Quellen dürfen die eigentliche Lead-Speicherung
+    // nicht zerstören.
+    console.error(
+      "Lead-Quelle konnte nicht gespeichert werden:",
+      error?.message || error
+    );
+  }
+}
+
+// ---------------------------------------------------------
+// Lead Search anlegen
+// ---------------------------------------------------------
+
+async function createLeadSearch(userId, criteria) {
+  const requestedCount =
+    toNumberOrNull(
+      criteria.amount_requested ??
+      criteria.requested_count
+    ) || 50;
+
+  const payload = {
+    user_id: userId,
+    status: "running",
+    industry:
+      cleanString(criteria.industry) || null,
+    postal_code:
+      cleanString(criteria.postal_code) || null,
+    radius_km:
+      toNumberOrNull(criteria.radius_km),
+    employees_from:
+      toNumberOrNull(criteria.employees_from),
+    employees_to:
+      toNumberOrNull(criteria.employees_to),
+    additional_criteria:
+      cleanString(criteria.additional_criteria) || null,
+    exclusion_criteria:
+      cleanString(criteria.exclusion_criteria) || null,
+    requested_count: requestedCount,
+    amount_requested: requestedCount
+  };
+
+  const rows = await supabaseRequest(
+    "lead_searches",
+    {
+      method: "POST",
+      headers: {
+        Prefer: "return=representation"
+      },
+      body: JSON.stringify(payload)
+    }
+  );
+
+  if (!Array.isArray(rows) || !rows[0]) {
+    throw new Error(
+      "Lead-Suche konnte nicht gespeichert werden."
+    );
+  }
+
+  return rows[0];
+}
+
+// ---------------------------------------------------------
+// Lead Search aktualisieren
+// ---------------------------------------------------------
+
+async function updateLeadSearch(
+  leadSearchId,
+  values
+) {
+  await supabaseRequest(
+    `lead_searches?id=eq.${encodeURIComponent(leadSearchId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        Prefer: "return=minimal"
+      },
+      body: JSON.stringify(values)
     }
   );
 }
 
-/* ---------------------------------------------------------
-   AUTHENTIFIZIERUNG
---------------------------------------------------------- */
+// ---------------------------------------------------------
+// Hauptfunktion
+// ---------------------------------------------------------
 
-async function getAuthenticatedUser(
-  req
-) {
-  const token =
-    getBearerToken(req);
-
-  if (!token) {
-    return null;
+export default async function handler(req, res) {
+  if (req.method !== "POST") {
+    return json(res, 405, {
+      error: "Method Not Allowed"
+    });
   }
 
+  let leadSearch = null;
+
   try {
-    const response =
-      await fetch(
-        `${process.env.SUPABASE_URL}/auth/v1/user`,
+    const user = await getAuthenticatedUser(req);
+
+    const body =
+      typeof req.body === "string"
+        ? JSON.parse(req.body || "{}")
+        : req.body || {};
+
+    const criteria = {
+      industry:
+        body.industry ||
+        body.branches ||
+        body.branch ||
+        "",
+
+      postal_code:
+        body.postal_code ||
+        body.postalCode ||
+        "",
+
+      radius_km:
+        body.radius_km ??
+        body.radius ??
+        "",
+
+      employees_from:
+        body.employees_from ??
+        body.employeesFrom ??
+        "",
+
+      employees_to:
+        body.employees_to ??
+        body.employeesTo ??
+        "",
+
+      additional_criteria:
+        body.additional_criteria ||
+        body.additionalCriteria ||
+        "",
+
+      exclusion_criteria:
+        body.exclusion_criteria ||
+        body.exclusionCriteria ||
+        "",
+
+      amount_requested:
+        body.amount_requested ??
+        body.requested_count ??
+        body.amount ??
+        body.count ??
+        50
+    };
+
+    // -----------------------------------------------------
+    // Lead Search speichern
+    // -----------------------------------------------------
+
+    leadSearch = await createLeadSearch(
+      user.id,
+      criteria
+    );
+
+    // -----------------------------------------------------
+    // Tavily Suche
+    // -----------------------------------------------------
+
+    const queries =
+      buildSearchQueries(criteria);
+
+    let tavilyResults = [];
+
+    const searchResponses =
+      await Promise.all(
+        queries
+          .slice(0, SEARCH_QUERY_COUNT)
+          .map(query => tavilySearch(query))
+      );
+
+    for (const results of searchResponses) {
+      tavilyResults.push(...results);
+    }
+
+    tavilyResults =
+      normalizeSearchResults(tavilyResults);
+
+    if (tavilyResults.length === 0) {
+      await updateLeadSearch(
+        leadSearch.id,
         {
-          method: "GET",
-
-          headers: {
-            Authorization:
-              `Bearer ${token}`,
-
-            apikey:
-              process.env.SUPABASE_ANON_KEY
-          }
+          status: "completed",
+          results_count: 0
         }
       );
 
-    if (!response.ok) {
-      return null;
-    }
-
-    const user =
-      await response.json();
-
-    return user?.id
-      ? user
-      : null;
-
-  } catch {
-    return null;
-  }
-}
-
-/* ---------------------------------------------------------
-   COMPANY DUPLIKATE PRÜFEN
---------------------------------------------------------- */
-
-async function findExistingCompany(
-  userId,
-  company
-) {
-  if (
-    !userId ||
-    !company?.name
-  ) {
-    return null;
-  }
-
-  try {
-    if (company.website) {
-      const result =
-        await supabase
-          .from("companies")
-          .select("*")
-          .eq(
-            "user_id",
-            userId
-          )
-          .eq(
-            "website",
-            company.website
-          )
-          .limit(1);
-
-      const existing =
-        firstRow(
-          result.data
-        );
-
-      if (existing) {
-        return existing;
-      }
-    }
-
-    const result =
-      await supabase
-        .from("companies")
-        .select("*")
-        .eq(
-          "user_id",
-          userId
-        )
-        .eq(
-          "name",
-          company.name
-        )
-        .limit(1);
-
-    return firstRow(
-      result.data
-    );
-
-  } catch (error) {
-    console.error(
-      "[lead-search] Duplikatprüfung:",
-      error
-    );
-
-    return null;
-  }
-}
-
-/* ---------------------------------------------------------
-   COMPANY SPEICHERN
---------------------------------------------------------- */
-
-async function createCompany(
-  userId,
-  company
-) {
-  const existing =
-    await findExistingCompany(
-      userId,
-      company
-    );
-
-  if (existing) {
-    return {
-      company:
-        existing,
-
-      created:
-        false
-    };
-  }
-
-  const result =
-    await supabase
-      .from("companies")
-      .insert({
-        user_id:
-          userId,
-
-        name:
-          company.name,
-
-        legal_name:
-          company.legal_name ||
-          company.name ||
-          null,
-
-        phone:
-          company.phone ||
-          null,
-
-        website:
-          company.website ||
-          null,
-
-        street:
-          company.street ||
-          null,
-
-        postal_code:
-          company.postal_code ||
-          null,
-
-        city:
-          company.city ||
-          null,
-
-        country:
-          company.country ||
-          "Deutschland",
-
-        industry:
-          company.industry ||
-          null,
-
-        employees:
-          company.employees ??
-          null,
-
-        description:
-          company.description ||
-          null
-      });
-
-  if (result.error) {
-    throw new Error(
-      `Unternehmen konnte nicht gespeichert werden: ${result.error.message}`
-    );
-  }
-
-  return {
-    company:
-      firstRow(
-        result.data
-      ),
-
-    created:
-      true
-  };
-}
-
-/* ---------------------------------------------------------
-   LEAD SPEICHERN
---------------------------------------------------------- */
-
-async function createLead(
-  userId,
-  companyId,
-  searchId
-) {
-  if (!companyId) {
-    return null;
-  }
-
-  try {
-    const existingResult =
-      await supabase
-        .from("leads")
-        .select("*")
-        .eq(
-          "user_id",
-          userId
-        )
-        .eq(
-          "company_id",
-          companyId
-        )
-        .limit(1);
-
-    const existing =
-      firstRow(
-        existingResult.data
-      );
-
-    if (existing) {
-      return existing;
-    }
-
-    const result =
-      await supabase
-        .from("leads")
-        .insert({
-          user_id:
-            userId,
-
-          company_id:
-            companyId,
-
-          status:
-            "new",
-
-          source:
-            "ai_lead_search",
-
-          lead_search_id:
-            searchId ||
-            null
-        });
-
-    if (result.error) {
-      throw new Error(
-        `Lead konnte nicht gespeichert werden: ${result.error.message}`
-      );
-    }
-
-    return firstRow(
-      result.data
-    );
-
-  } catch (error) {
-    console.error(
-      "[lead-search] Lead:",
-      error
-    );
-
-    return null;
-  }
-}
-
-/* ---------------------------------------------------------
-   LEAD SOURCE
---------------------------------------------------------- */
-
-async function createLeadSource(
-  userId,
-  companyId,
-  searchId,
-  company
-) {
-  if (!companyId) {
-    return;
-  }
-
-  try {
-    await supabase
-      .from("lead_sources")
-      .insert({
-        user_id:
-          userId,
-
-        company_id:
-          companyId,
-
-        lead_search_id:
-          searchId ||
-          null,
-
-        source_type:
-          "ai_search",
-
-        source_url:
-          company.source_url ||
-          company.website ||
-          null
-      });
-
-  } catch (error) {
-    console.error(
-      "[lead-search] lead_sources:",
-      error
-    );
-  }
-}
-
-/* ---------------------------------------------------------
-   HAUPT-API
---------------------------------------------------------- */
-
-export default async function handler(
-  req,
-  res
-) {
-  if (req.method !== "POST") {
-    res.status(405).json({
-      error:
-        "Method not allowed"
-    });
-
-    return;
-  }
-
-  let searchId =
-    null;
-
-  try {
-    /* -----------------------------------------------------
-       USER
-    ----------------------------------------------------- */
-
-    const user =
-      await getAuthenticatedUser(
-        req
-      );
-
-    if (!user?.id) {
-      res.status(401).json({
-        error:
-          "Nicht authentifiziert."
-      });
-
-      return;
-    }
-
-    /* -----------------------------------------------------
-       REQUEST
-    ----------------------------------------------------- */
-
-    const body =
-      req.body || {};
-
-    const industry =
-      cleanString(
-        body.industry ||
-        body.branche
-      );
-
-    const postalCode =
-      cleanString(
-        body.postal_code ||
-        body.postalCode ||
-        body.plz
-      );
-
-    const radiusKm =
-      cleanInteger(
-        body.radius_km ||
-        body.radiusKm ||
-        body.radius
-      );
-
-    const employeesFrom =
-      cleanInteger(
-        body.employees_from ||
-        body.employeesFrom ||
-        body.mitarbeiter_von
-      );
-
-    const employeesTo =
-      cleanInteger(
-        body.employees_to ||
-        body.employeesTo ||
-        body.mitarbeiter_bis
-      );
-
-    const requestedCount =
-      Math.min(
-        Math.max(
-          cleanInteger(
-            body.amount_requested ||
-            body.requested_count ||
-            body.requestedCount ||
-            body.anzahl,
-            50
-          ),
-          1
-        ),
-        MAX_RESULTS
-      );
-
-    const additionalCriteria =
-      cleanString(
-        body.additional_criteria ||
-        body.additionalCriteria ||
-        body.zusatzkriterien
-      );
-
-    const exclusionCriteria =
-      cleanString(
-        body.exclusion_criteria ||
-        body.exclusionCriteria ||
-        body.ausschlusskriterien
-      );
-
-    /* -----------------------------------------------------
-       PROMPT
-    ----------------------------------------------------- */
-
-    const prompt =
-      buildResearchPrompt({
-        industry,
-
-        postalCode,
-
-        radiusKm,
-
-        employeesFrom,
-
-        employeesTo,
-
-        requestedCount,
-
-        additionalCriteria,
-
-        exclusionCriteria
-      });
-
-    /* -----------------------------------------------------
-       SEARCH IN SUPABASE ANLEGEN
-    ----------------------------------------------------- */
-
-    const searchInsert =
-      await supabase
-        .from("lead_searches")
-        .insert({
-          user_id:
-            user.id,
-
-          industry:
-            industry ||
-            null,
-
-          postal_code:
-            postalCode ||
-            null,
-
-          radius_km:
-            radiusKm,
-
-          employees_from:
-            employeesFrom,
-
-          employees_to:
-            employeesTo,
-
-          requested_count:
-            requestedCount,
-
-          amount_requested:
-            requestedCount,
-
-          additional_criteria:
-            additionalCriteria ||
-            null,
-
-          exclusion_criteria:
-            exclusionCriteria ||
-            null,
-
-          status:
-            "running"
-        });
-
-    if (searchInsert.error) {
-      throw new Error(
-        `Lead-Suche konnte nicht gespeichert werden: ${searchInsert.error.message}`
-      );
-    }
-
-    const search =
-      firstRow(
-        searchInsert.data
-      );
-
-    searchId =
-      search?.id ||
-      null;
-
-    /* -----------------------------------------------------
-       KI
-    ----------------------------------------------------- */
-
-    let aiResult;
-
-    try {
-      aiResult =
-        await callAIWithFallback(
-          prompt
-        );
-
-    } catch (error) {
-      console.error(
-        "[lead-search] Alle KI-Anbieter fehlgeschlagen",
-        error
-      );
-
-      if (searchId) {
-        await supabase
-          .from("lead_searches")
-          .update({
-            status:
-              "failed"
-          })
-          .eq(
-            "id",
-            searchId
-          )
-          .eq(
-            "user_id",
-            user.id
-          );
-      }
-
-      res.status(502).json({
-        error:
-          error.message,
-
-        attempts:
-          error.attempts ||
-          [],
-
-        provider_errors:
-          error.errors ||
-          []
-      });
-
-      return;
-    }
-
-    /* -----------------------------------------------------
-       ERGEBNISSE NORMALISIEREN
-    ----------------------------------------------------- */
-
-    const companies =
-      normalizeCompanies(
-        aiResult.parsed
-      );
-
-    if (!companies.length) {
-      await supabase
-        .from("lead_searches")
-        .update({
-          status:
-            "completed"
-        })
-        .eq(
-          "id",
-          searchId
-        )
-        .eq(
-          "user_id",
-          user.id
-        );
-
-      res.status(200).json({
-        success:
-          true,
-
-        search_id:
-          searchId,
-
-        provider:
-          aiResult.provider,
-
-        model:
-          aiResult.model,
-
-        companies:
-          [],
-
-        leads:
-          [],
-
-        count:
-          0,
-
+      return json(res, 200, {
+        success: true,
+        lead_search_id: leadSearch.id,
+        results_count: 0,
+        companies: [],
         message:
-          "Die Recherche wurde durchgeführt, aber es wurden keine verwertbaren Unternehmen gefunden."
+          "Es wurden keine verwertbaren Web-Ergebnisse gefunden."
       });
-
-      return;
     }
 
-    /* -----------------------------------------------------
-       SPEICHERN
-    ----------------------------------------------------- */
+    // -----------------------------------------------------
+    // Groq Analyse
+    // -----------------------------------------------------
+
+    const groqPrompt =
+      buildGroqPrompt(
+        criteria,
+        tavilyResults
+      );
+
+    const aiResult =
+      await callGroqWithFallback(
+        groqPrompt
+      );
+
+    let companies =
+      Array.isArray(aiResult?.companies)
+        ? aiResult.companies
+        : [];
+
+    companies =
+      deduplicateCompanies(companies);
+
+    // Gewünschte Anzahl begrenzen
+    const requestedCount =
+      Number(criteria.amount_requested) || 50;
+
+    companies =
+      companies.slice(
+        0,
+        Math.max(1, requestedCount)
+      );
+
+    // -----------------------------------------------------
+    // In Supabase speichern
+    // -----------------------------------------------------
 
     const savedCompanies = [];
-    const savedLeads = [];
+    const errors = [];
 
     for (const company of companies) {
       try {
-        const companyResult =
-          await createCompany(
+        const savedCompany =
+          await saveCompany(
             user.id,
             company
           );
 
-        const savedCompany =
-          companyResult.company;
+        const lead =
+          await saveLead(
+            user.id,
+            savedCompany.id,
+            leadSearch.id
+          );
 
-        if (!savedCompany?.id) {
-          continue;
-        }
+        await saveLeadSource(
+          user.id,
+          leadSearch.id,
+          savedCompany.id,
+          company.source_url,
+          company.source_title
+        );
 
         savedCompanies.push({
-          ...savedCompany,
-
-          newly_created:
-            companyResult.created
+          company: savedCompany,
+          lead
         });
-
-        const lead =
-          await createLead(
-            user.id,
-
-            savedCompany.id,
-
-            searchId
-          );
-
-        if (lead) {
-          savedLeads.push(
-            lead
-          );
-        }
-
-        await createLeadSource(
-          user.id,
-
-          savedCompany.id,
-
-          searchId,
-
-          company
-        );
-
       } catch (error) {
         console.error(
-          `[lead-search] Unternehmen "${company.name}":`,
-          error
+          "Unternehmen konnte nicht gespeichert werden:",
+          error?.message || error
         );
+
+        errors.push({
+          company:
+            company?.name || "Unbekannt",
+          error:
+            error?.message ||
+            String(error)
+        });
       }
     }
 
-    /* -----------------------------------------------------
-       SEARCH ABSCHLIESSEN
-    ----------------------------------------------------- */
+    // -----------------------------------------------------
+    // Suche abschließen
+    // -----------------------------------------------------
 
-    await supabase
-      .from("lead_searches")
-      .update({
-        status:
-          "completed"
-      })
-      .eq(
-        "id",
-        searchId
-      )
-      .eq(
-        "user_id",
-        user.id
-      );
+    await updateLeadSearch(
+      leadSearch.id,
+      {
+        status: "completed",
+        results_count:
+          savedCompanies.length
+      }
+    );
 
-    /* -----------------------------------------------------
-       RESPONSE
-    ----------------------------------------------------- */
-
-    res.status(200).json({
-      success:
-        true,
-
-      search_id:
-        searchId,
-
-      provider:
-        aiResult.provider,
-
-      model:
-        aiResult.model,
-
-      companies:
-        savedCompanies,
-
-      leads:
-        savedLeads,
-
-      count:
+    return json(res, 200, {
+      success: true,
+      lead_search_id: leadSearch.id,
+      results_count:
         savedCompanies.length,
-
-      requested_count:
-        requestedCount,
-
-      attempts:
-        aiResult.attempts,
-
-      message:
-        `${savedCompanies.length} Unternehmen wurden recherchiert und im CRM gespeichert.`
+      companies:
+        savedCompanies.map(item => ({
+          ...item.company,
+          lead: item.lead
+        })),
+      save_errors: errors
     });
 
   } catch (error) {
     console.error(
-      "[lead-search] Allgemeiner Fehler:",
-      error
+      "Lead Search Fehler:",
+      error?.message || error
     );
 
-    if (searchId) {
+    if (leadSearch?.id) {
       try {
-        await supabase
-          .from("lead_searches")
-          .update({
-            status:
-              "failed"
-          })
-          .eq(
-            "id",
-            searchId
-          );
+        await updateLeadSearch(
+          leadSearch.id,
+          {
+            status: "failed",
+            results_count: 0
+          }
+        );
       } catch {
-        // Hauptfehler behalten.
+        // Originalfehler behalten
       }
     }
 
-    res.status(500).json({
+    return json(res, 500, {
+      success: false,
       error:
         error?.message ||
-        "Interner Serverfehler."
+        "Unbekannter Fehler bei der KI-Lead-Suche."
     });
   }
 }
