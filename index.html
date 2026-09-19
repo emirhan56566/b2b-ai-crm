@@ -118,6 +118,7 @@ th{color:#667085;font-size:12px;font-weight:650}
 <body>
 
 <div id="authScreen">
+
 <div class="auth-card">
 
 <div class="auth-logo">AI</div>
@@ -130,11 +131,19 @@ Melde dich an oder erstelle deinen Account.
 
 <div class="auth-tabs">
 
-<button id="loginTab" class="auth-tab active" type="button" onclick="switchAuthMode('login')">
+<button
+id="loginTab"
+class="auth-tab active"
+type="button"
+onclick="switchAuthMode('login')">
 Anmelden
 </button>
 
-<button id="registerTab" class="auth-tab" type="button" onclick="switchAuthMode('register')">
+<button
+id="registerTab"
+class="auth-tab"
+type="button"
+onclick="switchAuthMode('register')">
 Registrieren
 </button>
 
@@ -143,92 +152,166 @@ Registrieren
 <form id="authForm" data-mode="login">
 
 <div id="nameGroup" class="form-group hidden">
+
 <label for="authName">Name</label>
-<input id="authName" type="text" placeholder="Max Mustermann">
+
+<input
+id="authName"
+type="text"
+placeholder="Max Mustermann">
+
 </div>
 
 <div class="form-group">
+
 <label for="authEmail">E-Mail</label>
-<input id="authEmail" type="email" placeholder="name@firma.de" required>
+
+<input
+id="authEmail"
+type="email"
+placeholder="name@firma.de"
+required>
+
 </div>
 
 <div class="form-group">
+
 <label for="authPassword">Passwort</label>
-<input id="authPassword" type="password" placeholder="Mindestens 6 Zeichen" required minlength="6">
+
+<input
+id="authPassword"
+type="password"
+placeholder="Mindestens 6 Zeichen"
+required
+minlength="6">
+
 </div>
 
-<button id="authSubmit" class="auth-button" type="submit">
+<button
+id="authSubmit"
+class="auth-button"
+type="submit">
 Anmelden
 </button>
 
 </form>
 
-<div id="authMessage" class="auth-message hidden"></div>
+<div
+id="authMessage"
+class="auth-message hidden">
+</div>
 
 </div>
+
 </div>
+
 
 <div id="app" class="hidden">
 
 <aside class="sidebar">
 
 <div class="brand">
+
 <div class="brand-icon">AI</div>
-<div class="brand-name">B2B CRM</div>
+
+<div class="brand-name">
+B2B CRM
+</div>
+
 </div>
 
 <div class="nav-section">
-<div class="nav-label">Übersicht</div>
 
-<button class="nav-item active" data-page="dashboard">
+<div class="nav-label">
+Übersicht
+</div>
+
+<button
+class="nav-item active"
+data-page="dashboard">
+
 <span class="nav-icon">⌂</span>
 Dashboard
+
 </button>
+
 </div>
 
 <div class="nav-section">
 
-<div class="nav-label">Vertrieb</div>
+<div class="nav-label">
+Vertrieb
+</div>
 
-<button class="nav-item" data-page="lead-search">
+<button
+class="nav-item"
+data-page="lead-search">
+
 <span class="nav-icon">✦</span>
 Lead-Suche
+
 </button>
 
-<button class="nav-item" data-page="leads">
+<button
+class="nav-item"
+data-page="leads">
+
 <span class="nav-icon">▣</span>
 Leads
+
 </button>
 
-<button class="nav-item" data-page="contacts">
+<button
+class="nav-item"
+data-page="contacts">
+
 <span class="nav-icon">♙</span>
 Kontakte
+
 </button>
 
-<button class="nav-item" data-page="calls">
+<button
+class="nav-item"
+data-page="calls">
+
 <span class="nav-icon">☎</span>
 Anrufe
+
 </button>
 
-<button class="nav-item" data-page="tasks">
+<button
+class="nav-item"
+data-page="tasks">
+
 <span class="nav-icon">✓</span>
 Aufgaben
+
 </button>
 
-<button class="nav-item" data-page="pipeline">
+<button
+class="nav-item"
+data-page="pipeline">
+
 <span class="nav-icon">↗</span>
 Pipeline
+
 </button>
 
 </div>
 
 <div class="nav-section">
 
-<div class="nav-label">System</div>
+<div class="nav-label">
+System
+</div>
 
-<button class="nav-item" data-page="settings">
+<button
+class="nav-item"
+data-page="settings">
+
 <span class="nav-icon">⚙</span>
 Einstellungen
+
 </button>
 
 </div>
@@ -236,10 +319,18 @@ Einstellungen
 <div class="sidebar-bottom">
 
 <div class="user-box">
-<div id="sidebarUserEmail" class="user-email">—</div>
+
+<div
+id="sidebarUserEmail"
+class="user-email">
+—
 </div>
 
-<button id="logoutButton" class="logout-button">
+</div>
+
+<button
+id="logoutButton"
+class="logout-button">
 Abmelden
 </button>
 
@@ -247,68 +338,133 @@ Abmelden
 
 </aside>
 
+
 <main class="main">
 
-<section id="page-dashboard" class="page active">
+
+<section
+id="page-dashboard"
+class="page active">
 
 <div class="page-header">
 
 <div>
+
 <h1>Dashboard</h1>
-<p>Deine Vertriebsübersicht</p>
+
+<p>
+Deine Vertriebsübersicht
+</p>
+
 </div>
 
-<button class="btn-primary" onclick="showPage('lead-search')">
+<button
+class="btn-primary"
+onclick="showPage('lead-search')">
+
 Unternehmen importieren
+
 </button>
 
 </div>
 
+
 <div class="stats">
 
 <div class="stat-card">
-<div class="stat-title">Leads gesamt</div>
-<div id="statLeads" class="stat-value">0</div>
+
+<div class="stat-title">
+Leads gesamt
 </div>
+
+<div
+id="statLeads"
+class="stat-value">
+0
+</div>
+
+</div>
+
 
 <div class="stat-card">
-<div class="stat-title">Neue Leads</div>
-<div id="statNewLeads" class="stat-value">0</div>
+
+<div class="stat-title">
+Neue Leads
 </div>
+
+<div
+id="statNewLeads"
+class="stat-value">
+0
+</div>
+
+</div>
+
 
 <div class="stat-card">
-<div class="stat-title">Qualifizierte Leads</div>
-<div id="statQualifiedLeads" class="stat-value">0</div>
+
+<div class="stat-title">
+Qualifizierte Leads
 </div>
+
+<div
+id="statQualifiedLeads"
+class="stat-value">
+0
+</div>
+
+</div>
+
 
 <div class="stat-card">
-<div class="stat-title">Pipeline</div>
-<div id="statPipeline" class="stat-value">0 €</div>
+
+<div class="stat-title">
+Pipeline
+</div>
+
+<div
+id="statPipeline"
+class="stat-value">
+0 €
 </div>
 
 </div>
+
+</div>
+
 
 <div class="content-grid">
 
 <div class="card">
 
-<h2>Willkommen im B2B CRM</h2>
+<h2>
+Willkommen im B2B CRM
+</h2>
 
 <p style="color:#667085;line-height:1.7">
+
 Füge deine Unternehmensdaten als Text ein.
 Die Unternehmen werden gespeichert und können
 anschließend nach PLZ, Branche und Unternehmenstyp
 gefiltert werden.
+
 </p>
 
 </div>
 
+
 <div class="card">
 
-<h2>Schnellstart</h2>
+<h2>
+Schnellstart
+</h2>
 
-<button class="btn-primary" onclick="showPage('lead-search')">
+<button
+class="btn-primary"
+onclick="showPage('lead-search')">
+
 Lead-Suche öffnen
+
 </button>
 
 </div>
@@ -317,13 +473,18 @@ Lead-Suche öffnen
 
 </section>
 
-<section id="page-lead-search" class="page">
+
+<section
+id="page-lead-search"
+class="page">
 
 <div class="page-header">
 
 <div>
 
-<h1>Lead-Suche</h1>
+<h1>
+Lead-Suche
+</h1>
 
 <p>
 Unternehmen importieren, filtern und ausgewählte Unternehmen als Leads übernehmen.
@@ -333,9 +494,12 @@ Unternehmen importieren, filtern und ausgewählte Unternehmen als Leads überneh
 
 </div>
 
+
 <div class="card search-card">
 
-<h2>Unternehmensdaten hinzufügen</h2>
+<h2>
+Unternehmensdaten hinzufügen
+</h2>
 
 <div class="form-group">
 
@@ -343,7 +507,10 @@ Unternehmen importieren, filtern und ausgewählte Unternehmen als Leads überneh
 Unternehmensdaten
 </label>
 
-<textarea id="companyImportText" rows="14" placeholder="Muster Sanitär GmbH
+<textarea
+id="companyImportText"
+rows="14"
+placeholder="Muster Sanitär GmbH
 Branche: Sanitär
 Adresse: Musterstraße 12
 PLZ: 56068
@@ -364,19 +531,33 @@ Rechtsform: Einzelunternehmen"></textarea>
 
 <div class="actions">
 
-<button id="importCompaniesButton" class="btn-primary" type="button" onclick="importCompanies()">
+<button
+id="importCompaniesButton"
+class="btn-primary"
+type="button"
+onclick="importCompanies()">
+
 Unternehmen speichern
+
 </button>
 
-<div id="importStatus" class="search-status"></div>
-
+<div
+id="importStatus"
+class="search-status">
 </div>
 
 </div>
 
-<div class="card search-card" style="margin-top:18px">
+</div>
 
-<h2>Unternehmen als Leads suchen</h2>
+
+<div
+class="card search-card"
+style="margin-top:18px">
+
+<h2>
+Unternehmen als Leads suchen
+</h2>
 
 <div class="search-grid">
 
@@ -386,9 +567,15 @@ Unternehmen speichern
 Postleitzahl *
 </label>
 
-<input id="leadPostal" type="text" inputmode="numeric" maxlength="5" placeholder="z. B. 56068">
+<input
+id="leadPostal"
+type="text"
+inputmode="numeric"
+maxlength="5"
+placeholder="z. B. 56068">
 
 </div>
+
 
 <div class="form-group">
 
@@ -406,25 +593,45 @@ Branche auswählen
 
 </div>
 
+
 <div class="form-group full">
 
-<label>Unternehmenstyp</label>
+<label>
+Unternehmenstyp
+</label>
 
 <div class="type-options">
 
 <label class="type-option">
-<input id="typeMicro" type="checkbox">
+
+<input
+id="typeMicro"
+type="checkbox">
+
 Kleinstunternehmen
+
 </label>
 
+
 <label class="type-option">
-<input id="typeEinzel" type="checkbox">
+
+<input
+id="typeEinzel"
+type="checkbox">
+
 Einzelunternehmen
+
 </label>
+
 
 <label class="type-option">
-<input id="typeEk" type="checkbox">
+
+<input
+id="typeEk"
+type="checkbox">
+
 e.K.
+
 </label>
 
 </div>
@@ -432,44 +639,61 @@ e.K.
 </div>
 
 </div>
+
 
 <div class="actions">
 
-<button id="companySearchButton" class="btn-primary" type="button" onclick="searchCompaniesForLeads()">
+<button
+id="companySearchButton"
+class="btn-primary"
+type="button"
+onclick="searchCompaniesForLeads()">
+
 Unternehmen suchen
+
 </button>
 
-<div id="companySearchStatus" class="search-status"></div>
-
+<div
+id="companySearchStatus"
+class="search-status">
 </div>
 
 </div>
 
-<div id="companySearchResultsCard" class="card table-card hidden" style="margin-top:18px">
+</div>
 
-<div style="
-display:flex;
-align-items:center;
-justify-content:space-between;
-gap:15px;
-flex-wrap:wrap;
-margin-bottom:15px">
+
+<div
+id="companySearchResultsCard"
+class="card table-card hidden"
+style="margin-top:18px">
+
+<div
+style="display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap;margin-bottom:15px">
 
 <h2 style="margin:0">
 
 Suchergebnisse
 
-<span id="companySearchCount" style="color:#667085;font-weight:500">
+<span
+id="companySearchCount"
+style="color:#667085;font-weight:500">
 (0)
 </span>
 
 </h2>
 
-<button class="btn-primary" type="button" onclick="addSelectedCompaniesAsLeads()">
+<button
+class="btn-primary"
+type="button"
+onclick="addSelectedCompaniesAsLeads()">
+
 Ausgewählte zu Leads hinzufügen
+
 </button>
 
 </div>
+
 
 <div class="table-wrapper">
 
@@ -480,22 +704,46 @@ Ausgewählte zu Leads hinzufügen
 <tr>
 
 <th>
-<input id="selectAllCompanies" type="checkbox">
+<input
+id="selectAllCompanies"
+type="checkbox">
 </th>
 
-<th>Unternehmen</th>
-<th>Branche</th>
-<th>PLZ</th>
-<th>Ort</th>
-<th>Mitarbeiter</th>
-<th>Rechtsform</th>
-<th>Status</th>
+<th>
+Unternehmen
+</th>
+
+<th>
+Branche
+</th>
+
+<th>
+PLZ
+</th>
+
+<th>
+Ort
+</th>
+
+<th>
+Mitarbeiter
+</th>
+
+<th>
+Rechtsform
+</th>
+
+<th>
+Status
+</th>
 
 </tr>
 
 </thead>
 
-<tbody id="companySearchResultsBody"></tbody>
+<tbody
+id="companySearchResultsBody">
+</tbody>
 
 </table>
 
@@ -505,41 +753,71 @@ Ausgewählte zu Leads hinzufügen
 
 </section>
 
-<section id="page-leads" class="page">
+
+<section
+id="page-leads"
+class="page">
 
 <div class="page-header">
 
 <div>
 
-<h1>Leads</h1>
+<h1>
+Leads
+</h1>
 
-<p>Deine gespeicherten B2B-Leads</p>
+<p>
+Deine gespeicherten B2B-Leads
+</p>
 
 </div>
 
-<button class="btn-primary" onclick="showPage('lead-search')">
+<button
+class="btn-primary"
+onclick="showPage('lead-search')">
+
 + Lead-Suche
+
 </button>
 
 </div>
+
 
 <div class="card table-card">
 
 <div class="table-toolbar">
 
-<input id="leadSearch" type="search" placeholder="Unternehmen, Stadt, Telefon...">
+<input
+id="leadSearch"
+type="search"
+placeholder="Unternehmen, Stadt, Telefon...">
 
 <select id="leadStatus">
 
-<option value="">Alle Status</option>
-<option value="new">Neu</option>
-<option value="called">Angerufen</option>
-<option value="qualified">Qualifiziert</option>
-<option value="lost">Verloren</option>
+<option value="">
+Alle Status
+</option>
+
+<option value="new">
+Neu
+</option>
+
+<option value="called">
+Angerufen
+</option>
+
+<option value="qualified">
+Qualifiziert
+</option>
+
+<option value="lost">
+Verloren
+</option>
 
 </select>
 
 </div>
+
 
 <div class="table-wrapper">
 
@@ -549,12 +827,29 @@ Ausgewählte zu Leads hinzufügen
 
 <tr>
 
-<th>Unternehmen</th>
-<th>Branche</th>
-<th>Telefon</th>
-<th>Ort</th>
-<th>Mitarbeiter</th>
-<th>Status</th>
+<th>
+Unternehmen
+</th>
+
+<th>
+Branche
+</th>
+
+<th>
+Telefon
+</th>
+
+<th>
+Ort
+</th>
+
+<th>
+Mitarbeiter
+</th>
+
+<th>
+Status
+</th>
 
 </tr>
 
@@ -563,9 +858,15 @@ Ausgewählte zu Leads hinzufügen
 <tbody id="leadsTableBody">
 
 <tr>
-<td colspan="6" class="empty">
+
+<td
+colspan="6"
+class="empty">
+
 Noch keine Leads vorhanden.
+
 </td>
+
 </tr>
 
 </tbody>
@@ -578,90 +879,192 @@ Noch keine Leads vorhanden.
 
 </section>
 
-<section id="page-contacts" class="page">
+
+<section
+id="page-contacts"
+class="page">
 
 <div class="page-header">
+
 <div>
-<h1>Kontakte</h1>
-<p>Ansprechpartner deiner Unternehmen</p>
+
+<h1>
+Kontakte
+</h1>
+
+<p>
+Ansprechpartner deiner Unternehmen
+</p>
+
 </div>
+
 </div>
 
 <div class="card placeholder">
-<div class="placeholder-icon">♙</div>
-<h2>Kontaktverwaltung</h2>
-<p>Dieser Bereich wird später ausgebaut.</p>
+
+<div class="placeholder-icon">
+♙
+</div>
+
+<h2>
+Kontaktverwaltung
+</h2>
+
+<p>
+Dieser Bereich wird später ausgebaut.
+</p>
+
 </div>
 
 </section>
 
-<section id="page-calls" class="page">
+
+<section
+id="page-calls"
+class="page">
 
 <div class="page-header">
+
 <div>
-<h1>Anrufe</h1>
-<p>Telefonaktivitäten und Gesprächsergebnisse</p>
+
+<h1>
+Anrufe
+</h1>
+
+<p>
+Telefonaktivitäten und Gesprächsergebnisse
+</p>
+
 </div>
+
 </div>
 
 <div class="card placeholder">
-<div class="placeholder-icon">☎</div>
-<h2>Anrufverwaltung</h2>
-<p>Dieser Bereich wird später ausgebaut.</p>
+
+<div class="placeholder-icon">
+☎
+</div>
+
+<h2>
+Anrufverwaltung
+</h2>
+
+<p>
+Dieser Bereich wird später ausgebaut.
+</p>
+
 </div>
 
 </section>
 
-<section id="page-tasks" class="page">
+
+<section
+id="page-tasks"
+class="page">
 
 <div class="page-header">
+
 <div>
-<h1>Aufgaben</h1>
-<p>Follow-ups und Wiedervorlagen</p>
+
+<h1>
+Aufgaben
+</h1>
+
+<p>
+Follow-ups und Wiedervorlagen
+</p>
+
 </div>
+
 </div>
 
 <div class="card placeholder">
-<div class="placeholder-icon">✓</div>
-<h2>Aufgabenverwaltung</h2>
-<p>Dieser Bereich wird später ausgebaut.</p>
+
+<div class="placeholder-icon">
+✓
+</div>
+
+<h2>
+Aufgabenverwaltung
+</h2>
+
+<p>
+Dieser Bereich wird später ausgebaut.
+</p>
+
 </div>
 
 </section>
 
-<section id="page-pipeline" class="page">
+
+<section
+id="page-pipeline"
+class="page">
 
 <div class="page-header">
+
 <div>
-<h1>Pipeline</h1>
-<p>Deine Verkaufschancen</p>
+
+<h1>
+Pipeline
+</h1>
+
+<p>
+Deine Verkaufschancen
+</p>
+
 </div>
+
 </div>
 
 <div class="card placeholder">
-<div class="placeholder-icon">↗</div>
-<h2>Pipeline</h2>
-<p>Dieser Bereich wird später ausgebaut.</p>
+
+<div class="placeholder-icon">
+↗
+</div>
+
+<h2>
+Pipeline
+</h2>
+
+<p>
+Dieser Bereich wird später ausgebaut.
+</p>
+
 </div>
 
 </section>
 
-<section id="page-settings" class="page">
+
+<section
+id="page-settings"
+class="page">
 
 <div class="page-header">
 
 <div>
-<h1>Einstellungen</h1>
-<p>Kontoeinstellungen</p>
+
+<h1>
+Einstellungen
+</h1>
+
+<p>
+Kontoeinstellungen
+</p>
+
 </div>
 
 </div>
 
 <div class="card">
 
-<h2>Account</h2>
+<h2>
+Account
+</h2>
 
-<p id="settingsEmail" style="color:#667085">
+<p
+id="settingsEmail"
+style="color:#667085">
 —
 </p>
 
@@ -669,8 +1072,11 @@ Noch keine Leads vorhanden.
 
 </section>
 
+
 </main>
+
 </div>
+
 
 <script>
 
@@ -680,15 +1086,17 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
 "sb_publishable_8pIR4I1i_30XdDcqp-JzJQ_3fznf-gi";
 
+
 let supabase = null;
 let supabaseInitError = null;
 
-try {
 
-if (
+try{
+
+if(
 !window.supabase ||
 typeof window.supabase.createClient !== "function"
-) {
+){
 
 throw new Error(
 "Supabase konnte im Browser nicht geladen werden."
@@ -702,9 +1110,10 @@ SUPABASE_URL,
 SUPABASE_ANON_KEY
 );
 
-} catch(error) {
+}catch(error){
 
-supabaseInitError = error;
+supabaseInitError =
+error;
 
 console.error(
 "SUPABASE INITIALISIERUNG FEHLER:",
@@ -712,6 +1121,7 @@ error
 );
 
 }
+
 
 let currentUser = null;
 let currentLeads = [];
@@ -724,48 +1134,88 @@ AUTH
 function switchAuthMode(mode){
 
 const loginTab =
-document.getElementById("loginTab");
+document.getElementById(
+"loginTab"
+);
 
 const registerTab =
-document.getElementById("registerTab");
+document.getElementById(
+"registerTab"
+);
 
 const nameGroup =
-document.getElementById("nameGroup");
+document.getElementById(
+"nameGroup"
+);
 
 const submit =
-document.getElementById("authSubmit");
+document.getElementById(
+"authSubmit"
+);
+
 
 if(mode==="register"){
 
-loginTab.classList.remove("active");
-registerTab.classList.add("active");
-nameGroup.classList.remove("hidden");
-submit.textContent="Account erstellen";
+loginTab.classList.remove(
+"active"
+);
+
+registerTab.classList.add(
+"active"
+);
+
+nameGroup.classList.remove(
+"hidden"
+);
+
+submit.textContent =
+"Account erstellen";
 
 }else{
 
-registerTab.classList.remove("active");
-loginTab.classList.add("active");
-nameGroup.classList.add("hidden");
-submit.textContent="Anmelden";
+registerTab.classList.remove(
+"active"
+);
+
+loginTab.classList.add(
+"active"
+);
+
+nameGroup.classList.add(
+"hidden"
+);
+
+submit.textContent =
+"Anmelden";
 
 }
 
+
 document
-.getElementById("authForm")
-.dataset.mode=mode;
+.getElementById(
+"authForm"
+)
+.dataset.mode =
+mode;
+
 
 clearAuthMessage();
 
 }
 
 
-function showAuthMessage(message,type){
+function showAuthMessage(
+message,
+type
+){
 
 const element =
-document.getElementById("authMessage");
+document.getElementById(
+"authMessage"
+);
 
-element.textContent=message;
+element.textContent =
+message;
 
 element.className =
 "auth-message "+type;
@@ -776,9 +1226,11 @@ element.className =
 function clearAuthMessage(){
 
 const element =
-document.getElementById("authMessage");
+document.getElementById(
+"authMessage"
+);
 
-element.textContent="";
+element.textContent = "";
 
 element.className =
 "auth-message hidden";
@@ -786,7 +1238,9 @@ element.className =
 }
 
 
-function formatAuthError(error){
+function formatAuthError(
+error
+){
 
 if(!error){
 
@@ -794,22 +1248,38 @@ return "Anmeldung fehlgeschlagen.";
 
 }
 
-const parts=[];
+const parts = [];
 
 if(error.code){
-parts.push("Code: "+error.code);
+
+parts.push(
+"Code: "+error.code
+);
+
 }
 
 if(error.status){
-parts.push("Status: "+error.status);
+
+parts.push(
+"Status: "+error.status
+);
+
 }
 
 if(error.message){
-parts.push(error.message);
+
+parts.push(
+error.message
+);
+
 }
 
 if(error.hint){
-parts.push("Hinweis: "+error.hint);
+
+parts.push(
+"Hinweis: "+error.hint
+);
+
 }
 
 return parts.join(" — ") ||
@@ -818,8 +1288,14 @@ return parts.join(" — ") ||
 }
 
 
+/* =========================
+LOGIN
+========================= */
+
 document
-.getElementById("authForm")
+.getElementById(
+"authForm"
+)
 .addEventListener(
 "submit",
 async event=>{
@@ -827,6 +1303,7 @@ async event=>{
 event.preventDefault();
 
 clearAuthMessage();
+
 
 if(!supabase){
 
@@ -840,36 +1317,51 @@ return;
 
 }
 
+
 const mode =
 event.currentTarget.dataset.mode ||
 "login";
 
+
 const email =
 document
-.getElementById("authEmail")
+.getElementById(
+"authEmail"
+)
 .value
 .trim();
+
 
 const password =
 document
-.getElementById("authPassword")
+.getElementById(
+"authPassword"
+)
 .value;
+
 
 const name =
 document
-.getElementById("authName")
+.getElementById(
+"authName"
+)
 .value
 .trim();
 
-const button =
-document.getElementById("authSubmit");
 
-button.disabled=true;
+const button =
+document.getElementById(
+"authSubmit"
+);
+
+
+button.disabled = true;
 
 button.textContent =
 mode==="register"
 ? "⏳ Account wird erstellt..."
 : "⏳ Anmeldung...";
+
 
 try{
 
@@ -881,6 +1373,7 @@ throw new Error(
 
 }
 
+
 if(!password){
 
 throw new Error(
@@ -888,6 +1381,7 @@ throw new Error(
 );
 
 }
+
 
 if(mode==="register"){
 
@@ -899,6 +1393,7 @@ throw new Error(
 
 }
 
+
 if(password.length<6){
 
 throw new Error(
@@ -906,6 +1401,7 @@ throw new Error(
 );
 
 }
+
 
 const {data,error} =
 await supabase.auth.signUp({
@@ -921,6 +1417,7 @@ full_name:name
 
 });
 
+
 if(error){
 
 console.error(
@@ -931,6 +1428,7 @@ error
 throw error;
 
 }
+
 
 if(data?.session){
 
@@ -948,7 +1446,9 @@ showAuthMessage(
 
 }
 
+
 }else{
+
 
 const {data,error} =
 await supabase.auth.signInWithPassword({
@@ -957,6 +1457,7 @@ email,
 password
 
 });
+
 
 if(error){
 
@@ -969,6 +1470,7 @@ throw error;
 
 }
 
+
 if(!data?.session){
 
 throw new Error(
@@ -978,6 +1480,7 @@ throw new Error(
 }
 
 }
+
 
 }catch(error){
 
@@ -993,7 +1496,7 @@ formatAuthError(error),
 
 }finally{
 
-button.disabled=false;
+button.disabled = false;
 
 button.textContent =
 mode==="register"
@@ -1009,27 +1512,47 @@ mode==="register"
 APP / SESSION
 ========================= */
 
-function showApp(user){
+function showApp(
+user
+){
 
-currentUser=user;
+currentUser =
+user;
 
-document
-.getElementById("authScreen")
-.classList.add("hidden");
-
-document
-.getElementById("app")
-.classList.remove("hidden");
 
 document
-.getElementById("sidebarUserEmail")
+.getElementById(
+"authScreen"
+)
+.classList.add(
+"hidden"
+);
+
+
+document
+.getElementById(
+"app"
+)
+.classList.remove(
+"hidden"
+);
+
+
+document
+.getElementById(
+"sidebarUserEmail"
+)
 .textContent =
 user.email || "—";
 
+
 document
-.getElementById("settingsEmail")
+.getElementById(
+"settingsEmail"
+)
 .textContent =
 user.email || "—";
+
 
 loadLeads();
 
@@ -1038,15 +1561,26 @@ loadLeads();
 
 function showLogin(){
 
-currentUser=null;
+currentUser =
+null;
+
 
 document
-.getElementById("app")
-.classList.add("hidden");
+.getElementById(
+"app"
+)
+.classList.add(
+"hidden"
+);
+
 
 document
-.getElementById("authScreen")
-.classList.remove("hidden");
+.getElementById(
+"authScreen"
+)
+.classList.remove(
+"hidden"
+);
 
 }
 
@@ -1061,10 +1595,12 @@ return;
 
 }
 
+
 try{
 
 const {data,error} =
 await supabase.auth.getSession();
+
 
 if(error){
 
@@ -1079,6 +1615,7 @@ return;
 
 }
 
+
 if(data?.session?.user){
 
 showApp(
@@ -1090,6 +1627,7 @@ data.session.user
 showLogin();
 
 }
+
 
 }catch(error){
 
@@ -1105,6 +1643,10 @@ showLogin();
 }
 
 
+/* =========================
+SUPABASE AUTH LISTENER
+========================= */
+
 if(supabase){
 
 supabase.auth.onAuthStateChange(
@@ -1114,6 +1656,7 @@ console.log(
 "AUTH EVENT:",
 event
 );
+
 
 if(session?.user){
 
@@ -1131,7 +1674,9 @@ showLogin();
 
 
 document
-.getElementById("logoutButton")
+.getElementById(
+"logoutButton"
+)
 .addEventListener(
 "click",
 async()=>{
@@ -1159,8 +1704,11 @@ NAVIGATION
 ========================= */
 
 document
-.querySelectorAll(".nav-item")
-.forEach(button=>{
+.querySelectorAll(
+".nav-item"
+)
+.forEach(
+button=>{
 
 button.addEventListener(
 "click",
@@ -1179,8 +1727,11 @@ window.showPage =
 function(page){
 
 document
-.querySelectorAll(".page")
-.forEach(element=>{
+.querySelectorAll(
+".page"
+)
+.forEach(
+element=>{
 
 element.classList.remove(
 "active"
@@ -1188,10 +1739,12 @@ element.classList.remove(
 
 });
 
+
 const target =
 document.getElementById(
 "page-"+page
 );
+
 
 if(target){
 
@@ -1201,9 +1754,13 @@ target.classList.add(
 
 }
 
+
 document
-.querySelectorAll(".nav-item")
-.forEach(button=>{
+.querySelectorAll(
+".nav-item"
+)
+.forEach(
+button=>{
 
 button.classList.toggle(
 "active",
@@ -1212,11 +1769,13 @@ button.dataset.page===page
 
 });
 
+
 if(page==="leads"){
 
 loadLeads();
 
 }
+
 
 if(page==="lead-search"){
 
@@ -1228,7 +1787,7 @@ loadCompanyIndustries();
 
 
 /* =========================
-TOKEN
+API TOKEN
 ========================= */
 
 async function getApiToken(){
@@ -1236,14 +1795,17 @@ async function getApiToken(){
 const {data,error} =
 await supabase.auth.getSession();
 
+
 if(error){
 
 throw error;
 
 }
 
+
 const token =
 data?.session?.access_token;
+
 
 if(!token){
 
@@ -1252,6 +1814,7 @@ throw new Error(
 );
 
 }
+
 
 return token;
 
@@ -1270,13 +1833,16 @@ document.getElementById(
 "companyImportText"
 );
 
+
 const button =
 document.getElementById(
 "importCompaniesButton"
 );
 
+
 const text =
 textarea.value.trim();
+
 
 if(!text){
 
@@ -1289,40 +1855,50 @@ return;
 
 }
 
-button.disabled=true;
+
+button.disabled = true;
 
 button.textContent =
 "⏳ Speichere...";
+
 
 showImportStatus(
 "Unternehmensdaten werden verarbeitet...",
 ""
 );
 
+
 try{
 
 const token =
 await getApiToken();
+
 
 const response =
 await fetch(
 "/api/company-import",
 {
 method:"POST",
+
 headers:{
 "Content-Type":
 "application/json",
+
 "Authorization":
 `Bearer ${token}`
 },
+
 body:JSON.stringify({
 text
 })
+
 }
 );
 
+
 const result =
 await response.json();
+
 
 if(!response.ok){
 
@@ -1333,18 +1909,23 @@ result.error ||
 
 }
 
+
 showImportStatus(
 `${result.imported||0} Unternehmen gespeichert. ${result.duplicates||0} bereits vorhanden.`,
 "success"
 );
 
-textarea.value="";
+
+textarea.value = "";
+
 
 await loadCompanyIndustries();
+
 
 }catch(error){
 
 console.error(error);
+
 
 showImportStatus(
 error.message ||
@@ -1352,9 +1933,10 @@ error.message ||
 "error"
 );
 
+
 }finally{
 
-button.disabled=false;
+button.disabled = false;
 
 button.textContent =
 "Unternehmen speichern";
@@ -1374,11 +1956,14 @@ document.getElementById(
 "importStatus"
 );
 
+
 element.textContent =
 message;
 
+
 element.className =
 "search-status show";
+
 
 if(type){
 
@@ -1402,6 +1987,7 @@ try{
 const token =
 await getApiToken();
 
+
 const response =
 await fetch(
 "/api/company-search?industries=1",
@@ -1413,8 +1999,10 @@ Authorization:
 }
 );
 
+
 const result =
 await response.json();
+
 
 if(!response.ok){
 
@@ -1425,18 +2013,20 @@ result.error ||
 
 }
 
+
 const select =
 document.getElementById(
 "leadIndustry"
 );
 
+
 const oldValue =
 select.value;
 
+
 select.innerHTML =
-`<option value="">
-Branche auswählen
-</option>`;
+`<option value="">Branche auswählen</option>`;
+
 
 (result.industries||[])
 .forEach(
@@ -1459,6 +2049,7 @@ option
 
 });
 
+
 if(
 [...select.options]
 .some(
@@ -1471,6 +2062,7 @@ select.value =
 oldValue;
 
 }
+
 
 }catch(error){
 
@@ -1499,6 +2091,7 @@ document
 .value
 .trim();
 
+
 const industry =
 document
 .getElementById(
@@ -1507,7 +2100,9 @@ document
 .value
 .trim();
 
-const types=[];
+
+const types = [];
+
 
 if(
 document.getElementById(
@@ -1521,6 +2116,7 @@ types.push(
 
 }
 
+
 if(
 document.getElementById(
 "typeEinzel"
@@ -1532,6 +2128,7 @@ types.push(
 );
 
 }
+
 
 if(
 document.getElementById(
@@ -1545,6 +2142,7 @@ types.push(
 
 }
 
+
 if(!/^\d{5}$/.test(postal)){
 
 showCompanySearchStatus(
@@ -1555,6 +2153,7 @@ showCompanySearchStatus(
 return;
 
 }
+
 
 if(!industry){
 
@@ -1567,33 +2166,40 @@ return;
 
 }
 
+
 const button =
 document.getElementById(
 "companySearchButton"
 );
 
-button.disabled=true;
+
+button.disabled = true;
 
 button.textContent =
 "⏳ Suche...";
+
 
 try{
 
 const token =
 await getApiToken();
 
+
 const params =
 new URLSearchParams();
+
 
 params.set(
 "postal_code",
 postal
 );
 
+
 params.set(
 "industry",
 industry
 );
+
 
 if(types.length){
 
@@ -1603,6 +2209,7 @@ types.join(",")
 );
 
 }
+
 
 const response =
 await fetch(
@@ -1615,8 +2222,10 @@ Authorization:
 }
 );
 
+
 const result =
 await response.json();
+
 
 if(!response.ok){
 
@@ -1627,18 +2236,22 @@ result.error ||
 
 }
 
+
 renderCompanySearchResults(
 result.companies||[]
 );
+
 
 showCompanySearchStatus(
 `${result.companies?.length||0} Unternehmen gefunden.`,
 "success"
 );
 
+
 }catch(error){
 
 console.error(error);
+
 
 showCompanySearchStatus(
 error.message ||
@@ -1646,9 +2259,10 @@ error.message ||
 "error"
 );
 
+
 }finally{
 
-button.disabled=false;
+button.disabled = false;
 
 button.textContent =
 "Unternehmen suchen";
@@ -1667,35 +2281,42 @@ document.getElementById(
 "companySearchResultsCard"
 );
 
+
 const tbody =
 document.getElementById(
 "companySearchResultsBody"
 );
+
 
 const count =
 document.getElementById(
 "companySearchCount"
 );
 
+
 const selectAll =
 document.getElementById(
 "selectAllCompanies"
 );
 
+
 count.textContent =
 `(${companies.length})`;
 
-selectAll.checked=false;
+
+selectAll.checked = false;
+
 
 if(!companies.length){
 
-tbody.innerHTML=`
+tbody.innerHTML = `
 <tr>
 <td colspan="8" class="empty">
 Keine passenden Unternehmen gefunden.
 </td>
 </tr>
 `;
+
 
 card.classList.remove(
 "hidden"
@@ -1705,6 +2326,7 @@ return;
 
 }
 
+
 tbody.innerHTML =
 companies.map(
 company=>{
@@ -1713,6 +2335,7 @@ const disabled =
 Boolean(
 company.already_lead
 );
+
 
 return `
 <tr>
@@ -1754,11 +2377,15 @@ ${escapeHtml(company.legal_form||"—")}
 </td>
 
 <td>
+
 ${
 disabled
-? `<span class="status status-lost">Bereits Lead</span>`
-: `<span class="status status-new">Verfügbar</span>`
+?
+`<span class="status status-lost">Bereits Lead</span>`
+:
+`<span class="status status-new">Verfügbar</span>`
 }
+
 </td>
 
 </tr>
@@ -1766,6 +2393,7 @@ disabled
 
 }
 ).join("");
+
 
 card.classList.remove(
 "hidden"
@@ -1810,9 +2438,12 @@ const selected =
 ...document.querySelectorAll(
 ".company-select:checked:not(:disabled)"
 )
-].map(
-checkbox=>checkbox.value
+]
+.map(
+checkbox =>
+checkbox.value
 );
+
 
 if(!selected.length){
 
@@ -1825,31 +2456,39 @@ return;
 
 }
 
+
 try{
 
 const token =
 await getApiToken();
+
 
 const response =
 await fetch(
 "/api/leads",
 {
 method:"POST",
+
 headers:{
 "Content-Type":
 "application/json",
+
 Authorization:
 `Bearer ${token}`
 },
+
 body:JSON.stringify({
 company_ids:
 selected
 })
+
 }
 );
 
+
 const result =
 await response.json();
+
 
 if(!response.ok){
 
@@ -1860,18 +2499,22 @@ result.error ||
 
 }
 
+
 showCompanySearchStatus(
 `${result.created||0} neue Leads hinzugefügt. ${result.skipped||0} bereits vorhanden.`,
 "success"
 );
 
+
 await loadLeads();
 
 await searchCompaniesForLeads();
 
+
 }catch(error){
 
 console.error(error);
+
 
 showCompanySearchStatus(
 error.message ||
@@ -1894,11 +2537,14 @@ document.getElementById(
 "companySearchStatus"
 );
 
+
 element.textContent =
 message;
 
+
 element.className =
 "search-status show";
+
 
 if(type){
 
@@ -1919,10 +2565,12 @@ async function loadLeads(){
 
 if(!currentUser)return;
 
+
 try{
 
 const token =
 await getApiToken();
+
 
 const response =
 await fetch(
@@ -1935,8 +2583,10 @@ Authorization:
 }
 );
 
+
 const result =
 await response.json();
+
 
 if(!response.ok){
 
@@ -1947,16 +2597,20 @@ result.error ||
 
 }
 
+
 currentLeads =
 result.leads||[];
+
 
 renderLeads(
 currentLeads
 );
 
+
 updateDashboardStats(
 currentLeads
 );
+
 
 }catch(error){
 
@@ -1964,6 +2618,7 @@ console.error(
 "Load leads error:",
 error
 );
+
 
 renderLeads([]);
 
@@ -1981,9 +2636,10 @@ document.getElementById(
 "leadsTableBody"
 );
 
+
 if(!leads.length){
 
-tbody.innerHTML=`
+tbody.innerHTML = `
 <tr>
 <td colspan="6" class="empty">
 Noch keine Leads vorhanden.
@@ -1991,9 +2647,11 @@ Noch keine Leads vorhanden.
 </tr>
 `;
 
+
 return;
 
 }
+
 
 tbody.innerHTML =
 leads.map(
@@ -2002,8 +2660,10 @@ lead=>{
 const company =
 lead.companies||{};
 
+
 const status =
 lead.status||"new";
+
 
 return `
 <tr>
@@ -2046,9 +2706,14 @@ company.employee_count ??
 </td>
 
 <td>
-<span class="status ${statusClass(status)}">
+
+<span
+class="status ${statusClass(status)}">
+
 ${statusLabel(status)}
+
 </span>
+
 </td>
 
 </tr>
@@ -2064,12 +2729,15 @@ function statusClass(
 status
 ){
 
-const map={
+const map = {
+
 new:"status-new",
 called:"status-called",
 qualified:"status-qualified",
 lost:"status-lost"
+
 };
+
 
 return map[status] ||
 "status-new";
@@ -2081,12 +2749,15 @@ function statusLabel(
 status
 ){
 
-const map={
+const map = {
+
 new:"Neu",
 called:"Angerufen",
 qualified:"Qualifiziert",
 lost:"Verloren"
+
 };
+
 
 return map[status] ||
 status;
@@ -2104,21 +2775,25 @@ lead =>
 lead.status==="new"
 ).length;
 
+
 const qualified =
 leads.filter(
 lead =>
 lead.status==="qualified"
 ).length;
 
+
 document.getElementById(
 "statLeads"
 ).textContent =
 leads.length;
 
+
 document.getElementById(
 "statNewLeads"
 ).textContent =
 newLeads;
+
 
 document.getElementById(
 "statQualifiedLeads"
@@ -2141,6 +2816,7 @@ document
 filterLeads
 );
 
+
 document
 .getElementById(
 "leadStatus"
@@ -2162,12 +2838,14 @@ document
 .trim()
 .toLowerCase();
 
+
 const status =
 document
 .getElementById(
 "leadStatus"
 )
 .value;
+
 
 const filtered =
 currentLeads.filter(
@@ -2176,7 +2854,8 @@ lead=>{
 const company =
 lead.companies||{};
 
-const text=[
+
+const text = [
 company.name,
 company.industry,
 company.phone,
@@ -2189,6 +2868,7 @@ lead.status
 .join(" ")
 .toLowerCase();
 
+
 return(
 (!search ||
 text.includes(search)) &&
@@ -2197,6 +2877,7 @@ lead.status===status)
 );
 
 });
+
 
 renderLeads(
 filtered
@@ -2236,6 +2917,8 @@ value??""
 /'/g,
 "&#039;"
 );
+
+}
 
 }
 
