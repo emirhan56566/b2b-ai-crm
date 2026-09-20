@@ -140,13 +140,15 @@ function validatePayload(payload) {
     payload.supply_type !== ""
   ) {
     const allowedSupplyTypes = [
-      "Strom",
-      "Gas",
-      "Strom + Gas",
-      "strom",
-      "gas",
-      "beides"
-    ];
+  "Strom",
+  "Gas",
+  "Strom + Gas",
+  "strom",
+  "gas",
+  "beides",
+  "RLM",
+  "SLP"
+];
 
     if (!allowedSupplyTypes.includes(String(payload.supply_type))) {
       return "Ungültige Lieferart.";
