@@ -1816,7 +1816,9 @@ async function loadLeads(){
     }
 
     currentLeads =
-      result.leads || [];
+  (result.leads || []).filter(
+    lead => normalizeStatus(lead.status) !== "signed"
+  );
 
     renderLeads(currentLeads);
     updateDashboardStats(currentLeads);
