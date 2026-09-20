@@ -581,15 +581,17 @@ Quelle (URL): https://example.de"></textarea>
           <table>
             <thead>
               <tr>
-                <th>Unternehmen</th>
-                <th>Belieferungsstart</th>
-                <th>Gewünschter Liefertermin</th>
-                <th>RLM / SLP</th>
-                <th>Jahresverbrauch</th>
-                <th>Vorlieferant</th>
-                <th>MaLo-ID</th>
-                <th>Zählernummer</th>
-              </tr>
+  <th>Unternehmen</th>
+  <th>Nächster Kündigungstag</th>
+  <th>Nächster Angebotstag</th>
+  <th>Belieferungsstart</th>
+  <th>Gewünschter Liefertermin</th>
+  <th>RLM / SLP</th>
+  <th>Jahresverbrauch</th>
+  <th>Vorlieferant</th>
+  <th>MaLo-ID</th>
+  <th>Zählernummer</th>
+</tr>
             </thead>
             <tbody id="supplyTableBody"></tbody>
           </table>
@@ -974,6 +976,16 @@ Quelle (URL): https://example.de"></textarea>
           <label for="supplyOldContractDeadline">Altes Vertragsende</label>
           <input id="supplyOldContractDeadline" type="date">
         </div>
+        
+        <div class="form-group">
+  <label for="supplyNextOfferDate">Nächster Angebotstag</label>
+  <input id="supplyNextOfferDate" type="date">
+</div>
+
+<div class="form-group">
+  <label for="supplyNextCancellationDate">Nächster Kündigungstag</label>
+  <input id="supplyNextCancellationDate" type="date">
+</div>
 
         <div class="form-group">
           <label for="supplyOldContractNotice">Kündigungsfrist / Selbstkündigung</label>
@@ -2617,6 +2629,8 @@ function clearSupplyForm(){
   $("supplyIban").value = "";
   $("supplyDesiredDeliveryDate").value = "";
   $("supplyDeliveryStartDate").value = "";
+  $("supplyNextOfferDate").value = "";
+$("supplyNextCancellationDate").value = "";
   $("supplyOldContractDeadline").value = "";
   $("supplyOldContractNotice").value = "";
   $("supplyNotes").value = "";
@@ -2697,6 +2711,11 @@ async function openSupplyDetail(supplyId){
 
   $("supplyDeliveryStartDate").value =
     supply.delivery_start_date || "";
+    $("supplyNextOfferDate").value =
+  supply.next_offer_date || "";
+
+$("supplyNextCancellationDate").value =
+  supply.next_cancellation_date || "";
 
   $("supplyOldContractDeadline").value =
     supply.old_contract_deadline || "";
@@ -2877,6 +2896,11 @@ async function saveSupply(event){
     delivery_start_date:
       $("supplyDeliveryStartDate").value ||
       null,
+      next_offer_date:
+  $("supplyNextOfferDate").value || null,
+
+next_cancellation_date:
+  $("supplyNextCancellationDate").value || null,
 
     old_contract_deadline:
       $("supplyOldContractDeadline").value ||
@@ -3420,7 +3444,43 @@ function formatDateTime(value){
     return value;
   }
 }
+function getSupplyCalendarEvents(){
+  return currentSupplies.flatMap(supply => {
+    const lead = currentLeads.find(
+      item => String(item.id) === String(supply.lead_id)
+    );
 
+    const company = lead?.companies || {};
+    const name =
+      supply.company_name ||
+      company.name ||
+      "Kunde";
+
+    const events = [];
+
+    if(supply.next_offer_date){
+      events.push({
+        lead_id: supply.lead_id,
+        appointment_date: supply.next_offer_date,
+        appointment_time: null,
+        title: "Angebot: " + name,
+        supplyEvent: true
+      });
+    }
+
+    if(supply.next_cancellation_date){
+      events.push({
+        lead_id: supply.lead_id,
+        appointment_date: supply.next_cancellation_date,
+        appointment_time: null,
+        title: "Kündigung: " + name,
+        supplyEvent: true
+      });
+    }
+
+    return events;
+  });
+}
 function renderCalendar(){
 
   const title =
@@ -3556,11 +3616,13 @@ function renderCalendar(){
       ].join("-");
 
     const appointments =
-      currentAppointments.filter(
-        appointment =>
-          appointment.appointment_date ===
-          dateString
-      );
+  [
+    ...currentAppointments,
+    ...getSupplyCalendarEvents()
+  ].filter(
+    appointment =>
+      appointment.appointment_date === dateString
+  );
 
     html += `
       <div class="calendar-day ${
