@@ -1049,7 +1049,7 @@ async function insertCompany(
         rows = [];
     }
 
-    return rows[0] || null;
+    return rows[0] || { ...company, user_id: userId };
 }
 
 
@@ -1155,13 +1155,8 @@ export default async function handler(
                         company
                     );
 
-                if (saved) {
-                    existingCompanies.push(
-                        saved
-                    );
-
-                    imported++;
-                }
+                existingCompanies.push(saved);
+imported++;
 
             } catch (error) {
                 invalid++;
