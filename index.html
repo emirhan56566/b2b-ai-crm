@@ -2,1862 +2,748 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>B2B CRM</title>
-
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
-*{
-  box-sizing:border-box;
-  margin:0;
-  padding:0;
-}
-
-body{
-  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  background:#f5f7fb;
-  color:#172033;
-}
-
-button,
-input,
-select,
-textarea{
-  font:inherit;
-}
-
-button{
-  cursor:pointer;
-}
-
-.hidden{
-  display:none!important;
-}
-
-#authScreen{
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:20px;
-  background:linear-gradient(135deg,#eef2ff,#f8fafc);
-}
-
-.auth-card{
-  width:100%;
-  max-width:430px;
-  background:#fff;
-  border-radius:18px;
-  padding:32px;
-  box-shadow:0 20px 60px rgba(15,23,42,.1);
-}
-
-.auth-logo,
-.brand-icon{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  background:#4f46e5;
-  color:#fff;
-  font-weight:800;
-}
-
-.auth-logo{
-  width:52px;
-  height:52px;
-  border-radius:14px;
-  font-size:22px;
-  margin-bottom:18px;
-}
-
-.auth-card h1{
-  font-size:27px;
-  margin-bottom:7px;
-}
-
-.auth-subtitle{
-  color:#667085;
-  margin-bottom:25px;
-}
-
-.auth-tabs{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:5px;
-  background:#f1f3f7;
-  padding:5px;
-  border-radius:10px;
-  margin-bottom:20px;
-}
-
-.auth-tab{
-  border:0;
-  background:transparent;
-  padding:10px;
-  border-radius:7px;
-  color:#667085;
-}
-
-.auth-tab.active{
-  background:#fff;
-  color:#172033;
-  font-weight:600;
-}
-
-.form-group{
-  margin-bottom:16px;
-}
-
-.form-group label{
-  display:block;
-  margin-bottom:7px;
-  font-size:14px;
-  font-weight:600;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea{
-  width:100%;
-  border:1px solid #d9dee8;
-  border-radius:9px;
-  padding:11px 12px;
-  outline:0;
-  background:#fff;
-}
-
-.form-group textarea{
-  resize:vertical;
-  line-height:1.5;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus{
-  border-color:#6366f1;
-  box-shadow:0 0 0 3px rgba(99,102,241,.1);
-}
-
-.auth-button,
-.btn-primary{
-  border:0;
-  background:#4f46e5;
-  color:#fff;
-  font-weight:700;
-  border-radius:8px;
-  padding:11px 15px;
-}
-
-.auth-button{
-  width:100%;
-  margin-top:5px;
-}
-
-.btn-primary:hover,
-.auth-button:hover{
-  background:#4338ca;
-}
-
-.btn-primary:disabled,
-.auth-button:disabled{
-  opacity:.6;
-  cursor:not-allowed;
-}
-
-.btn-secondary{
-  border:1px solid #d9dee8;
-  background:#fff;
-  color:#344054;
-  font-weight:600;
-  border-radius:8px;
-  padding:10px 14px;
-}
-
-.btn-secondary:hover{
-  background:#f8fafc;
-}
-
-.auth-message,
-.search-status{
-  padding:11px 13px;
-  border-radius:8px;
-  font-size:14px;
-  margin-top:14px;
-  line-height:1.5;
-}
-
-.auth-message.error,
-.search-status.error{
-  background:#fef2f2;
-  color:#b42318;
-}
-
-.auth-message.success,
-.search-status.success{
-  background:#ecfdf3;
-  color:#027a48;
-}
-
-#app{
-  min-height:100vh;
-  display:flex;
-}
-
-.sidebar{
-  width:245px;
-  min-height:100vh;
-  background:#111827;
-  color:#fff;
-  padding:20px 14px;
-  position:fixed;
-  left:0;
-  top:0;
-  bottom:0;
-}
-
-.brand{
-  display:flex;
-  align-items:center;
-  gap:11px;
-  padding:7px 10px 25px;
-}
-
-.brand-icon{
-  width:38px;
-  height:38px;
-  border-radius:10px;
-}
-
-.brand-name{
-  font-weight:750;
-  font-size:17px;
-}
-
-.nav-section{
-  margin-top:12px;
-}
-
-.nav-label{
-  color:#6b7280;
-  text-transform:uppercase;
-  font-size:10px;
-  font-weight:700;
-  padding:0 11px 7px;
-  letter-spacing:.08em;
-}
-
-.nav-item{
-  width:100%;
-  border:0;
-  background:transparent;
-  color:#cbd5e1;
-  text-align:left;
-  padding:10px 11px;
-  border-radius:8px;
-  margin-bottom:3px;
-  font-size:14px;
-}
-
-.nav-item:hover,
-.nav-item.active{
-  background:#1f2937;
-  color:#fff;
-}
-
-.nav-icon{
-  display:inline-block;
-  width:23px;
-}
-
-.sidebar-bottom{
-  position:absolute;
-  bottom:18px;
-  left:14px;
-  right:14px;
-}
-
-.user-box{
-  background:#1f2937;
-  border-radius:10px;
-  padding:11px;
-  margin-bottom:8px;
-}
-
-.user-email{
-  font-size:12px;
-  color:#d1d5db;
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-.logout-button{
-  width:100%;
-  border:0;
-  border-radius:8px;
-  background:#374151;
-  color:#fff;
-  padding:9px;
-}
-
-.main{
-  margin-left:245px;
-  width:calc(100% - 245px);
-  padding:28px;
-}
-
-.page{
-  display:none;
-}
-
-.page.active{
-  display:block;
-}
-
-.page-header{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:20px;
-  margin-bottom:25px;
-}
-
-.page-header h1{
-  font-size:26px;
-  margin-bottom:4px;
-}
-
-.page-header p{
-  color:#667085;
-  font-size:14px;
-}
-
-.card{
-  background:#fff;
-  border:1px solid #eaecf0;
-  border-radius:12px;
-  padding:20px;
-}
-
-.card h2{
-  font-size:16px;
-  margin-bottom:15px;
-}
-
-.search-card{
-  max-width:1250px;
-}
-
-.search-grid{
-  display:grid;
-  grid-template-columns:1fr;
-  gap:15px;
-}
-
-.full{
-  grid-column:1/-1;
-}
-
-.actions{
-  margin-top:18px;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  flex-wrap:wrap;
-}
-
-.search-status{
-  display:none;
-  margin-top:0;
-}
-
-.search-status.show{
-  display:block;
-}
-
-.stats{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:16px;
-  margin-bottom:22px;
-}
-
-.stat-card{
-  background:#fff;
-  border:1px solid #eaecf0;
-  border-radius:12px;
-  padding:19px;
-}
-
-.stat-title{
-  color:#667085;
-  font-size:13px;
-  margin-bottom:10px;
-}
-
-.stat-value{
-  font-size:28px;
-  font-weight:750;
-}
-
-.content-grid{
-  display:grid;
-  grid-template-columns:1.5fr 1fr;
-  gap:18px;
-}
-
-.table-card{
-  overflow:hidden;
-}
-
-.table-toolbar{
-  display:flex;
-  gap:10px;
-  margin-bottom:16px;
-  flex-wrap:wrap;
-}
-
-.table-toolbar input,
-.table-toolbar select{
-  border:1px solid #d9dee8;
-  border-radius:8px;
-  padding:10px 12px;
-  background:#fff;
-}
-
-.table-toolbar input{
-  flex:1;
-  min-width:220px;
-}
-
-.table-wrapper{
-  overflow-x:auto;
-}
-
-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:13px;
-}
-
-th,
-td{
-  text-align:left;
-  padding:12px 10px;
-  border-bottom:1px solid #eaecf0;
-  white-space:nowrap;
-  vertical-align:middle;
-}
-
-th{
-  color:#667085;
-  font-size:12px;
-  font-weight:650;
-  background:#fafbfc;
-}
-
-th.sortable{
-  cursor:pointer;
-  user-select:none;
-}
-
-th.sortable:hover{
-  background:#f2f4f7;
-}
-
-.sort-indicator{
-  margin-left:5px;
-  color:#98a2b3;
-}
-
-.status{
-  display:inline-block;
-  border-radius:999px;
-  padding:4px 9px;
-  font-size:11px;
-  font-weight:650;
-}
-
-.status-new{
-  background:#eef4ff;
-  color:#3538cd;
-}
-
-.status-called{
-  background:#fff6ed;
-  color:#c4320a;
-}
-
-.status-qualified{
-  background:#ecfdf3;
-  color:#027a48;
-}
-
-.status-lost{
-  background:#f2f4f7;
-  color:#475467;
-}
-
-.energy-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:5px;
-  border-radius:999px;
-  padding:5px 10px;
-  font-size:11px;
-  font-weight:750;
-  text-transform:capitalize;
-}
-
-.energy-high{
-  background:#fee4e2;
-  color:#b42318;
-}
-
-.energy-medium{
-  background:#fef0c7;
-  color:#b54708;
-}
-
-.energy-low{
-  background:#dcfae6;
-  color:#027a48;
-}
-
-.energy-none{
-  background:#f2f4f7;
-  color:#667085;
-}
-
-.contact-cell{
-  line-height:1.35;
-}
-
-.contact-name{
-  font-weight:650;
-}
-
-.contact-role{
-  color:#667085;
-  font-size:11px;
-  margin-top:2px;
-}
-
-.phone-link{
-  color:#344054;
-  text-decoration:none;
-}
-
-.phone-link:hover{
-  text-decoration:underline;
-}
-
-.website-link{
-  color:#4f46e5;
-  text-decoration:none;
-}
-
-.website-link:hover{
-  text-decoration:underline;
-}
-
-.energy-reason{
-  max-width:280px;
-  white-space:normal;
-  line-height:1.4;
-  color:#667085;
-  font-size:12px;
-}
-
-.source-link{
-  color:#4f46e5;
-  text-decoration:none;
-}
-
-.source-link:hover{
-  text-decoration:underline;
-}
-
-.empty{
-  text-align:center;
-  padding:35px 15px;
-  color:#667085;
-}
-
-.type-options{
-  display:flex;
-  gap:22px;
-  flex-wrap:wrap;
-}
-
-.type-option{
-  display:flex;
-  align-items:center;
-  gap:7px;
-  font-weight:400;
-}
-
-.type-option input{
-  width:17px;
-  height:17px;
-}
-
-.placeholder{
-  text-align:center;
-  padding:50px 20px;
-  color:#667085;
-}
-
-.placeholder-icon{
-  font-size:40px;
-  margin-bottom:12px;
-}
-
-.result-summary{
-  color:#667085;
-  font-size:13px;
-  margin-bottom:12px;
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f5f7fb;color:#172033}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+#authScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#eef2ff,#f8fafc)}
+.auth-card{width:100%;max-width:430px;background:#fff;border-radius:18px;padding:32px;box-shadow:0 20px 60px rgba(15,23,42,.1)}
+.auth-logo,.brand-icon{display:flex;align-items:center;justify-content:center;background:#4f46e5;color:#fff;font-weight:800}
+.auth-logo{width:52px;height:52px;border-radius:14px;font-size:22px;margin-bottom:18px}
+.auth-card h1{font-size:27px;margin-bottom:7px}
+.auth-subtitle{color:#667085;margin-bottom:25px}
+.auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;background:#f1f3f7;padding:5px;border-radius:10px;margin-bottom:20px}
+.auth-tab{border:0;background:transparent;padding:10px;border-radius:7px;color:#667085}
+.auth-tab.active{background:#fff;color:#172033;font-weight:600}
+
+.form-group{margin-bottom:16px}
+.form-group label{display:block;margin-bottom:7px;font-size:14px;font-weight:600}
+.form-group input,.form-group select,.form-group textarea{width:100%;border:1px solid #d9dee8;border-radius:9px;padding:11px 12px;outline:0;background:#fff}
+.form-group textarea{resize:vertical;line-height:1.5}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.1)}
+
+.auth-button,.btn-primary{border:0;background:#4f46e5;color:#fff;font-weight:700;border-radius:8px;padding:11px 15px}
+.auth-button{width:100%;margin-top:5px}
+.btn-primary:hover,.auth-button:hover{background:#4338ca}
+.btn-primary:disabled,.auth-button:disabled{opacity:.6;cursor:not-allowed}
+.btn-secondary{border:1px solid #d9dee8;background:#fff;color:#344054;font-weight:600;border-radius:8px;padding:10px 14px}
+.btn-danger{border:0;background:#dc2626;color:#fff;font-weight:600;border-radius:8px;padding:10px 14px}
+.btn-small{padding:7px 10px;font-size:12px}
+.auth-message,.search-status{padding:11px 13px;border-radius:8px;font-size:14px;margin-top:14px;line-height:1.5}
+.auth-message.error,.search-status.error{background:#fef2f2;color:#b42318}
+.auth-message.success,.search-status.success{background:#ecfdf3;color:#027a48}
+
+#app{min-height:100vh;display:flex}
+.sidebar{width:245px;min-height:100vh;background:#111827;color:#fff;padding:20px 14px;position:fixed;left:0;top:0;bottom:0}
+.brand{display:flex;align-items:center;gap:11px;padding:7px 10px 25px}
+.brand-icon{width:38px;height:38px;border-radius:10px}
+.brand-name{font-weight:750;font-size:17px}
+.nav-section{margin-top:12px}
+.nav-label{color:#6b7280;text-transform:uppercase;font-size:10px;font-weight:700;padding:0 11px 7px;letter-spacing:.08em}
+.nav-item{width:100%;border:0;background:transparent;color:#cbd5e1;text-align:left;padding:10px 11px;border-radius:8px;margin-bottom:3px;font-size:14px}
+.nav-item:hover,.nav-item.active{background:#1f2937;color:#fff}
+.nav-icon{display:inline-block;width:23px}
+.sidebar-bottom{position:absolute;bottom:18px;left:14px;right:14px}
+.user-box{background:#1f2937;border-radius:10px;padding:11px;margin-bottom:8px}
+.user-email{font-size:12px;color:#d1d5db;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.logout-button{width:100%;border:0;border-radius:8px;background:#374151;color:#fff;padding:9px}
+
+.main{margin-left:245px;width:calc(100% - 245px);padding:28px}
+.page{display:none}
+.page.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-bottom:25px}
+.page-header h1{font-size:26px;margin-bottom:4px}
+.page-header p{color:#667085;font-size:14px}
+.card{background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:20px}
+.card h2{font-size:16px;margin-bottom:15px}
+.search-card{max-width:1250px}
+.search-grid{display:grid;grid-template-columns:1fr;gap:15px}
+.full{grid-column:1/-1}
+.actions{margin-top:18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.search-status{display:none;margin-top:0}
+.search-status.show{display:block}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:22px}
+.stat-card{background:#fff;border:1px solid #eaecf0;border-radius:12px;padding:19px}
+.stat-title{color:#667085;font-size:13px;margin-bottom:10px}
+.stat-value{font-size:28px;font-weight:750}
+
+.content-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:18px}
+.table-card{overflow:hidden}
+.table-toolbar{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.table-toolbar input,.table-toolbar select{border:1px solid #d9dee8;border-radius:8px;padding:10px 12px;background:#fff}
+.table-toolbar input{flex:1;min-width:220px}
+.table-wrapper{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{text-align:left;padding:12px 10px;border-bottom:1px solid #eaecf0;white-space:nowrap;vertical-align:middle}
+th{color:#667085;font-size:12px;font-weight:650;background:#fafbfc}
+th.sortable{cursor:pointer}
+.empty{text-align:center;padding:35px 15px;color:#667085}
+
+.status{display:inline-block;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:650}
+.status-new{background:#eef4ff;color:#3538cd}
+.status-called{background:#fff6ed;color:#c4320a}
+.status-not-reached{background:#f2f4f7;color:#475467}
+.status-negotiation{background:#fff7ed;color:#b54708}
+.status-calculation{background:#f4f3ff;color:#5925dc}
+.status-signed{background:#ecfdf3;color:#027a48}
+.status-no-interest{background:#fef2f2;color:#b42318}
+.status-qualified{background:#ecfdf3;color:#027a48}
+.status-lost{background:#f2f4f7;color:#475467}
+
+.energy-badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:750}
+.energy-high{background:#fee4e2;color:#b42318}
+.energy-medium{background:#fef0c7;color:#b54708}
+.energy-low{background:#dcfae6;color:#027a48}
+.energy-none{background:#f2f4f7;color:#667085}
+
+.contact-cell{line-height:1.35}
+.contact-name{font-weight:650}
+.contact-role{color:#667085;font-size:11px;margin-top:2px}
+.phone-link,.website-link{color:#4f46e5;text-decoration:none}
+.energy-reason{max-width:280px;white-space:normal;line-height:1.4;color:#667085;font-size:12px}
+.type-options{display:flex;gap:22px;flex-wrap:wrap}
+.type-option{display:flex;align-items:center;gap:7px}
+.type-option input{width:17px;height:17px}
+.placeholder{text-align:center;padding:50px 20px;color:#667085}
+.placeholder-icon{font-size:40px;margin-bottom:12px}
+
+.lead-row{cursor:pointer}
+.lead-row:hover{background:#f8fafc}
+
+.detail-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
+.detail-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.detail-item{background:#f8fafc;border-radius:9px;padding:12px}
+.detail-label{font-size:11px;color:#667085;margin-bottom:4px}
+.detail-value{font-size:14px;font-weight:600}
+
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000}
+.modal-card{width:min(1000px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;padding:24px}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:20px}
+.modal-title{font-size:22px;font-weight:750}
+.close-button{border:0;background:#f2f4f7;border-radius:8px;width:36px;height:36px}
+.status-control{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.status-control select{min-width:230px;border:1px solid #d9dee8;border-radius:8px;padding:10px}
+.appointment-list{display:grid;gap:10px}
+.appointment{border:1px solid #eaecf0;border-radius:10px;padding:13px;display:flex;justify-content:space-between;gap:15px}
+.appointment-title{font-weight:700}
+.appointment-meta{color:#667085;font-size:12px;margin-top:4px}
+.appointment-notes{color:#475467;font-size:13px;margin-top:7px;white-space:pre-wrap}
+
+.calendar-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.calendar-title{font-size:20px;font-weight:750}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid #eaecf0;border-left:1px solid #eaecf0}
+.calendar-weekday{background:#fafbfc;padding:10px;font-size:12px;font-weight:700;color:#667085;border-right:1px solid #eaecf0;border-bottom:1px solid #eaecf0}
+.calendar-day{min-height:120px;padding:8px;border-right:1px solid #eaecf0;border-bottom:1px solid #eaecf0}
+.calendar-day.other-month{background:#fafbfc;color:#98a2b3}
+.calendar-number{font-size:12px;font-weight:700;margin-bottom:7px}
+.calendar-event{background:#eef4ff;color:#3538cd;border-radius:6px;padding:5px;margin-bottom:4px;font-size:11px;cursor:pointer;overflow:hidden}
+.calendar-event:hover{background:#e0e7ff}
+.pipeline-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
+.pipeline-box{border:1px solid #eaecf0;border-radius:12px;padding:18px}
+.pipeline-label{font-size:12px;color:#667085;margin-bottom:7px}
+.pipeline-number{font-size:28px;font-weight:750}
+.pipeline-table td,.pipeline-table th{white-space:normal}
 
 @media(max-width:1200px){
-
-  .stats{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-  }
-
-  .content-grid{
-    grid-template-columns:1fr;
-  }
-
+.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+.content-grid,.detail-grid{grid-template-columns:1fr}
 }
-
 @media(max-width:760px){
-
-  #app{
-    display:block;
-  }
-
-  .sidebar{
-    position:static;
-    width:100%;
-    min-height:auto;
-  }
-
-  .sidebar-bottom{
-    position:static;
-    margin-top:15px;
-  }
-
-  .main{
-    margin-left:0;
-    width:100%;
-    padding:18px;
-  }
-
-  .stats{
-    grid-template-columns:1fr;
-  }
-
-  .page-header{
-    align-items:flex-start;
-    flex-direction:column;
-  }
-
-  .card{
-    padding:15px;
-  }
-
-  .table-toolbar{
-    flex-direction:column;
-  }
-
-  .table-toolbar input{
-    min-width:0;
-    width:100%;
-  }
-
+#app{display:block}
+.sidebar{position:static;width:100%;min-height:auto}
+.sidebar-bottom{position:static;margin-top:15px}
+.main{margin-left:0;width:100%;padding:18px}
+.stats,.pipeline-summary{grid-template-columns:1fr}
+.page-header{align-items:flex-start;flex-direction:column}
+.card{padding:15px}
+.table-toolbar{flex-direction:column}
+.table-toolbar input{min-width:0;width:100%}
+.detail-list{grid-template-columns:1fr}
+.calendar-day{min-height:90px;padding:5px}
+.calendar-event{font-size:10px}
 }
 </style>
 </head>
 
 <body>
 
-<!-- ==================================================
-     LOGIN
-================================================== -->
-
 <div id="authScreen">
-
   <div class="auth-card">
-
-    <div class="auth-logo">
-      AI
-    </div>
-
+    <div class="auth-logo">AI</div>
     <h1>B2B CRM</h1>
-
-    <p class="auth-subtitle">
-      Melde dich an oder erstelle deinen Account.
-    </p>
+    <p class="auth-subtitle">Melde dich an oder erstelle deinen Account.</p>
 
     <div class="auth-tabs">
-
-      <button
-        id="loginTab"
-        class="auth-tab active"
-        type="button"
-      >
-        Anmelden
-      </button>
-
-      <button
-        id="registerTab"
-        class="auth-tab"
-        type="button"
-      >
-        Registrieren
-      </button>
-
+      <button id="loginTab" class="auth-tab active" type="button">Anmelden</button>
+      <button id="registerTab" class="auth-tab" type="button">Registrieren</button>
     </div>
 
-    <form
-      id="authForm"
-      data-mode="login"
-    >
-
-      <div
-        id="nameGroup"
-        class="form-group hidden"
-      >
-
-        <label for="authName">
-          Name
-        </label>
-
-        <input
-          id="authName"
-          type="text"
-          placeholder="Max Mustermann"
-        >
-
+    <form id="authForm" data-mode="login">
+      <div id="nameGroup" class="form-group hidden">
+        <label for="authName">Name</label>
+        <input id="authName" type="text" placeholder="Max Mustermann">
       </div>
 
       <div class="form-group">
-
-        <label for="authEmail">
-          E-Mail
-        </label>
-
-        <input
-          id="authEmail"
-          type="email"
-          placeholder="name@firma.de"
-          required
-        >
-
+        <label for="authEmail">E-Mail</label>
+        <input id="authEmail" type="email" placeholder="name@firma.de" required>
       </div>
 
       <div class="form-group">
-
-        <label for="authPassword">
-          Passwort
-        </label>
-
-        <input
-          id="authPassword"
-          type="password"
-          placeholder="Mindestens 6 Zeichen"
-          required
-          minlength="6"
-        >
-
+        <label for="authPassword">Passwort</label>
+        <input id="authPassword" type="password" placeholder="Mindestens 6 Zeichen" required minlength="6">
       </div>
 
-      <button
-        id="authSubmit"
-        class="auth-button"
-        type="submit"
-      >
-        Anmelden
-      </button>
-
+      <button id="authSubmit" class="auth-button" type="submit">Anmelden</button>
     </form>
 
-    <div
-      id="authMessage"
-      class="auth-message hidden"
-    ></div>
-
+    <div id="authMessage" class="auth-message hidden"></div>
   </div>
-
 </div>
 
-
-<!-- ==================================================
-     APP
-================================================== -->
-
-<div
-  id="app"
-  class="hidden"
->
+<div id="app" class="hidden">
 
   <aside class="sidebar">
-
     <div class="brand">
-
-      <div class="brand-icon">
-        AI
-      </div>
-
-      <div class="brand-name">
-        B2B CRM
-      </div>
-
+      <div class="brand-icon">AI</div>
+      <div class="brand-name">B2B CRM</div>
     </div>
-
 
     <div class="nav-section">
+      <div class="nav-label">Übersicht</div>
 
-      <div class="nav-label">
-        Übersicht
-      </div>
-
-      <button
-        class="nav-item active"
-        data-page="dashboard"
-        type="button"
-      >
-        <span class="nav-icon">
-          ⌂
-        </span>
-        Dashboard
+      <button class="nav-item active" data-page="dashboard" type="button">
+        <span class="nav-icon">⌂</span>Dashboard
       </button>
 
-    </div>
+      <button class="nav-item" data-page="leads" type="button">
+        <span class="nav-icon">▣</span>Leads
+      </button>
 
+      <button class="nav-item" data-page="calendar" type="button">
+        <span class="nav-icon">◫</span>Kalender
+      </button>
+
+      <button class="nav-item" data-page="pipeline" type="button">
+        <span class="nav-icon">↗</span>Pipeline
+      </button>
+    </div>
 
     <div class="nav-section">
+      <div class="nav-label">Vertrieb</div>
 
-      <div class="nav-label">
-        Vertrieb
-      </div>
-
-      <button
-        class="nav-item"
-        data-page="lead-search"
-        type="button"
-      >
-        <span class="nav-icon">
-          ✦
-        </span>
-        Lead-Suche
+      <button class="nav-item" data-page="lead-search" type="button">
+        <span class="nav-icon">✦</span>Lead-Suche
       </button>
 
-      <button
-        class="nav-item"
-        data-page="leads"
-        type="button"
-      >
-        <span class="nav-icon">
-          ▣
-        </span>
-        Leads
+      <button class="nav-item" data-page="contacts" type="button">
+        <span class="nav-icon">♙</span>Kontakte
       </button>
 
-      <button
-        class="nav-item"
-        data-page="contacts"
-        type="button"
-      >
-        <span class="nav-icon">
-          ♙
-        </span>
-        Kontakte
+      <button class="nav-item" data-page="calls" type="button">
+        <span class="nav-icon">☎</span>Anrufe
       </button>
 
-      <button
-        class="nav-item"
-        data-page="calls"
-        type="button"
-      >
-        <span class="nav-icon">
-          ☎
-        </span>
-        Anrufe
+      <button class="nav-item" data-page="tasks" type="button">
+        <span class="nav-icon">✓</span>Aufgaben
       </button>
-
-      <button
-        class="nav-item"
-        data-page="tasks"
-        type="button"
-      >
-        <span class="nav-icon">
-          ✓
-        </span>
-        Aufgaben
-      </button>
-
-      <button
-        class="nav-item"
-        data-page="pipeline"
-        type="button"
-      >
-        <span class="nav-icon">
-          ↗
-        </span>
-        Pipeline
-      </button>
-
     </div>
-
 
     <div class="nav-section">
+      <div class="nav-label">System</div>
 
-      <div class="nav-label">
-        System
-      </div>
-
-      <button
-        class="nav-item"
-        data-page="settings"
-        type="button"
-      >
-        <span class="nav-icon">
-          ⚙
-        </span>
-        Einstellungen
+      <button class="nav-item" data-page="settings" type="button">
+        <span class="nav-icon">⚙</span>Einstellungen
       </button>
-
     </div>
-
 
     <div class="sidebar-bottom">
-
       <div class="user-box">
-
-        <div
-          id="sidebarUserEmail"
-          class="user-email"
-        >
-          —
-        </div>
-
+        <div id="sidebarUserEmail" class="user-email">—</div>
       </div>
 
-      <button
-        id="logoutButton"
-        class="logout-button"
-        type="button"
-      >
+      <button id="logoutButton" class="logout-button" type="button">
         Abmelden
       </button>
-
     </div>
-
   </aside>
-
 
   <main class="main">
 
-    <!-- ==================================================
-         DASHBOARD
-    ================================================== -->
-
-    <section
-      id="page-dashboard"
-      class="page active"
-    >
-
+    <!-- DASHBOARD -->
+    <section id="page-dashboard" class="page active">
       <div class="page-header">
-
         <div>
-
-          <h1>
-            Dashboard
-          </h1>
-
-          <p>
-            Deine Vertriebsübersicht
-          </p>
-
+          <h1>Dashboard</h1>
+          <p>Deine Vertriebsübersicht</p>
         </div>
 
-        <button
-          class="btn-primary"
-          type="button"
-          data-open-page="lead-search"
-        >
-          Lead-Suche öffnen
+        <button class="btn-primary" type="button" data-open-page="leads">
+          Leads öffnen
         </button>
-
       </div>
-
 
       <div class="stats">
-
         <div class="stat-card">
-
-          <div class="stat-title">
-            Leads gesamt
-          </div>
-
-          <div
-            id="statLeads"
-            class="stat-value"
-          >
-            0
-          </div>
-
+          <div class="stat-title">Leads gesamt</div>
+          <div id="statLeads" class="stat-value">0</div>
         </div>
 
-
         <div class="stat-card">
-
-          <div class="stat-title">
-            Neue Leads
-          </div>
-
-          <div
-            id="statNewLeads"
-            class="stat-value"
-          >
-            0
-          </div>
-
+          <div class="stat-title">Neue Leads</div>
+          <div id="statNewLeads" class="stat-value">0</div>
         </div>
 
-
         <div class="stat-card">
-
-          <div class="stat-title">
-            Qualifizierte Leads
-          </div>
-
-          <div
-            id="statQualifiedLeads"
-            class="stat-value"
-          >
-            0
-          </div>
-
+          <div class="stat-title">In Bearbeitung</div>
+          <div id="statQualifiedLeads" class="stat-value">0</div>
         </div>
 
-
         <div class="stat-card">
-
-          <div class="stat-title">
-            Pipeline
-          </div>
-
-          <div
-            id="statPipeline"
-            class="stat-value"
-          >
-            0 €
-          </div>
-
+          <div class="stat-title">Pipeline</div>
+          <div id="statPipeline" class="stat-value">0 €</div>
         </div>
-
       </div>
-
 
       <div class="content-grid">
-
         <div class="card">
-
-          <h2>
-            Willkommen im B2B CRM
-          </h2>
-
-          <p
-            style="color:#667085;line-height:1.7"
-          >
-            Füge deine Unternehmensdaten ein. Danach kannst du
-            Unternehmen anhand ihrer Branche suchen und ausgewählte
-            Unternehmen als Leads übernehmen.
+          <h2>Willkommen im B2B CRM</h2>
+          <p style="color:#667085;line-height:1.7">
+            Hier siehst du jederzeit den aktuellen Stand deiner Leads.
+            Jeder Lead hat einen festen Status und einen Pipeline-Wert von 2 €.
           </p>
-
         </div>
-
 
         <div class="card">
-
-          <h2>
-            Schnellstart
-          </h2>
-
-          <button
-            class="btn-primary"
-            type="button"
-            data-open-page="lead-search"
-          >
-            Lead-Suche öffnen
-          </button>
-
+          <h2>Schnellstart</h2>
+          <div class="actions">
+            <button class="btn-primary" type="button" data-open-page="lead-search">
+              Lead-Suche
+            </button>
+            <button class="btn-secondary" type="button" data-open-page="calendar">
+              Kalender
+            </button>
+          </div>
         </div>
-
       </div>
-
     </section>
 
-
-    <!-- ==================================================
-         LEAD-SUCHE
-    ================================================== -->
-
-    <section
-      id="page-lead-search"
-      class="page"
-    >
-
+    <!-- LEAD-SUCHE -->
+    <section id="page-lead-search" class="page">
       <div class="page-header">
-
         <div>
-
-          <h1>
-            Lead-Suche
-          </h1>
-
-          <p>
-            Unternehmen importieren, filtern und als Leads auswählen.
-          </p>
-
+          <h1>Lead-Suche</h1>
+          <p>Unternehmen importieren, suchen und als Leads übernehmen.</p>
         </div>
-
       </div>
-
-
-      <!-- IMPORT -->
 
       <div class="card search-card">
-
-        <h2>
-          Unternehmensdaten hinzufügen
-        </h2>
+        <h2>Unternehmensdaten hinzufügen</h2>
 
         <div class="form-group">
-
-          <label for="companyImportText">
-            Unternehmensdaten
-          </label>
-
-          <textarea
-            id="companyImportText"
-            rows="18"
-            placeholder="[1] Bäckerei Hans-Peter Schiffer
-Branche: Bäckerei- und Konditorenhandwerk
-Adresse: Alte Schloßstraße 22
-Postleitzahl: 56566
-Ort: Neuwied
-Telefon (Zentrale/Geschäftsleitung): +49 2622 2442 (ungeprüft)
-Ansprechpartner (Name, Funktion): Hans-Peter Schiffer (Inhaber)
-Website: k. A.
-Mitarbeiteranzahl: k. A. (Kleinstbetrieb/Handwerk)
+          <label for="companyImportText">Unternehmensdaten</label>
+          <textarea id="companyImportText" rows="15" placeholder="[1] Bäckerei Beispiel
+Branche: Bäckerei
+Adresse: Musterstraße 1
+Postleitzahl: 56000
+Ort: Koblenz
+Telefon (Zentrale/Geschäftsleitung): +49 261 123456
+Ansprechpartner (Name, Funktion): Max Mustermann (Inhaber)
+Website: https://example.de
+Mitarbeiteranzahl: 10
 Rechtsform: Einzelunternehmen
-Handelsregister-Status: nicht geprüft
-Energiebedarf (hoch/mittel/niedrig, kurze Begründung): hoch (Backöfen, Teigknetmaschinen, Gärräume und Kühlung)
-Quelle (URL): https://www.handwerk.de
-
-[2] Bäckerei Kurt Hommen
-Branche: Bäckerei- und Konditorenhandwerk
-Adresse: Rodenbacher Straße 57
-Postleitzahl: 56567
-Ort: Neuwied
-Telefon (Zentrale/Geschäftsleitung): +49 2631 71676 (ungeprüft)
-Ansprechpartner (Name, Funktion): Kurt Hommen (Inhaber)
-Website: k. A.
-Mitarbeiteranzahl: k. A.
-Rechtsform: Einzelunternehmen
-Energiebedarf (hoch/mittel/niedrig, kurze Begründung): hoch (Etagenbacköfen, Teigkühlung, Mehlförderung)
-Quelle (URL): https://www.gelbeseiten.de"
-          ></textarea>
-
+Energiebedarf (hoch/mittel/niedrig, kurze Begründung): hoch (Backöfen und Kühlung)
+Quelle (URL): https://example.de"></textarea>
         </div>
 
-
         <div class="actions">
-
-          <button
-            id="importCompaniesButton"
-            class="btn-primary"
-            type="button"
-          >
+          <button id="importCompaniesButton" class="btn-primary" type="button">
             Unternehmen speichern
           </button>
-
-          <div
-            id="importStatus"
-            class="search-status"
-          ></div>
-
+          <div id="importStatus" class="search-status"></div>
         </div>
-
       </div>
 
+      <div class="card search-card" style="margin-top:18px">
+        <h2>Unternehmen suchen</h2>
 
-      <!-- SEARCH -->
-
-      <div
-        class="card search-card"
-        style="margin-top:18px"
-      >
-
-        <h2>
-          Unternehmen suchen
-        </h2>
-
-        <div class="search-grid">
-
-          <div class="form-group">
-
-            <label for="leadIndustry">
-              Branche
-            </label>
-
-            <select
-              id="leadIndustry"
-            >
-
-              <option value="__ALL__">
-                Alle Branchen
-              </option>
-
-              <option value="">
-                Branche auswählen
-              </option>
-
-            </select>
-
-          </div>
-
-
-          <div class="form-group full">
-
-            <label>
-              Unternehmenstyp
-            </label>
-
-            <div class="type-options">
-
-              <label class="type-option">
-
-                <input
-                  id="typeMicro"
-                  type="checkbox"
-                >
-
-                Kleinstunternehmen
-
-              </label>
-
-
-              <label class="type-option">
-
-                <input
-                  id="typeEinzel"
-                  type="checkbox"
-                >
-
-                Einzelunternehmen
-
-              </label>
-
-
-              <label class="type-option">
-
-                <input
-                  id="typeEk"
-                  type="checkbox"
-                >
-
-                e.K.
-
-              </label>
-
-            </div>
-
-          </div>
-
+        <div class="form-group">
+          <label for="leadIndustry">Branche</label>
+          <select id="leadIndustry">
+            <option value="__ALL__">Alle Branchen</option>
+            <option value="">Branche auswählen</option>
+          </select>
         </div>
 
+        <div class="form-group">
+          <label>Unternehmenstyp</label>
+
+          <div class="type-options">
+            <label class="type-option">
+              <input id="typeMicro" type="checkbox">
+              Kleinstunternehmen
+            </label>
+
+            <label class="type-option">
+              <input id="typeEinzel" type="checkbox">
+              Einzelunternehmen
+            </label>
+
+            <label class="type-option">
+              <input id="typeEk" type="checkbox">
+              e.K.
+            </label>
+          </div>
+        </div>
 
         <div class="actions">
-
-          <button
-            id="companySearchButton"
-            class="btn-primary"
-            type="button"
-          >
+          <button id="companySearchButton" class="btn-primary" type="button">
             Unternehmen suchen
           </button>
-
-          <div
-            id="companySearchStatus"
-            class="search-status"
-          ></div>
-
+          <div id="companySearchStatus" class="search-status"></div>
         </div>
-
       </div>
 
-
-      <!-- RESULTS -->
-
-      <div
-        id="companySearchResultsCard"
-        class="card table-card hidden"
-        style="margin-top:18px"
-      >
-
-        <div
-          class="page-header"
-          style="margin-bottom:15px"
-        >
-
+      <div id="companySearchResultsCard" class="card table-card hidden" style="margin-top:18px">
+        <div class="page-header" style="margin-bottom:15px">
           <div>
-
             <h2 style="margin-bottom:4px">
               Suchergebnisse
-              <span
-                id="companySearchCount"
-                style="color:#667085;font-weight:500"
-              >
-                (0)
-              </span>
+              <span id="companySearchCount" style="color:#667085;font-weight:500">(0)</span>
             </h2>
-
-            <div
-              id="companySearchSummary"
-              class="result-summary"
-            >
-              —
-            </div>
-
+            <div id="companySearchSummary" style="color:#667085;font-size:13px">0 angezeigt</div>
           </div>
 
-
-          <button
-            id="addSelectedButton"
-            class="btn-primary"
-            type="button"
-          >
-            Ausgewählte zu Leads hinzufügen
+          <button id="addSelectedButton" class="btn-primary" type="button">
+            Auswahl als Leads übernehmen
           </button>
-
         </div>
-
 
         <div class="table-toolbar">
-
-          <input
-            id="companyTableSearch"
-            type="search"
-            placeholder="Unternehmen, Ansprechpartner, Telefon, Ort..."
-          >
-
-          <select
-            id="energyFilter"
-          >
-
-            <option value="">
-              Alle Energiebedarfe
-            </option>
-
-            <option value="hoch">
-              Hoch
-            </option>
-
-            <option value="mittel">
-              Mittel
-            </option>
-
-            <option value="niedrig">
-              Niedrig
-            </option>
-
+          <input id="companyTableSearch" type="search" placeholder="Unternehmen durchsuchen">
+          <select id="energyFilter">
+            <option value="">Alle Energiebedarfe</option>
+            <option value="hoch">Hoch</option>
+            <option value="mittel">Mittel</option>
+            <option value="niedrig">Niedrig</option>
           </select>
-
-          <button
-            id="resetCompanyFilters"
-            class="btn-secondary"
-            type="button"
-          >
-            Filter zurücksetzen
-          </button>
-
+          <button id="resetCompanyFilters" class="btn-secondary" type="button">Filter zurücksetzen</button>
         </div>
-
 
         <div class="table-wrapper">
-
           <table>
-
             <thead>
-
               <tr>
-
-                <th>
-
-                  <input
-                    id="selectAllCompanies"
-                    type="checkbox"
-                  >
-
+                <th><input id="selectAllCompanies" type="checkbox"></th>
+                <th>Unternehmen</th>
+                <th>Branche</th>
+                <th>Ansprechpartner</th>
+                <th>Telefon</th>
+                <th>PLZ</th>
+                <th>Ort</th>
+                <th class="sortable" id="energySortHeader">
+                  Energie <span id="energySortIndicator" class="sort-indicator">↑</span>
                 </th>
-
-                <th>
-                  Unternehmen
-                </th>
-
-                <th>
-                  Branche
-                </th>
-
-                <th>
-                  Ansprechpartner
-                </th>
-
-                <th>
-                  Telefon
-                </th>
-
-                <th>
-                  PLZ
-                </th>
-
-                <th>
-                  Ort
-                </th>
-
-                <th
-                  class="sortable"
-                  id="energySortHeader"
-                  title="Nach Energiebedarf sortieren"
-                >
-                  Energiebedarf
-                  <span
-                    id="energySortIndicator"
-                    class="sort-indicator"
-                  >
-                    ↕
-                  </span>
-                </th>
-
-                <th>
-                  Mitarbeiter
-                </th>
-
-                <th>
-                  Rechtsform
-                </th>
-
-                <th>
-                  Status
-                </th>
-
+                <th>Mitarbeiter</th>
+                <th>Rechtsform</th>
+                <th>Status</th>
               </tr>
-
             </thead>
-
-            <tbody
-              id="companySearchResultsBody"
-            ></tbody>
-
+            <tbody id="companySearchResultsBody"></tbody>
           </table>
-
         </div>
-
       </div>
-
     </section>
 
-
-    <!-- ==================================================
-         LEADS
-    ================================================== -->
-
-    <section
-      id="page-leads"
-      class="page"
-    >
-
+    <!-- LEADS -->
+    <section id="page-leads" class="page">
       <div class="page-header">
-
         <div>
-
-          <h1>
-            Leads
-          </h1>
-
-          <p>
-            Deine gespeicherten B2B-Leads
-          </p>
-
+          <h1>Leads</h1>
+          <p>Klicke auf einen Lead, um den aktuellen Stand und Termine zu sehen.</p>
         </div>
 
-        <button
-          class="btn-primary"
-          type="button"
-          data-open-page="lead-search"
-        >
-          + Lead-Suche
+        <button class="btn-secondary" type="button" id="refreshLeadsButton">
+          Aktualisieren
         </button>
-
       </div>
-
 
       <div class="card table-card">
-
         <div class="table-toolbar">
+          <input id="leadSearch" type="search" placeholder="Lead suchen...">
 
-          <input
-            id="leadSearch"
-            type="search"
-            placeholder="Unternehmen, Stadt, Telefon, Ansprechpartner..."
-          >
-
-          <select
-            id="leadStatus"
-          >
-
-            <option value="">
-              Alle Status
-            </option>
-
-            <option value="new">
-              Neu
-            </option>
-
-            <option value="called">
-              Angerufen
-            </option>
-
-            <option value="qualified">
-              Qualifiziert
-            </option>
-
-            <option value="lost">
-              Verloren
-            </option>
-
+          <select id="leadStatus">
+            <option value="">Alle Status</option>
+            <option value="new">Neu</option>
+            <option value="called">Angerufen</option>
+            <option value="not_reached">Nicht erreicht</option>
+            <option value="negotiation">In Verhandlung</option>
+            <option value="calculation">In Berechnung</option>
+            <option value="signed">Unterschrieben</option>
+            <option value="no_interest">Kein Interesse</option>
+            <option value="qualified">Qualifiziert</option>
+            <option value="lost">Verloren</option>
           </select>
-
         </div>
-
 
         <div class="table-wrapper">
-
           <table>
-
             <thead>
-
               <tr>
-
-                <th>
-                  Unternehmen
-                </th>
-
-                <th>
-                  Branche
-                </th>
-
-                <th>
-                  Ansprechpartner
-                </th>
-
-                <th>
-                  Telefon
-                </th>
-
-                <th>
-                  Ort
-                </th>
-
-                <th>
-                  Energie
-                </th>
-
-                <th>
-                  Mitarbeiter
-                </th>
-
-                <th>
-                  Rechtsform
-                </th>
-
-                <th>
-                  Status
-                </th>
-
+                <th>Unternehmen</th>
+                <th>Branche</th>
+                <th>Kontakt</th>
+                <th>Telefon</th>
+                <th>Ort</th>
+                <th>Energie</th>
+                <th>Mitarbeiter</th>
+                <th>Rechtsform</th>
+                <th>Status</th>
               </tr>
-
             </thead>
-
-            <tbody
-              id="leadsTableBody"
-            >
-
-              <tr>
-
-                <td
-                  colspan="9"
-                  class="empty"
-                >
-                  Noch keine Leads vorhanden.
-                </td>
-
-              </tr>
-
-            </tbody>
-
+            <tbody id="leadsTableBody"></tbody>
           </table>
-
         </div>
-
       </div>
-
     </section>
 
-
-    <!-- ==================================================
-         KONTAKTE
-    ================================================== -->
-
-    <section
-      id="page-contacts"
-      class="page"
-    >
-
+    <!-- KALENDER -->
+    <section id="page-calendar" class="page">
       <div class="page-header">
-
         <div>
-
-          <h1>
-            Kontakte
-          </h1>
-
-          <p>
-            Ansprechpartner deiner Unternehmen
-          </p>
-
+          <h1>Kalender</h1>
+          <p>Alle Termine aus deinen Leads an einem zentralen Ort.</p>
         </div>
-
       </div>
-
-
-      <div class="card placeholder">
-
-        <div class="placeholder-icon">
-          ♙
-        </div>
-
-        <h2>
-          Kontaktverwaltung
-        </h2>
-
-        <p>
-          Die Ansprechpartner werden bereits beim
-          Unternehmensimport gespeichert.
-        </p>
-
-      </div>
-
-    </section>
-
-
-    <!-- ==================================================
-         ANRUFE
-    ================================================== -->
-
-    <section
-      id="page-calls"
-      class="page"
-    >
-
-      <div class="page-header">
-
-        <div>
-
-          <h1>
-            Anrufe
-          </h1>
-
-          <p>
-            Telefonaktivitäten und Gesprächsergebnisse
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div class="card placeholder">
-
-        <div class="placeholder-icon">
-          ☎
-        </div>
-
-        <h2>
-          Anrufverwaltung
-        </h2>
-
-        <p>
-          Dieser Bereich wird später ausgebaut.
-        </p>
-
-      </div>
-
-    </section>
-
-
-    <!-- ==================================================
-         AUFGABEN
-    ================================================== -->
-
-    <section
-      id="page-tasks"
-      class="page"
-    >
-
-      <div class="page-header">
-
-        <div>
-
-          <h1>
-            Aufgaben
-          </h1>
-
-          <p>
-            Follow-ups und Wiedervorlagen
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div class="card placeholder">
-
-        <div class="placeholder-icon">
-          ✓
-        </div>
-
-        <h2>
-          Aufgabenverwaltung
-        </h2>
-
-        <p>
-          Dieser Bereich wird später ausgebaut.
-        </p>
-
-      </div>
-
-    </section>
-
-
-    <!-- ==================================================
-         PIPELINE
-    ================================================== -->
-
-    <section
-      id="page-pipeline"
-      class="page"
-    >
-
-      <div class="page-header">
-
-        <div>
-
-          <h1>
-            Pipeline
-          </h1>
-
-          <p>
-            Vertriebschancen und Verkaufsprozess
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div class="card placeholder">
-
-        <div class="placeholder-icon">
-          ↗
-        </div>
-
-        <h2>
-          Pipeline
-        </h2>
-
-        <p>
-          Dieser Bereich wird später ausgebaut.
-        </p>
-
-      </div>
-
-    </section>
-
-
-    <!-- ==================================================
-         EINSTELLUNGEN
-    ================================================== -->
-
-    <section
-      id="page-settings"
-      class="page"
-    >
-
-      <div class="page-header">
-
-        <div>
-
-          <h1>
-            Einstellungen
-          </h1>
-
-          <p>
-            Kontoeinstellungen
-          </p>
-
-        </div>
-
-      </div>
-
 
       <div class="card">
+        <div class="calendar-head">
+          <button id="calendarPrev" class="btn-secondary" type="button">←</button>
+          <div id="calendarTitle" class="calendar-title"></div>
+          <button id="calendarNext" class="btn-secondary" type="button">→</button>
+        </div>
 
-        <h2>
-          Konto
-        </h2>
+        <div class="calendar-grid">
+          <div class="calendar-weekday">Mo</div>
+          <div class="calendar-weekday">Di</div>
+          <div class="calendar-weekday">Mi</div>
+          <div class="calendar-weekday">Do</div>
+          <div class="calendar-weekday">Fr</div>
+          <div class="calendar-weekday">Sa</div>
+          <div class="calendar-weekday">So</div>
+        </div>
 
-        <p
-          style="color:#667085"
-        >
-          Angemeldet als:
-        </p>
+        <div id="calendarDays" class="calendar-grid"></div>
+      </div>
+    </section>
 
-        <strong id="settingsEmail">
-          —
-        </strong>
-
+    <!-- PIPELINE -->
+    <section id="page-pipeline" class="page">
+      <div class="page-header">
+        <div>
+          <h1>Pipeline</h1>
+          <p>Jeder Lead hat automatisch einen Wert von 2 €.</p>
+        </div>
       </div>
 
+      <div class="pipeline-summary">
+        <div class="pipeline-box">
+          <div class="pipeline-label">Leads gesamt</div>
+          <div id="pipelineLeadCount" class="pipeline-number">0</div>
+        </div>
+
+        <div class="pipeline-box">
+          <div class="pipeline-label">Wert pro Lead</div>
+          <div class="pipeline-number">2 €</div>
+        </div>
+
+        <div class="pipeline-box">
+          <div class="pipeline-label">Gesamte Pipeline</div>
+          <div id="pipelineTotal" class="pipeline-number">0 €</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Pipeline nach Status</h2>
+
+        <div class="table-wrapper">
+          <table class="pipeline-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Leads</th>
+                <th>Pipeline-Wert</th>
+              </tr>
+            </thead>
+            <tbody id="pipelineTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- KONTAKTE -->
+    <section id="page-contacts" class="page">
+      <div class="page-header">
+        <div>
+          <h1>Kontakte</h1>
+          <p>Kontaktdaten deiner Leads.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="contactsContent"></div>
+      </div>
+    </section>
+
+    <!-- ANRUFE -->
+    <section id="page-calls" class="page">
+      <div class="page-header">
+        <div>
+          <h1>Anrufe</h1>
+          <p>Deine Lead-Aktivitäten.</p>
+        </div>
+      </div>
+
+      <div class="card placeholder">
+        <div class="placeholder-icon">☎</div>
+        <p>Anrufverwaltung kann hier später ergänzt werden.</p>
+      </div>
+    </section>
+
+    <!-- AUFGABEN -->
+    <section id="page-tasks" class="page">
+      <div class="page-header">
+        <div>
+          <h1>Aufgaben</h1>
+          <p>Aufgaben rund um deine Leads.</p>
+        </div>
+      </div>
+
+      <div class="card placeholder">
+        <div class="placeholder-icon">✓</div>
+        <p>Aufgabenverwaltung kann hier später ergänzt werden.</p>
+      </div>
+    </section>
+
+    <!-- EINSTELLUNGEN -->
+    <section id="page-settings" class="page">
+      <div class="page-header">
+        <div>
+          <h1>Einstellungen</h1>
+          <p>CRM-Einstellungen.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Account</h2>
+        <p id="settingsEmail" style="color:#667085">—</p>
+      </div>
     </section>
 
   </main>
-
 </div>
 
+<!-- LEAD DETAIL -->
+<div id="leadDetailModal" class="modal hidden">
+  <div class="modal-card">
+
+    <div class="modal-header">
+      <div>
+        <div id="leadDetailTitle" class="modal-title">Lead</div>
+        <div id="leadDetailSubtitle" style="color:#667085;margin-top:4px"></div>
+      </div>
+
+      <button id="closeLeadDetailButton" class="close-button" type="button">×</button>
+    </div>
+
+    <div class="detail-grid">
+
+      <div class="card">
+        <h2>Lead-Informationen</h2>
+
+        <div id="leadDetailInfo" class="detail-list"></div>
+
+        <div style="margin-top:20px">
+          <div class="detail-label">Aktueller Status</div>
+
+          <div class="status-control">
+            <select id="leadDetailStatus">
+              <option value="new">Neu</option>
+              <option value="called">Angerufen</option>
+              <option value="not_reached">Nicht erreicht</option>
+              <option value="negotiation">In Verhandlung</option>
+              <option value="calculation">In Berechnung</option>
+              <option value="signed">Unterschrieben</option>
+              <option value="no_interest">Kein Interesse</option>
+              <option value="qualified">Qualifiziert</option>
+              <option value="lost">Verloren</option>
+            </select>
+
+            <button id="saveLeadStatusButton" class="btn-primary" type="button">
+              Status speichern
+            </button>
+          </div>
+
+          <div id="leadStatusMessage" class="search-status"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Termin erstellen</h2>
+
+        <form id="appointmentForm">
+
+          <div class="form-group">
+            <label for="appointmentTitle">Titel</label>
+            <input id="appointmentTitle" type="text" placeholder="Beratungsgespräch" required>
+          </div>
+
+          <div class="form-group">
+            <label for="appointmentDate">Datum</label>
+            <input id="appointmentDate" type="date" required>
+          </div>
+
+          <div class="form-group">
+            <label for="appointmentTime">Uhrzeit</label>
+            <input id="appointmentTime" type="time">
+          </div>
+
+          <div class="form-group">
+            <label for="appointmentNotes">Notizen</label>
+            <textarea id="appointmentNotes" rows="4" placeholder="Notizen zum Termin"></textarea>
+          </div>
+
+          <button class="btn-primary" type="submit">
+            Termin speichern
+          </button>
+
+          <div id="appointmentMessage" class="search-status"></div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h2>Termine dieses Leads</h2>
+      <div id="leadAppointments" class="appointment-list"></div>
+    </div>
+
+  </div>
+</div>
 
 <script>
+"use strict";
 
-/* ==================================================
+/* =========================================================
    SUPABASE
-================================================== */
+========================================================= */
 
 const SUPABASE_URL =
   "https://ippummtfsjfrayosofxb.supabase.co";
@@ -1865,1239 +751,597 @@ const SUPABASE_URL =
 const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcHVtbXRmc2pmcmF5b3NvZnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTQ4MDUsImV4cCI6MjEwNTMzMDgwNX0.-BrJuSK9S28uG53a2T8kkk43BljiJX5kIDGwu44x-5A";
 
-
 let supabaseClient = null;
-
 let currentUser = null;
-
 let currentLeads = [];
-
 let currentCompanies = [];
-
+let currentAppointments = [];
+let selectedLead = null;
+let calendarDate = new Date();
 let companySortDirection = "asc";
 
+const LEAD_VALUE = 2;
 
-/* ==================================================
+const STATUS_LABELS = {
+  new:"Neu",
+  called:"Angerufen",
+  not_reached:"Nicht erreicht",
+  negotiation:"In Verhandlung",
+  calculation:"In Berechnung",
+  signed:"Unterschrieben",
+  no_interest:"Kein Interesse",
+  qualified:"Qualifiziert",
+  lost:"Verloren"
+};
+
+const STATUS_CLASSES = {
+  new:"status-new",
+  called:"status-called",
+  not_reached:"status-not-reached",
+  negotiation:"status-negotiation",
+  calculation:"status-calculation",
+  signed:"status-signed",
+  no_interest:"status-no-interest",
+  qualified:"status-qualified",
+  lost:"status-lost"
+};
+
+const $ = id => document.getElementById(id);
+
+
+/* =========================================================
    HILFSFUNKTIONEN
-================================================== */
-
-function $(id){
-  return document.getElementById(id);
-}
-
-
-function formatError(error){
-
-  if(!error){
-    return "Unbekannter Fehler.";
-  }
-
-  if(typeof error === "string"){
-    return error;
-  }
-
-  return (
-    error.message ||
-    error.error_description ||
-    error.error ||
-    "Unbekannter Fehler."
-  );
-}
-
+========================================================= */
 
 function escapeHtml(value){
-
   return String(value ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
-
 
 function escapeAttribute(value){
   return escapeHtml(value);
 }
 
-
-/* ==================================================
-   STATUS
-================================================== */
-
-function showStatus(
-  id,
-  message,
-  type=""
-){
-
-  const element =
-    $(id);
-
-  if(!element){
-    return;
-  }
-
-  element.textContent =
-    message || "";
-
-  element.className =
-    "search-status" +
-    (message ? " show" : "") +
-    (type ? " " + type : "");
+function formatError(error){
+  return error?.message || String(error || "Unbekannter Fehler");
 }
 
+function showStatus(id,message,type="success"){
+  const element = $(id);
+  if(!element) return;
 
-function showAuthMessage(
-  message,
-  type="error"
-){
-
-  const element =
-    $("authMessage");
-
-  if(!element){
-    return;
-  }
-
-  element.textContent =
-    message || "";
-
-  element.className =
-    "auth-message" +
-    (message ? " " + type : " hidden");
+  element.textContent = message;
+  element.className = "search-status show " + type;
 }
 
-
-/* ==================================================
-   SUPABASE INITIALISIEREN
-================================================== */
-
-async function initSupabase(){
-
-  if(
-    !window.supabase ||
-    typeof window.supabase.createClient !== "function"
-  ){
-
-    throw new Error(
-      "Supabase-Bibliothek konnte nicht geladen werden."
-    );
-
+function hideStatus(id){
+  const element = $(id);
+  if(element){
+    element.className = "search-status";
+    element.textContent = "";
   }
-
-  supabaseClient =
-    window.supabase.createClient(
-      SUPABASE_URL,
-      SUPABASE_ANON_KEY
-    );
-
 }
 
+function normalizeStatus(status){
+  if(!status) return "new";
 
-/* ==================================================
-   AUTH
-================================================== */
+  const legacy = {
+    qualified:"qualified",
+    lost:"lost",
+    called:"called"
+  };
 
-function switchAuthMode(mode){
-
-  const form =
-    $("authForm");
-
-  const nameGroup =
-    $("nameGroup");
-
-  const submit =
-    $("authSubmit");
-
-  const loginTab =
-    $("loginTab");
-
-  const registerTab =
-    $("registerTab");
-
-  form.dataset.mode =
-    mode;
-
-  if(mode === "register"){
-
-    nameGroup.classList.remove(
-      "hidden"
-    );
-
-    submit.textContent =
-      "Account erstellen";
-
-    loginTab.classList.remove(
-      "active"
-    );
-
-    registerTab.classList.add(
-      "active"
-    );
-
-  }else{
-
-    nameGroup.classList.add(
-      "hidden"
-    );
-
-    submit.textContent =
-      "Anmelden";
-
-    loginTab.classList.add(
-      "active"
-    );
-
-    registerTab.classList.remove(
-      "active"
-    );
-
-  }
-
-  showAuthMessage(
-    "",
-    ""
-  );
-
+  return legacy[status] || status;
 }
 
-
-async function handleAuth(event){
-
-  event.preventDefault();
-
-  if(!supabaseClient){
-
-    showAuthMessage(
-      "Supabase ist nicht verbunden."
-    );
-
-    return;
-  }
-
-  const form =
-    $("authForm");
-
-  const mode =
-    form.dataset.mode ||
-    "login";
-
-  const email =
-    $("authEmail")
-      .value
-      .trim();
-
-  const password =
-    $("authPassword")
-      .value;
-
-  const name =
-    $("authName")
-      .value
-      .trim();
-
-  const button =
-    $("authSubmit");
-
-  button.disabled =
-    true;
-
-  button.textContent =
-    mode === "register"
-      ? "⏳ Account wird erstellt..."
-      : "⏳ Anmeldung...";
-
-  showAuthMessage(
-    "",
-    ""
-  );
-
-  try{
-
-    if(!email){
-      throw new Error(
-        "Bitte E-Mail-Adresse eingeben."
-      );
-    }
-
-    if(!password){
-      throw new Error(
-        "Bitte Passwort eingeben."
-      );
-    }
-
-    if(password.length < 6){
-      throw new Error(
-        "Das Passwort muss mindestens 6 Zeichen lang sein."
-      );
-    }
-
-
-    if(mode === "register"){
-
-      if(!name){
-        throw new Error(
-          "Bitte Namen eingeben."
-        );
-      }
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient.auth.signUp({
-
-          email,
-
-          password,
-
-          options:{
-            data:{
-              full_name:
-                name
-            }
-          }
-
-        });
-
-      if(error){
-        throw error;
-      }
-
-      if(data?.session){
-
-        showAuthMessage(
-          "Account erstellt. Du wirst angemeldet...",
-          "success"
-        );
-
-      }else{
-
-        showAuthMessage(
-          "Account erstellt. Bitte bestätige deine E-Mail-Adresse.",
-          "success"
-        );
-
-      }
-
-    }else{
-
-      const {
-        data,
-        error
-      } =
-        await supabaseClient.auth.signInWithPassword({
-
-          email,
-
-          password
-
-        });
-
-      if(error){
-        throw error;
-      }
-
-      if(!data?.session){
-
-        throw new Error(
-          "Login akzeptiert, aber keine Sitzung erstellt."
-        );
-
-      }
-
-    }
-
-  }catch(error){
-
-    console.error(
-      "AUTH FEHLER:",
-      error
-    );
-
-    showAuthMessage(
-      formatError(error)
-    );
-
-  }finally{
-
-    button.disabled =
-      false;
-
-    button.textContent =
-      mode === "register"
-        ? "Account erstellen"
-        : "Anmelden";
-
-  }
-
+function statusLabel(status){
+  return STATUS_LABELS[normalizeStatus(status)] || status || "Neu";
 }
 
-
-/* ==================================================
-   APP ANZEIGEN
-================================================== */
-
-function showApp(user){
-
-  currentUser =
-    user;
-
-  $("authScreen")
-    .classList.add(
-      "hidden"
-    );
-
-  $("app")
-    .classList.remove(
-      "hidden"
-    );
-
-  $("sidebarUserEmail")
-    .textContent =
-      user?.email ||
-      "—";
-
-  $("settingsEmail")
-    .textContent =
-      user?.email ||
-      "—";
-
-  loadLeads();
-
+function statusClass(status){
+  return STATUS_CLASSES[normalizeStatus(status)] || "status-new";
 }
 
+function energyBadge(value){
+  const energy = String(value || "").toLowerCase().trim();
 
-function showLogin(){
-
-  currentUser =
-    null;
-
-  $("app")
-    .classList.add(
-      "hidden"
-    );
-
-  $("authScreen")
-    .classList.remove(
-      "hidden"
-    );
-
-}
-
-
-async function checkSession(){
-
-  if(!supabaseClient){
-
-    showLogin();
-
-    return;
+  if(energy === "hoch"){
+    return '<span class="energy-badge energy-high">● Hoch</span>';
   }
 
-  try{
-
-    const {
-      data,
-      error
-    } =
-      await supabaseClient.auth.getSession();
-
-    if(error){
-      throw error;
-    }
-
-    if(data?.session?.user){
-
-      showApp(
-        data.session.user
-      );
-
-    }else{
-
-      showLogin();
-
-    }
-
-  }catch(error){
-
-    console.error(
-      "SESSION FEHLER:",
-      error
-    );
-
-    showLogin();
-
+  if(energy === "mittel"){
+    return '<span class="energy-badge energy-medium">● Mittel</span>';
   }
 
-}
+  if(energy === "niedrig"){
+    return '<span class="energy-badge energy-low">● Niedrig</span>';
+  }
 
+  return '<span class="energy-badge energy-none">—</span>';
+}
 
 async function getApiToken(){
-
   if(!supabaseClient){
-
-    throw new Error(
-      "Supabase ist nicht verbunden."
-    );
-
+    throw new Error("Supabase ist nicht initialisiert.");
   }
 
-  const {
-    data,
-    error
-  } =
+  const {data,error} =
     await supabaseClient.auth.getSession();
 
   if(error){
     throw error;
   }
 
-  const token =
-    data?.session?.access_token;
-
-  if(!token){
-
-    throw new Error(
-      "Sitzung abgelaufen. Bitte erneut anmelden."
-    );
-
+  if(!data.session?.access_token){
+    throw new Error("Keine aktive Anmeldung vorhanden.");
   }
 
-  return token;
-
+  return data.session.access_token;
 }
 
 
-/* ==================================================
+/* =========================================================
+   AUTH
+========================================================= */
+
+function initSupabase(){
+  supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY
+    );
+}
+
+function showLogin(){
+  $("authScreen").classList.remove("hidden");
+  $("app").classList.add("hidden");
+}
+
+async function showApp(user){
+  currentUser = user;
+
+  $("authScreen").classList.add("hidden");
+  $("app").classList.remove("hidden");
+
+  $("sidebarUserEmail").textContent =
+    user.email || "—";
+
+  $("settingsEmail").textContent =
+    user.email || "—";
+
+  await loadLeads();
+  await loadAllAppointments();
+}
+
+function switchAuthMode(mode){
+  const register = mode === "register";
+
+  $("authForm").dataset.mode = mode;
+  $("loginTab").classList.toggle("active",!register);
+  $("registerTab").classList.toggle("active",register);
+  $("nameGroup").classList.toggle("hidden",!register);
+  $("authSubmit").textContent =
+    register ? "Account erstellen" : "Anmelden";
+
+  hideStatus("authMessage");
+}
+
+function showAuthMessage(message,type="error"){
+  const element = $("authMessage");
+
+  element.textContent = message;
+  element.className =
+    "auth-message " + type;
+}
+
+async function handleAuth(event){
+  event.preventDefault();
+
+  const mode =
+    $("authForm").dataset.mode;
+
+  const email =
+    $("authEmail").value.trim();
+
+  const password =
+    $("authPassword").value;
+
+  const name =
+    $("authName").value.trim();
+
+  const button =
+    $("authSubmit");
+
+  button.disabled = true;
+
+  try{
+    if(mode === "register"){
+
+      const {data,error} =
+        await supabaseClient.auth.signUp({
+          email,
+          password,
+          options:{
+            data:{
+              full_name:name
+            }
+          }
+        });
+
+      if(error) throw error;
+
+      if(data.session){
+        await showApp(data.user);
+      }else{
+        showAuthMessage(
+          "Account erstellt. Bitte bestätige gegebenenfalls deine E-Mail-Adresse.",
+          "success"
+        );
+      }
+
+    }else{
+
+      const {data,error} =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+      if(error) throw error;
+
+      await showApp(data.user);
+    }
+
+  }catch(error){
+    showAuthMessage(formatError(error));
+  }finally{
+    button.disabled = false;
+  }
+}
+
+async function logout(){
+  try{
+    await supabaseClient.auth.signOut();
+  }catch(error){
+    console.error(error);
+  }
+
+  currentUser = null;
+  currentLeads = [];
+  currentAppointments = [];
+  showLogin();
+}
+
+async function checkSession(){
+  const {data,error} =
+    await supabaseClient.auth.getSession();
+
+  if(error) throw error;
+
+  if(data.session?.user){
+    await showApp(data.session.user);
+  }else{
+    showLogin();
+  }
+}
+
+
+/* =========================================================
    NAVIGATION
-================================================== */
+========================================================= */
 
-function showPage(page){
-
+async function showPage(page){
   document
-    .querySelectorAll(
-      ".page"
-    )
-    .forEach(
-      element => {
-        element.classList.remove(
-          "active"
-        );
-      }
+    .querySelectorAll(".page")
+    .forEach(element =>
+      element.classList.remove("active")
     );
 
-
   document
-    .querySelectorAll(
-      ".nav-item"
-    )
-    .forEach(
-      element => {
-
-        element.classList.toggle(
-          "active",
-          element.dataset.page === page
-        );
-
-      }
+    .querySelectorAll(".nav-item")
+    .forEach(element =>
+      element.classList.remove("active")
     );
 
-
-  const target =
+  const pageElement =
     $("page-" + page);
 
-  if(target){
+  if(!pageElement) return;
 
-    target.classList.add(
-      "active"
+  pageElement.classList.add("active");
+
+  const nav =
+    document.querySelector(
+      `.nav-item[data-page="${page}"]`
     );
 
+  if(nav){
+    nav.classList.add("active");
   }
 
-
-  if(page === "leads"){
-
-    loadLeads();
-
+  if(page === "calendar"){
+    await loadAllAppointments();
+    renderCalendar();
   }
 
-
-  if(page === "lead-search"){
-
-    loadCompanyIndustries();
-
+  if(page === "pipeline"){
+    renderPipeline();
   }
 
+  if(page === "contacts"){
+    renderContacts();
+  }
 }
 
 
-/* ==================================================
+/* =========================================================
    IMPORT
-================================================== */
+========================================================= */
 
 async function importCompanies(){
-
   const text =
-    $("companyImportText")
-      .value
-      .trim();
+    $("companyImportText").value.trim();
+
+  if(!text){
+    showStatus(
+      "importStatus",
+      "Bitte Unternehmensdaten einfügen.",
+      "error"
+    );
+    return;
+  }
 
   const button =
     $("importCompaniesButton");
 
-
-  if(!text){
-
-    showStatus(
-      "importStatus",
-      "Bitte zuerst Unternehmensdaten einfügen.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
-  button.disabled =
-    true;
-
-  button.textContent =
-    "⏳ Speichere...";
-
-
-  showStatus(
-    "importStatus",
-    "Unternehmensdaten werden verarbeitet..."
-  );
-
+  button.disabled = true;
 
   try{
-
-    const token =
-      await getApiToken();
-
+    const token = await getApiToken();
 
     const response =
-      await fetch(
-        "/api/company-import",
-        {
-
-          method:
-            "POST",
-
-          headers:{
-
-            "Content-Type":
-              "application/json",
-
-            "Authorization":
-              "Bearer " + token
-
-          },
-
-          body:
-            JSON.stringify({
-              text
-            })
-
-        }
-      );
-
+      await fetch("/api/company-import",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":"Bearer " + token
+        },
+        body:JSON.stringify({
+          text
+        })
+      });
 
     const result =
       await response.json();
 
-
     if(!response.ok){
-
       throw new Error(
         result.error ||
-        "Unternehmen konnten nicht gespeichert werden."
+        "Unternehmen konnten nicht importiert werden."
       );
-
     }
-
 
     showStatus(
       "importStatus",
-
-      `${result.imported || 0} Unternehmen gespeichert. ` +
-      `${result.duplicates || 0} bereits vorhanden. ` +
-      `${result.invalid || 0} nicht erkannt.`,
-
-      result.invalid
-        ? "success"
-        : "success"
+      `${result.inserted || result.created || 0} Unternehmen gespeichert.`,
+      "success"
     );
 
-
-    $("companyImportText")
-      .value = "";
-
-
-    await loadCompanyIndustries();
-
-
-    /*
-    Nach erfolgreichem Import
-    direkt alle Unternehmen anzeigen.
-    */
-
-    $("leadIndustry").value =
-      "__ALL__";
-
-
-    await searchCompaniesForLeads();
-
+    $("companyImportText").value = "";
 
   }catch(error){
-
-    console.error(
-      "IMPORT FEHLER:",
-      error
-    );
+    console.error(error);
 
     showStatus(
       "importStatus",
       formatError(error),
       "error"
     );
-
   }finally{
-
-    button.disabled =
-      false;
-
-    button.textContent =
-      "Unternehmen speichern";
-
+    button.disabled = false;
   }
-
 }
 
 
-/* ==================================================
-   BRANCHEN
-================================================== */
+/* =========================================================
+   UNTERNEHMENSSUCHE
+========================================================= */
 
-async function loadCompanyIndustries(){
-
-  if(!currentUser){
-    return;
-  }
-
+async function loadIndustries(){
   try{
-
-    const token =
-      await getApiToken();
-
+    const token = await getApiToken();
 
     const response =
-      await fetch(
-        "/api/company-search?industries=1",
-        {
-
-          headers:{
-            "Authorization":
-              "Bearer " + token
-          }
-
+      await fetch("/api/company-search?industries=1",{
+        headers:{
+          Authorization:"Bearer " + token
         }
-      );
+      });
 
+    if(!response.ok) return;
 
     const result =
       await response.json();
 
-
-    if(!response.ok){
-
-      throw new Error(
-        result.error ||
-        "Branchen konnten nicht geladen werden."
-      );
-
-    }
-
+    const industries =
+      result.industries || [];
 
     const select =
       $("leadIndustry");
 
-
-    const old =
+    const current =
       select.value;
 
+    select.innerHTML =
+      '<option value="__ALL__">Alle Branchen</option>' +
+      '<option value="">Branche auswählen</option>' +
+      industries
+        .map(
+          industry =>
+            `<option value="${escapeAttribute(industry)}">${escapeHtml(industry)}</option>`
+        )
+        .join("");
 
-    select.innerHTML = `
-
-      <option value="__ALL__">
-        Alle Branchen
-      </option>
-
-      <option value="">
-        Branche auswählen
-      </option>
-
-    `;
-
-
-    (result.industries || [])
-      .forEach(
-        industry => {
-
-          const option =
-            document.createElement(
-              "option"
-            );
-
-          option.value =
-            industry;
-
-          option.textContent =
-            industry;
-
-          select.appendChild(
-            option
-          );
-
-        }
-      );
-
-
-    if(
-      [
-        ...select.options
-      ]
-      .some(
-        option =>
-          option.value === old
-      )
-    ){
-
-      select.value =
-        old;
-
-    }else{
-
-      select.value =
-        "__ALL__";
-
+    if([...select.options].some(o => o.value === current)){
+      select.value = current;
     }
 
   }catch(error){
-
-    console.error(
-      "INDUSTRY FEHLER:",
-      error
-    );
-
+    console.error("Branchen konnten nicht geladen werden:",error);
   }
-
 }
 
-
-/* ==================================================
-   UNTERNEHMEN SUCHEN
-================================================== */
-
 async function searchCompaniesForLeads(){
-
-  const industry =
-    $("leadIndustry")
-      .value
-      .trim();
-
-
-  const types = [];
-
-
-  if(
-    $("typeMicro").checked
-  ){
-
-    types.push(
-      "kleinstunternehmen"
-    );
-
-  }
-
-
-  if(
-    $("typeEinzel").checked
-  ){
-
-    types.push(
-      "einzelunternehmen"
-    );
-
-  }
-
-
-  if(
-    $("typeEk").checked
-  ){
-
-    types.push(
-      "ek"
-    );
-
-  }
-
-
-  if(!industry){
-
-    showStatus(
-      "companySearchStatus",
-      "Bitte eine Branche auswählen.",
-      "error"
-    );
-
-    return;
-
-  }
-
-
   const button =
     $("companySearchButton");
 
-
-  button.disabled =
-    true;
-
-  button.textContent =
-    "⏳ Suche...";
-
+  button.disabled = true;
 
   try{
-
     const token =
       await getApiToken();
 
+    const industry =
+      $("leadIndustry").value;
+
+    const types = [];
+
+    if($("typeMicro").checked){
+      types.push("micro");
+    }
+
+    if($("typeEinzel").checked){
+      types.push("einzelunternehmen");
+    }
+
+    if($("typeEk").checked){
+      types.push("ek");
+    }
+
+    let url =
+      "/api/company-search";
 
     const params =
       new URLSearchParams();
 
-
-    if(
-      industry === "__ALL__"
-    ){
-
-      params.set(
-        "all",
-        "1"
-      );
-
+    if(industry && industry !== "__ALL__"){
+      params.set("industry",industry);
     }else{
-
-      params.set(
-        "industry",
-        industry
-      );
-
+      params.set("all","1");
     }
-
 
     if(types.length){
-
-      params.set(
-        "types",
-        types.join(",")
-      );
-
+      params.set("types",types.join(","));
     }
 
+    url += "?" + params.toString();
 
     const response =
-      await fetch(
-        "/api/company-search?" +
-        params.toString(),
-        {
-
-          headers:{
-            "Authorization":
-              "Bearer " + token
-          }
-
+      await fetch(url,{
+        headers:{
+          Authorization:"Bearer " + token
         }
-      );
-
+      });
 
     const result =
       await response.json();
 
-
     if(!response.ok){
-
       throw new Error(
         result.error ||
-        "Suche fehlgeschlagen."
+        "Unternehmen konnten nicht geladen werden."
       );
-
     }
 
-
     currentCompanies =
-      result.companies || [];
-
+      result.companies ||
+      result.results ||
+      [];
 
     renderCompanySearchResults(
       currentCompanies
     );
 
-
     showStatus(
       "companySearchStatus",
-
       `${currentCompanies.length} Unternehmen gefunden.`,
-
       "success"
     );
 
-
   }catch(error){
-
-    console.error(
-      "SEARCH FEHLER:",
-      error
-    );
+    console.error(error);
 
     showStatus(
       "companySearchStatus",
       formatError(error),
       "error"
     );
-
   }finally{
-
-    button.disabled =
-      false;
-
-    button.textContent =
-      "Unternehmen suchen";
-
+    button.disabled = false;
   }
-
 }
-
-
-/* ==================================================
-   ENERGIE
-================================================== */
-
-function energyRank(value){
-
-  const energy =
-    String(value || "")
-      .toLowerCase()
-      .trim();
-
-
-  if(energy === "hoch"){
-    return 3;
-  }
-
-  if(energy === "mittel"){
-    return 2;
-  }
-
-  if(energy === "niedrig"){
-    return 1;
-  }
-
-  return 0;
-}
-
-
-function energyBadge(value){
-
-  const energy =
-    String(value || "")
-      .toLowerCase()
-      .trim();
-
-
-  if(
-    energy === "hoch"
-  ){
-
-    return `
-      <span class="energy-badge energy-high">
-        ● Hoch
-      </span>
-    `;
-
-  }
-
-
-  if(
-    energy === "mittel"
-  ){
-
-    return `
-      <span class="energy-badge energy-medium">
-        ● Mittel
-      </span>
-    `;
-
-  }
-
-
-  if(
-    energy === "niedrig"
-  ){
-
-    return `
-      <span class="energy-badge energy-low">
-        ● Niedrig
-      </span>
-    `;
-
-  }
-
-
-  return `
-    <span class="energy-badge energy-none">
-      —
-    </span>
-  `;
-
-}
-
-
-/* ==================================================
-   UNTERNEHMENSLISTE FILTERN
-================================================== */
 
 function getFilteredCompanies(){
-
   const search =
     $("companyTableSearch")
       .value
       .trim()
       .toLowerCase();
 
-
   const energy =
-    $("energyFilter")
-      .value;
-
+    $("energyFilter").value;
 
   let companies =
     [...currentCompanies];
 
-
   if(search){
-
     companies =
-      companies.filter(
-        company => {
-
-          const text =
-            [
-
-              company.name,
-
-              company.industry,
-
-              company.contact_name,
-
-              company.contact_role,
-
-              company.phone,
-
-              company.postal_code,
-
-              company.city,
-
-              company.legal_form,
-
-              company.energy_demand,
-
-              company.energy_reason
-
-            ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-
-
-          return text.includes(
-            search
-          );
-
-        }
+      companies.filter(company =>
+        [
+          company.name,
+          company.industry,
+          company.contact_name,
+          company.contact_role,
+          company.phone,
+          company.postal_code,
+          company.city,
+          company.legal_form,
+          company.energy_demand,
+          company.energy_reason
+        ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(search)
       );
-
   }
-
 
   if(energy){
-
     companies =
-      companies.filter(
-        company =>
-          String(
-            company.energy_demand || ""
-          )
+      companies.filter(company =>
+        String(company.energy_demand || "")
           .toLowerCase() === energy
       );
-
   }
 
-
-  companies.sort(
-    (a,b) => {
-
-      const difference =
-        energyRank(
-          a.energy_demand
-        ) -
-        energyRank(
-          b.energy_demand
-        );
-
-
-      if(
-        difference !== 0
-      ){
-
-        return (
-          companySortDirection === "asc"
-            ? difference
-            : -difference
-        );
-
-      }
-
-
-      return String(
-        a.name || ""
-      ).localeCompare(
-        String(
-          b.name || ""
-        ),
+  companies.sort((a,b) =>
+    String(a.name || "")
+      .localeCompare(
+        String(b.name || ""),
         "de"
-      );
-
-    }
+      )
   );
-
 
   return companies;
 }
 
-
-/* ==================================================
-   UNTERNEHMENSLISTE RENDERN
-================================================== */
-
-function renderCompanySearchResults(
-  companies
-){
+function renderCompanySearchResults(){
+  const companies =
+    getFilteredCompanies();
 
   const card =
     $("companySearchResultsCard");
@@ -3105,1083 +1349,1343 @@ function renderCompanySearchResults(
   const tbody =
     $("companySearchResultsBody");
 
+  $("companySearchCount").textContent =
+    `(${companies.length})`;
 
-  $("companySearchCount")
-    .textContent =
-      `(${companies.length})`;
+  $("companySearchSummary").textContent =
+    `${companies.length} angezeigt`;
 
+  $("selectAllCompanies").checked = false;
 
-  $("selectAllCompanies")
-    .checked =
-      false;
+  if(!companies.length){
+    tbody.innerHTML =
+      `<tr><td colspan="11" class="empty">Keine passenden Unternehmen gefunden.</td></tr>`;
 
-
-  const filtered =
-    getFilteredCompanies();
-
-
-  $("companySearchSummary")
-    .textContent =
-      `${filtered.length} angezeigt`;
-
-
-  if(!filtered.length){
-
-    tbody.innerHTML = `
-
-      <tr>
-
-        <td
-          colspan="11"
-          class="empty"
-        >
-          Keine passenden Unternehmen gefunden.
-        </td>
-
-      </tr>
-
-    `;
-
-
-    card.classList.remove(
-      "hidden"
-    );
-
+    card.classList.remove("hidden");
     return;
-
   }
 
-
   tbody.innerHTML =
-    filtered
-      .map(
-        company => {
+    companies.map(company => {
 
-          const disabled =
-            Boolean(
-              company.already_lead
-            );
+      const disabled =
+        Boolean(company.already_lead);
 
+      const contact =
+        company.contact_name
+          ? `<div class="contact-cell">
+               <div class="contact-name">${escapeHtml(company.contact_name)}</div>
+               ${company.contact_role
+                 ? `<div class="contact-role">${escapeHtml(company.contact_role)}</div>`
+                 : ""}
+             </div>`
+          : "—";
 
-          const contact =
-            company.contact_name
-              ? `
-                <div class="contact-cell">
+      const phone =
+        company.phone
+          ? `<a class="phone-link" href="tel:${escapeAttribute(company.phone)}">${escapeHtml(company.phone)}</a>`
+          : "—";
 
-                  <div class="contact-name">
-                    ${escapeHtml(
-                      company.contact_name
-                    )}
-                  </div>
+      return `
+        <tr>
+          <td>
+            <input
+              type="checkbox"
+              class="company-select"
+              value="${escapeAttribute(company.id)}"
+              ${disabled ? "disabled" : ""}
+            >
+          </td>
 
-                  ${
-                    company.contact_role
-                      ? `
-                        <div class="contact-role">
-                          ${escapeHtml(
-                            company.contact_role
-                          )}
-                        </div>
-                      `
-                      : ""
-                  }
+          <td>
+            <strong>${escapeHtml(company.name || "—")}</strong>
+            ${
+              company.website
+                ? `<div style="margin-top:3px">
+                     <a class="website-link" target="_blank" rel="noopener noreferrer"
+                        href="${escapeAttribute(company.website)}">
+                        Website
+                     </a>
+                   </div>`
+                : ""
+            }
+          </td>
 
-                </div>
-              `
-              : "—";
+          <td>${escapeHtml(company.industry || "—")}</td>
+          <td>${contact}</td>
+          <td>${phone}</td>
+          <td>${escapeHtml(company.postal_code || "—")}</td>
+          <td>${escapeHtml(company.city || "—")}</td>
 
+          <td>
+            ${energyBadge(company.energy_demand)}
+            ${
+              company.energy_reason
+                ? `<div class="energy-reason">${escapeHtml(company.energy_reason)}</div>`
+                : ""
+            }
+          </td>
 
-          const phone =
-            company.phone
-              ? `
-                <a
-                  class="phone-link"
-                  href="tel:${escapeAttribute(
-                    company.phone
-                  )}"
-                >
-                  ${escapeHtml(
-                    company.phone
-                  )}
-                </a>
-              `
-              : "—";
+          <td>${escapeHtml(company.employees ?? company.employee_count ?? "—")}</td>
+          <td>${escapeHtml(company.legal_form || "—")}</td>
 
+          <td>
+            ${
+              disabled
+                ? `<span class="status status-lost">Bereits Lead</span>`
+                : `<span class="status status-new">Verfügbar</span>`
+            }
+          </td>
+        </tr>
+      `;
+    }).join("");
 
-          const website =
-            company.website
-              ? `
-                <a
-                  class="website-link"
-                  href="${escapeAttribute(
-                    company.website
-                  )}"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Website
-                </a>
-              `
-              : "—";
+  card.classList.remove("hidden");
 
-
-          return `
-
-            <tr>
-
-              <td>
-
-                <input
-                  type="checkbox"
-                  class="company-select"
-                  value="${escapeAttribute(
-                    company.id
-                  )}"
-                  ${disabled ? "disabled" : ""}
-                >
-
-              </td>
-
-
-              <td>
-
-                <strong>
-                  ${escapeHtml(
-                    company.name ||
-                    "—"
-                  )}
-                </strong>
-
-                <div style="margin-top:3px">
-                  ${website}
-                </div>
-
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  company.industry ||
-                  "—"
-                )}
-              </td>
-
-
-              <td>
-                ${contact}
-              </td>
-
-
-              <td>
-                ${phone}
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  company.postal_code ||
-                  "—"
-                )}
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  company.city ||
-                  "—"
-                )}
-              </td>
-
-
-              <td>
-
-                ${energyBadge(
-                  company.energy_demand
-                )}
-
-                ${
-                  company.energy_reason
-                    ? `
-                      <div class="energy-reason">
-                        ${escapeHtml(
-                          company.energy_reason
-                        )}
-                      </div>
-                    `
-                    : ""
-                }
-
-              </td>
-
-
-              <td>
-                ${
-                  company.employees ??
-                  "—"
-                }
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  company.legal_form ||
-                  "—"
-                )}
-              </td>
-
-
-              <td>
-
-                ${
-                  disabled
-
-                    ? `
-                      <span class="status status-lost">
-                        Bereits Lead
-                      </span>
-                    `
-
-                    : `
-                      <span class="status status-new">
-                        Verfügbar
-                      </span>
-                    `
-                }
-
-              </td>
-
-            </tr>
-
-          `;
-
-        }
-      )
-      .join("");
-
-
-  card.classList.remove(
-    "hidden"
-  );
-
-
-  $("energySortIndicator")
-    .textContent =
-      companySortDirection === "asc"
-        ? "↑"
-        : "↓";
-
-}
-
-
-/* ==================================================
-   SORTIERUNG
-================================================== */
-
-function toggleEnergySort(){
-
-  companySortDirection =
+  $("energySortIndicator").textContent =
     companySortDirection === "asc"
-      ? "desc"
-      : "asc";
-
-
-  renderCompanySearchResults(
-    currentCompanies
-  );
-
+      ? "↑"
+      : "↓";
 }
-
-
-/* ==================================================
-   FILTER ZURÜCKSETZEN
-================================================== */
-
-function resetCompanyFilters(){
-
-  $("companyTableSearch")
-    .value = "";
-
-  $("energyFilter")
-    .value = "";
-
-  companySortDirection =
-    "asc";
-
-
-  renderCompanySearchResults(
-    currentCompanies
-  );
-
-}
-
-
-/* ==================================================
-   LEADS ERSTELLEN
-================================================== */
 
 async function addSelectedCompaniesAsLeads(){
-
   const selected =
-    [
-      ...document.querySelectorAll(
-        ".company-select:checked:not(:disabled)"
-      )
-    ]
-    .map(
-      element =>
-        element.value
-    );
-
+    [...document.querySelectorAll(
+      ".company-select:checked:not(:disabled)"
+    )]
+    .map(element => element.value);
 
   if(!selected.length){
-
     showStatus(
       "companySearchStatus",
       "Bitte mindestens ein Unternehmen auswählen.",
       "error"
     );
-
     return;
-
   }
 
-
   try{
-
     const token =
       await getApiToken();
 
-
     const response =
-      await fetch(
-        "/api/leads",
-        {
-
-          method:
-            "POST",
-
-          headers:{
-
-            "Content-Type":
-              "application/json",
-
-            "Authorization":
-              "Bearer " + token
-
-          },
-
-          body:
-            JSON.stringify({
-              company_ids:
-                selected
-            })
-
-        }
-      );
-
+      await fetch("/api/leads",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:"Bearer " + token
+        },
+        body:JSON.stringify({
+          company_ids:selected
+        })
+      });
 
     const result =
       await response.json();
 
-
     if(!response.ok){
-
       throw new Error(
         result.error ||
         "Leads konnten nicht angelegt werden."
       );
-
     }
-
 
     showStatus(
       "companySearchStatus",
-
-      `${result.created || 0} neue Leads hinzugefügt. ` +
-      `${result.skipped || 0} bereits vorhanden.`,
-
+      `${result.created || 0} neue Leads hinzugefügt. ${result.skipped || 0} bereits vorhanden.`,
       "success"
     );
 
-
     await loadLeads();
-
     await searchCompaniesForLeads();
 
-
   }catch(error){
-
-    console.error(
-      "LEAD FEHLER:",
-      error
-    );
-
     showStatus(
       "companySearchStatus",
       formatError(error),
       "error"
     );
-
   }
-
 }
 
 
-/* ==================================================
-   LEADS LADEN
-================================================== */
+/* =========================================================
+   LEADS
+========================================================= */
 
 async function loadLeads(){
-
-  if(!currentUser){
-    return;
-  }
-
+  if(!currentUser) return;
 
   try{
-
     const token =
       await getApiToken();
 
-
     const response =
-      await fetch(
-        "/api/leads",
-        {
-
-          headers:{
-            "Authorization":
-              "Bearer " + token
-          }
-
+      await fetch("/api/leads",{
+        headers:{
+          Authorization:"Bearer " + token
         }
-      );
-
+      });
 
     const result =
       await response.json();
 
-
     if(!response.ok){
-
       throw new Error(
         result.error ||
         "Leads konnten nicht geladen werden."
       );
-
     }
-
 
     currentLeads =
       result.leads || [];
 
-
-    renderLeads(
-      currentLeads
-    );
-
-
-    updateDashboardStats(
-      currentLeads
-    );
-
+    renderLeads(currentLeads);
+    updateDashboardStats(currentLeads);
+    renderPipeline();
+    renderContacts();
 
   }catch(error){
+    console.error("LOAD LEADS FEHLER:",error);
 
-    console.error(
-      "LOAD LEADS FEHLER:",
-      error
-    );
-
+    currentLeads = [];
     renderLeads([]);
-
+    updateDashboardStats([]);
   }
-
 }
 
+function filterLeads(){
+  const search =
+    $("leadSearch").value.trim().toLowerCase();
 
-/* ==================================================
-   LEADS RENDERN
-================================================== */
+  const status =
+    $("leadStatus").value;
 
-function renderLeads(
-  leads
-){
+  const filtered =
+    currentLeads.filter(lead => {
 
+      const company =
+        lead.companies || {};
+
+      const text =
+        [
+          company.name,
+          company.industry,
+          company.phone,
+          company.address,
+          company.postal_code,
+          company.city,
+          company.contact_name,
+          company.contact_role,
+          company.energy_demand,
+          company.legal_form,
+          lead.status
+        ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      return (
+        (!search || text.includes(search)) &&
+        (!status || normalizeStatus(lead.status) === status)
+      );
+    });
+
+  renderLeads(filtered);
+}
+
+function getNextAppointmentForLead(leadId){
+  const today =
+    new Date().toISOString().slice(0,10);
+
+  return currentAppointments
+    .filter(
+      appointment =>
+        appointment.lead_id === leadId &&
+        appointment.appointment_date >= today
+    )
+    .sort(
+      (a,b) =>
+        String(a.appointment_date).localeCompare(
+          String(b.appointment_date)
+        )
+    )[0] || null;
+}
+
+function renderLeads(leads){
   const tbody =
     $("leadsTableBody");
 
-
   if(!leads.length){
-
-    tbody.innerHTML = `
-
-      <tr>
-
-        <td
-          colspan="9"
-          class="empty"
-        >
-          Noch keine Leads vorhanden.
-        </td>
-
-      </tr>
-
-    `;
-
+    tbody.innerHTML =
+      `<tr><td colspan="9" class="empty">Noch keine Leads vorhanden.</td></tr>`;
     return;
-
   }
-
 
   tbody.innerHTML =
-    leads
-      .map(
-        lead => {
+    leads.map(lead => {
 
-          const company =
-            lead.companies ||
-            {};
+      const company =
+        lead.companies || {};
 
-          const status =
-            lead.status ||
-            "new";
+      const status =
+        normalizeStatus(lead.status);
 
+      const contact =
+        company.contact_name
+          ? `<div class="contact-cell">
+               <div class="contact-name">${escapeHtml(company.contact_name)}</div>
+               ${
+                 company.contact_role
+                   ? `<div class="contact-role">${escapeHtml(company.contact_role)}</div>`
+                   : ""
+               }
+             </div>`
+          : "—";
 
-          const contact =
-            company.contact_name
-              ? `
-                <div class="contact-cell">
+      return `
+        <tr class="lead-row" data-lead-id="${escapeAttribute(lead.id)}">
 
-                  <div class="contact-name">
-                    ${escapeHtml(
-                      company.contact_name
-                    )}
-                  </div>
+          <td>
+            <strong>${escapeHtml(company.name || "Unbekannt")}</strong>
+          </td>
 
-                  ${
-                    company.contact_role
-                      ? `
-                        <div class="contact-role">
-                          ${escapeHtml(
-                            company.contact_role
-                          )}
-                        </div>
-                      `
-                      : ""
-                  }
+          <td>${escapeHtml(company.industry || "—")}</td>
+          <td>${contact}</td>
 
-                </div>
-              `
-              : "—";
+          <td>
+            ${
+              company.phone
+                ? `<a class="phone-link" href="tel:${escapeAttribute(company.phone)}"
+                     onclick="event.stopPropagation()">
+                     ${escapeHtml(company.phone)}
+                   </a>`
+                : "—"
+            }
+          </td>
 
+          <td>
+            ${escapeHtml(
+              [company.postal_code,company.city]
+                .filter(Boolean)
+                .join(" ") || "—"
+            )}
+          </td>
 
-          return `
+          <td>${energyBadge(company.energy_demand)}</td>
 
-            <tr>
+          <td>${escapeHtml(company.employees ?? company.employee_count ?? "—")}</td>
 
-              <td>
+          <td>${escapeHtml(company.legal_form || "—")}</td>
 
-                <strong>
-                  ${escapeHtml(
-                    company.name ||
-                    "Unbekannt"
-                  )}
-                </strong>
+          <td>
+            <span class="status ${statusClass(status)}">
+              ${statusLabel(status)}
+            </span>
+          </td>
 
-              </td>
+        </tr>
+      `;
+    }).join("");
 
-
-              <td>
-                ${escapeHtml(
-                  company.industry ||
-                  "—"
-                )}
-              </td>
-
-
-              <td>
-                ${contact}
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  company.phone ||
-                  "—"
-                )}
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  [
-                    company.postal_code,
-                    company.city
-                  ]
-                  .filter(Boolean)
-                  .join(" ") ||
-                  "—"
-                )}
-              </td>
-
-
-              <td>
-                ${energyBadge(
-                  company.energy_demand
-                )}
-              </td>
-
-
-              <td>
-                ${
-                  company.employees ??
-                  company.employee_count ??
-                  "—"
-                }
-              </td>
-
-
-              <td>
-                ${escapeHtml(
-                  company.legal_form ||
-                  "—"
-                )}
-              </td>
-
-
-              <td>
-
-                <span
-                  class="status ${statusClass(
-                    status
-                  )}"
-                >
-                  ${statusLabel(
-                    status
-                  )}
-                </span>
-
-              </td>
-
-            </tr>
-
-          `;
-
-        }
-      )
-      .join("");
-
+  tbody
+    .querySelectorAll(".lead-row")
+    .forEach(row => {
+      row.addEventListener("click",() =>
+        openLeadDetail(row.dataset.leadId)
+      );
+    });
 }
 
 
-/* ==================================================
-   STATUS
-================================================== */
+/* =========================================================
+   LEAD DETAIL
+========================================================= */
 
-function statusClass(
-  status
-){
-
-  return {
-
-    new:
-      "status-new",
-
-    called:
-      "status-called",
-
-    qualified:
-      "status-qualified",
-
-    lost:
-      "status-lost"
-
-  }[
-    status
-  ] || "status-new";
-
-}
-
-
-function statusLabel(
-  status
-){
-
-  return {
-
-    new:
-      "Neu",
-
-    called:
-      "Angerufen",
-
-    qualified:
-      "Qualifiziert",
-
-    lost:
-      "Verloren"
-
-  }[
-    status
-  ] || status;
-
-}
-
-
-/* ==================================================
-   DASHBOARD
-================================================== */
-
-function updateDashboardStats(
-  leads
-){
-
-  $("statLeads")
-    .textContent =
-      leads.length;
-
-
-  $("statNewLeads")
-    .textContent =
-      leads.filter(
-        lead =>
-          lead.status === "new"
-      ).length;
-
-
-  $("statQualifiedLeads")
-    .textContent =
-      leads.filter(
-        lead =>
-          lead.status === "qualified"
-      ).length;
-
-}
-
-
-/* ==================================================
-   LEAD FILTER
-================================================== */
-
-function filterLeads(){
-
-  const search =
-    $("leadSearch")
-      .value
-      .trim()
-      .toLowerCase();
-
-
-  const status =
-    $("leadStatus")
-      .value;
-
-
-  const filtered =
-    currentLeads.filter(
-      lead => {
-
-        const company =
-          lead.companies ||
-          {};
-
-
-        const text =
-          [
-
-            company.name,
-
-            company.industry,
-
-            company.phone,
-
-            company.address,
-
-            company.postal_code,
-
-            company.city,
-
-            company.contact_name,
-
-            company.contact_role,
-
-            company.energy_demand,
-
-            company.legal_form,
-
-            lead.status
-
-          ]
-          .filter(Boolean)
-          .join(" ")
-          .toLowerCase();
-
-
-        return (
-
-          (!search ||
-            text.includes(
-              search
-            )) &&
-
-          (!status ||
-            lead.status === status)
-
-        );
-
-      }
+async function openLeadDetail(leadId){
+  const lead =
+    currentLeads.find(
+      item => String(item.id) === String(leadId)
     );
 
+  if(!lead) return;
 
-  renderLeads(
-    filtered
-  );
+  selectedLead = lead;
 
+  const company =
+    lead.companies || {};
+
+  $("leadDetailTitle").textContent =
+    company.name || "Lead";
+
+  $("leadDetailSubtitle").textContent =
+    [
+      company.industry,
+      company.city
+    ]
+    .filter(Boolean)
+    .join(" · ");
+
+  $("leadDetailStatus").value =
+    normalizeStatus(lead.status);
+
+  $("leadDetailInfo").innerHTML = `
+    <div class="detail-item">
+      <div class="detail-label">Unternehmen</div>
+      <div class="detail-value">${escapeHtml(company.name || "—")}</div>
+    </div>
+
+    <div class="detail-item">
+      <div class="detail-label">Branche</div>
+      <div class="detail-value">${escapeHtml(company.industry || "—")}</div>
+    </div>
+
+    <div class="detail-item">
+      <div class="detail-label">Ansprechpartner</div>
+      <div class="detail-value">${escapeHtml(company.contact_name || "—")}</div>
+    </div>
+
+    <div class="detail-item">
+      <div class="detail-label">Telefon</div>
+      <div class="detail-value">${escapeHtml(company.phone || "—")}</div>
+    </div>
+
+    <div class="detail-item">
+      <div class="detail-label">Ort</div>
+      <div class="detail-value">
+        ${escapeHtml(
+          [company.postal_code,company.city]
+            .filter(Boolean)
+            .join(" ") || "—"
+        )}
+      </div>
+    </div>
+
+    <div class="detail-item">
+      <div class="detail-label">Energiebedarf</div>
+      <div class="detail-value">${energyBadge(company.energy_demand)}</div>
+    </div>
+
+    <div class="detail-item">
+      <div class="detail-label">Mitarbeiter</div>
+      <div class="detail-value">${escapeHtml(company.employees ?? company.employee_count ?? "—")}</div>
+    </div>
+
+    <div class="detail-item">
+      <div class="detail-label">Pipeline-Wert</div>
+      <div class="detail-value">2 €</div>
+    </div>
+
+    <div class="detail-item">
+      <div class="detail-label">Status zuletzt geändert</div>
+      <div class="detail-value">
+        ${
+          lead.status_updated_at
+            ? formatDateTime(lead.status_updated_at)
+            : "—"
+        }
+      </div>
+    </div>
+  `;
+
+  $("leadDetailModal").classList.remove("hidden");
+
+  $("appointmentDate").value =
+    new Date().toISOString().slice(0,10);
+
+  $("appointmentTitle").value =
+    "Termin mit " + (company.name || "Lead");
+
+  $("appointmentTime").value = "";
+  $("appointmentNotes").value = "";
+
+  hideStatus("leadStatusMessage");
+  hideStatus("appointmentMessage");
+
+  await loadAppointmentsForLead(lead.id);
 }
 
+function closeLeadDetail(){
+  selectedLead = null;
+  $("leadDetailModal").classList.add("hidden");
+}
 
-/* ==================================================
-   LOGOUT
-================================================== */
+async function updateLeadStatus(){
+  if(!selectedLead) return;
 
-async function logout(){
+  const status =
+    $("leadDetailStatus").value;
 
-  if(supabaseClient){
+  try{
+    const token =
+      await getApiToken();
 
-    try{
+    const response =
+      await fetch("/api/leads",{
+        method:"PATCH",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:"Bearer " + token
+        },
+        body:JSON.stringify({
+          lead_id:selectedLead.id,
+          status
+        })
+      });
 
-      await supabaseClient.auth.signOut();
+    const result =
+      await response.json();
 
-    }catch(error){
-
-      console.error(
-        "LOGOUT FEHLER:",
-        error
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Status konnte nicht gespeichert werden."
       );
-
     }
 
+    const updated =
+      result.lead || result;
+
+    const localLead =
+      currentLeads.find(
+        lead => String(lead.id) === String(selectedLead.id)
+      );
+
+    if(localLead){
+      localLead.status = status;
+      localLead.status_updated_at =
+        updated.status_updated_at ||
+        new Date().toISOString();
+    }
+
+    selectedLead =
+      localLead || selectedLead;
+
+    showStatus(
+      "leadStatusMessage",
+      "Status gespeichert.",
+      "success"
+    );
+
+    renderLeads(currentLeads);
+    updateDashboardStats(currentLeads);
+    renderPipeline();
+
+    await openLeadDetail(selectedLead.id);
+
+    showStatus(
+      "leadStatusMessage",
+      "Status gespeichert.",
+      "success"
+    );
+
+  }catch(error){
+    showStatus(
+      "leadStatusMessage",
+      formatError(error),
+      "error"
+    );
   }
-
-
-  showLogin();
-
 }
 
 
-/* ==================================================
+/* =========================================================
+   APPOINTMENTS
+========================================================= */
+
+async function loadAppointmentsForLead(leadId){
+  try{
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-appointments?lead_id=" +
+        encodeURIComponent(leadId),
+        {
+          headers:{
+            Authorization:"Bearer " + token
+          }
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Termine konnten nicht geladen werden."
+      );
+    }
+
+    currentAppointments =
+      currentAppointments.filter(
+        appointment =>
+          String(appointment.lead_id) !== String(leadId)
+      );
+
+    currentAppointments =
+      currentAppointments.concat(
+        result.appointments || []
+      );
+
+    renderLeadAppointments(
+      result.appointments || []
+    );
+
+    renderCalendar();
+
+  }catch(error){
+    console.error("TERMINE FEHLER:",error);
+
+    $("leadAppointments").innerHTML =
+      `<div class="empty">Termine konnten nicht geladen werden.</div>`;
+  }
+}
+
+async function loadAllAppointments(){
+  try{
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-appointments",
+        {
+          headers:{
+            Authorization:"Bearer " + token
+          }
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Termine konnten nicht geladen werden."
+      );
+    }
+
+    currentAppointments =
+      result.appointments || [];
+
+    renderCalendar();
+
+  }catch(error){
+    console.error("KALENDER FEHLER:",error);
+    currentAppointments = [];
+    renderCalendar();
+  }
+}
+
+async function createAppointment(event){
+  event.preventDefault();
+
+  if(!selectedLead) return;
+
+  const title =
+    $("appointmentTitle").value.trim();
+
+  const date =
+    $("appointmentDate").value;
+
+  const time =
+    $("appointmentTime").value;
+
+  const notes =
+    $("appointmentNotes").value.trim();
+
+  if(!title || !date){
+    showStatus(
+      "appointmentMessage",
+      "Titel und Datum sind erforderlich.",
+      "error"
+    );
+    return;
+  }
+
+  try{
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch("/api/lead-appointments",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:"Bearer " + token
+        },
+        body:JSON.stringify({
+          lead_id:selectedLead.id,
+          title,
+          appointment_date:date,
+          appointment_time:time || null,
+          notes:notes || null
+        })
+      });
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Termin konnte nicht gespeichert werden."
+      );
+    }
+
+    showStatus(
+      "appointmentMessage",
+      "Termin gespeichert.",
+      "success"
+    );
+
+    $("appointmentNotes").value = "";
+    $("appointmentTime").value = "";
+
+    await loadAppointmentsForLead(selectedLead.id);
+    await loadAllAppointments();
+
+  }catch(error){
+    showStatus(
+      "appointmentMessage",
+      formatError(error),
+      "error"
+    );
+  }
+}
+
+async function deleteAppointment(id){
+  if(!confirm("Diesen Termin wirklich löschen?")){
+    return;
+  }
+
+  try{
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-appointments?id=" +
+        encodeURIComponent(id),
+        {
+          method:"DELETE",
+          headers:{
+            Authorization:"Bearer " + token
+          }
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Termin konnte nicht gelöscht werden."
+      );
+    }
+
+    if(selectedLead){
+      await loadAppointmentsForLead(selectedLead.id);
+    }
+
+    await loadAllAppointments();
+
+  }catch(error){
+    alert(formatError(error));
+  }
+}
+
+function renderLeadAppointments(appointments){
+  const container =
+    $("leadAppointments");
+
+  if(!appointments.length){
+    container.innerHTML =
+      `<div class="empty">Für diesen Lead gibt es noch keine Termine.</div>`;
+    return;
+  }
+
+  const sorted =
+    [...appointments].sort((a,b) => {
+      const first =
+        `${a.appointment_date} ${a.appointment_time || ""}`;
+
+      const second =
+        `${b.appointment_date} ${b.appointment_time || ""}`;
+
+      return first.localeCompare(second);
+    });
+
+  container.innerHTML =
+    sorted.map(appointment => `
+      <div class="appointment">
+        <div>
+          <div class="appointment-title">
+            ${escapeHtml(appointment.title)}
+          </div>
+
+          <div class="appointment-meta">
+            ${formatDate(appointment.appointment_date)}
+            ${appointment.appointment_time
+              ? " · " + escapeHtml(appointment.appointment_time)
+              : ""}
+          </div>
+
+          ${
+            appointment.notes
+              ? `<div class="appointment-notes">${escapeHtml(appointment.notes)}</div>`
+              : ""
+          }
+        </div>
+
+        <button
+          class="btn-danger btn-small"
+          type="button"
+          onclick="deleteAppointment('${escapeAttribute(appointment.id)}')"
+        >
+          Löschen
+        </button>
+      </div>
+    `).join("");
+}
+
+
+/* =========================================================
+   KALENDER
+========================================================= */
+
+function formatDate(date){
+  if(!date) return "—";
+
+  const parts =
+    String(date).split("-");
+
+  if(parts.length !== 3){
+    return date;
+  }
+
+  return `${parts[2]}.${parts[1]}.${parts[0]}`;
+}
+
+function formatDateTime(value){
+  try{
+    return new Date(value).toLocaleString(
+      "de-DE",
+      {
+        dateStyle:"short",
+        timeStyle:"short"
+      }
+    );
+  }catch{
+    return value;
+  }
+}
+
+function renderCalendar(){
+  const title =
+    $("calendarTitle");
+
+  const daysContainer =
+    $("calendarDays");
+
+  if(!title || !daysContainer) return;
+
+  const year =
+    calendarDate.getFullYear();
+
+  const month =
+    calendarDate.getMonth();
+
+  title.textContent =
+    new Intl.DateTimeFormat(
+      "de-DE",
+      {
+        month:"long",
+        year:"numeric"
+      }
+    ).format(calendarDate);
+
+  const first =
+    new Date(year,month,1);
+
+  let startDay =
+    first.getDay();
+
+  startDay =
+    startDay === 0
+      ? 6
+      : startDay - 1;
+
+  const daysInMonth =
+    new Date(year,month + 1,0).getDate();
+
+  const previousMonthDays =
+    new Date(year,month,0).getDate();
+
+  const totalCells =
+    Math.ceil((startDay + daysInMonth) / 7) * 7;
+
+  let html = "";
+
+  for(let index = 0; index < totalCells; index++){
+
+    const dayNumber =
+      index - startDay + 1;
+
+    let dateObject;
+    let displayNumber;
+    let otherMonth = false;
+
+    if(dayNumber < 1){
+
+      displayNumber =
+        previousMonthDays + dayNumber;
+
+      dateObject =
+        new Date(
+          year,
+          month - 1,
+          displayNumber
+        );
+
+      otherMonth = true;
+
+    }else if(dayNumber > daysInMonth){
+
+      displayNumber =
+        dayNumber - daysInMonth;
+
+      dateObject =
+        new Date(
+          year,
+          month + 1,
+          displayNumber
+        );
+
+      otherMonth = true;
+
+    }else{
+
+      displayNumber =
+        dayNumber;
+
+      dateObject =
+        new Date(
+          year,
+          month,
+          displayNumber
+        );
+    }
+
+    const dateString =
+      [
+        dateObject.getFullYear(),
+        String(dateObject.getMonth() + 1).padStart(2,"0"),
+        String(dateObject.getDate()).padStart(2,"0")
+      ].join("-");
+
+    const appointments =
+      currentAppointments
+        .filter(
+          appointment =>
+            appointment.appointment_date === dateString
+        );
+
+    html += `
+      <div class="calendar-day ${otherMonth ? "other-month" : ""}">
+        <div class="calendar-number">${displayNumber}</div>
+
+        ${
+          appointments
+            .map(appointment => {
+
+              const lead =
+                currentLeads.find(
+                  item =>
+                    String(item.id) ===
+                    String(appointment.lead_id)
+                );
+
+              const company =
+                lead?.companies || {};
+
+              return `
+                <div
+                  class="calendar-event"
+                  data-lead-id="${escapeAttribute(appointment.lead_id)}"
+                  title="${escapeAttribute(appointment.title)}"
+                >
+                  ${
+                    appointment.appointment_time
+                      ? escapeHtml(appointment.appointment_time) + " "
+                      : ""
+                  }
+                  ${escapeHtml(
+                    company.name ||
+                    appointment.title
+                  )}
+                </div>
+              `;
+            })
+            .join("")
+        }
+      </div>
+    `;
+  }
+
+  daysContainer.innerHTML = html;
+
+  daysContainer
+    .querySelectorAll(".calendar-event")
+    .forEach(event => {
+      event.addEventListener(
+        "click",
+        () => openLeadDetail(event.dataset.leadId)
+      );
+    });
+}
+
+
+/* =========================================================
+   PIPELINE
+========================================================= */
+
+function updateDashboardStats(leads){
+  $("statLeads").textContent =
+    leads.length;
+
+  $("statNewLeads").textContent =
+    leads.filter(
+      lead => normalizeStatus(lead.status) === "new"
+    ).length;
+
+  $("statQualifiedLeads").textContent =
+    leads.filter(
+      lead =>
+        [
+          "called",
+          "not_reached",
+          "negotiation",
+          "calculation"
+        ].includes(
+          normalizeStatus(lead.status)
+        )
+    ).length;
+
+  $("statPipeline").textContent =
+    `${leads.length * LEAD_VALUE} €`;
+}
+
+function renderPipeline(){
+  const total =
+    currentLeads.length * LEAD_VALUE;
+
+  $("pipelineLeadCount").textContent =
+    currentLeads.length;
+
+  $("pipelineTotal").textContent =
+    `${total} €`;
+
+  const statuses =
+    [
+      "new",
+      "called",
+      "not_reached",
+      "negotiation",
+      "calculation",
+      "signed",
+      "no_interest"
+    ];
+
+  $("pipelineTableBody").innerHTML =
+    statuses.map(status => {
+
+      const count =
+        currentLeads.filter(
+          lead =>
+            normalizeStatus(lead.status) === status
+        ).length;
+
+      return `
+        <tr>
+          <td>
+            <span class="status ${statusClass(status)}">
+              ${statusLabel(status)}
+            </span>
+          </td>
+
+          <td>${count}</td>
+          <td>${count * LEAD_VALUE} €</td>
+        </tr>
+      `;
+    }).join("");
+}
+
+
+/* =========================================================
+   KONTAKTE
+========================================================= */
+
+function renderContacts(){
+  const container =
+    $("contactsContent");
+
+  if(!currentLeads.length){
+    container.innerHTML =
+      `<div class="empty">Noch keine Leads vorhanden.</div>`;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Unternehmen</th>
+            <th>Kontakt</th>
+            <th>Telefon</th>
+            <th>E-Mail</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${
+            currentLeads.map(lead => {
+
+              const company =
+                lead.companies || {};
+
+              return `
+                <tr>
+                  <td>${escapeHtml(company.name || "—")}</td>
+                  <td>${escapeHtml(company.contact_name || "—")}</td>
+                  <td>${escapeHtml(company.phone || "—")}</td>
+                  <td>${escapeHtml(company.email || "—")}</td>
+                  <td>
+                    <span class="status ${statusClass(lead.status)}">
+                      ${statusLabel(lead.status)}
+                    </span>
+                  </td>
+                </tr>
+              `;
+            }).join("")
+          }
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+
+/* =========================================================
    EVENTS
-================================================== */
+========================================================= */
+
+function setupEvents(){
+
+  $("loginTab").addEventListener(
+    "click",
+    () => switchAuthMode("login")
+  );
+
+  $("registerTab").addEventListener(
+    "click",
+    () => switchAuthMode("register")
+  );
+
+  $("authForm").addEventListener(
+    "submit",
+    handleAuth
+  );
+
+  $("logoutButton").addEventListener(
+    "click",
+    logout
+  );
+
+  $("importCompaniesButton").addEventListener(
+    "click",
+    importCompanies
+  );
+
+  $("companySearchButton").addEventListener(
+    "click",
+    searchCompaniesForLeads
+  );
+
+  $("addSelectedButton").addEventListener(
+    "click",
+    addSelectedCompaniesAsLeads
+  );
+
+  $("refreshLeadsButton").addEventListener(
+    "click",
+    loadLeads
+  );
+
+  $("leadSearch").addEventListener(
+    "input",
+    filterLeads
+  );
+
+  $("leadStatus").addEventListener(
+    "change",
+    filterLeads
+  );
+
+  $("companyTableSearch").addEventListener(
+    "input",
+    renderCompanySearchResults
+  );
+
+  $("energyFilter").addEventListener(
+    "change",
+    renderCompanySearchResults
+  );
+
+  $("resetCompanyFilters").addEventListener(
+    "click",
+    () => {
+      $("companyTableSearch").value = "";
+      $("energyFilter").value = "";
+      renderCompanySearchResults();
+    }
+  );
+
+  $("selectAllCompanies").addEventListener(
+    "change",
+    event => {
+      document
+        .querySelectorAll(
+          ".company-select:not(:disabled)"
+        )
+        .forEach(
+          checkbox =>
+            checkbox.checked =
+              event.target.checked
+        );
+    }
+  );
+
+  $("energySortHeader").addEventListener(
+    "click",
+    () => {
+      companySortDirection =
+        companySortDirection === "asc"
+          ? "desc"
+          : "asc";
+
+      renderCompanySearchResults();
+    }
+  );
+
+  $("closeLeadDetailButton").addEventListener(
+    "click",
+    closeLeadDetail
+  );
+
+  $("leadDetailModal").addEventListener(
+    "click",
+    event => {
+      if(event.target === $("leadDetailModal")){
+        closeLeadDetail();
+      }
+    }
+  );
+
+  $("saveLeadStatusButton").addEventListener(
+    "click",
+    updateLeadStatus
+  );
+
+  $("appointmentForm").addEventListener(
+    "submit",
+    createAppointment
+  );
+
+  $("calendarPrev").addEventListener(
+    "click",
+    async () => {
+      calendarDate =
+        new Date(
+          calendarDate.getFullYear(),
+          calendarDate.getMonth() - 1,
+          1
+        );
+
+      await loadAllAppointments();
+      renderCalendar();
+    }
+  );
+
+  $("calendarNext").addEventListener(
+    "click",
+    async () => {
+      calendarDate =
+        new Date(
+          calendarDate.getFullYear(),
+          calendarDate.getMonth() + 1,
+          1
+        );
+
+      await loadAllAppointments();
+      renderCalendar();
+    }
+  );
+
+  document
+    .querySelectorAll(".nav-item")
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => showPage(button.dataset.page)
+      );
+    });
+
+  document
+    .querySelectorAll("[data-open-page]")
+    .forEach(button => {
+      button.addEventListener(
+        "click",
+        () => showPage(button.dataset.openPage)
+      );
+    });
+}
+
+
+/* =========================================================
+   START
+========================================================= */
 
 async function boot(){
 
-  $("loginTab")
-    .addEventListener(
-      "click",
-      () =>
-        switchAuthMode(
-          "login"
-        )
-    );
-
-
-  $("registerTab")
-    .addEventListener(
-      "click",
-      () =>
-        switchAuthMode(
-          "register"
-        )
-    );
-
-
-  $("authForm")
-    .addEventListener(
-      "submit",
-      handleAuth
-    );
-
-
-  $("logoutButton")
-    .addEventListener(
-      "click",
-      logout
-    );
-
-
-  $("importCompaniesButton")
-    .addEventListener(
-      "click",
-      importCompanies
-    );
-
-
-  $("companySearchButton")
-    .addEventListener(
-      "click",
-      searchCompaniesForLeads
-    );
-
-
-  $("addSelectedButton")
-    .addEventListener(
-      "click",
-      addSelectedCompaniesAsLeads
-    );
-
-
-  $("selectAllCompanies")
-    .addEventListener(
-      "change",
-      event => {
-
-        document
-          .querySelectorAll(
-            ".company-select:not(:disabled)"
-          )
-          .forEach(
-            element => {
-
-              element.checked =
-                event.target.checked;
-
-            }
-          );
-
-      }
-    );
-
-
-  $("companyTableSearch")
-    .addEventListener(
-      "input",
-      () =>
-        renderCompanySearchResults(
-          currentCompanies
-        )
-    );
-
-
-  $("energyFilter")
-    .addEventListener(
-      "change",
-      () =>
-        renderCompanySearchResults(
-          currentCompanies
-        )
-    );
-
-
-  $("resetCompanyFilters")
-    .addEventListener(
-      "click",
-      resetCompanyFilters
-    );
-
-
-  $("energySortHeader")
-    .addEventListener(
-      "click",
-      toggleEnergySort
-    );
-
-
-  $("leadSearch")
-    .addEventListener(
-      "input",
-      filterLeads
-    );
-
-
-  $("leadStatus")
-    .addEventListener(
-      "change",
-      filterLeads
-    );
-
-
-  document
-    .querySelectorAll(
-      ".nav-item"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            showPage(
-              button.dataset.page
-            );
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-open-page]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            showPage(
-              button.dataset.openPage
-            );
-
-          }
-        );
-
-      }
-    );
-
+  setupEvents();
 
   try{
-
-    await initSupabase();
-
+    initSupabase();
 
     supabaseClient.auth.onAuthStateChange(
-      (
-        event,
-        session
-      ) => {
+      async (event,session) => {
 
-        console.log(
-          "AUTH EVENT:",
-          event
-        );
-
-
-        if(
-          session?.user
-        ){
-
-          showApp(
-            session.user
-          );
-
+        if(session?.user){
+          await showApp(session.user);
         }else{
-
           showLogin();
-
         }
-
       }
     );
-
 
     await checkSession();
 
+    if(currentUser){
+      await loadIndustries();
+    }
 
   }catch(error){
 
@@ -4190,22 +2694,16 @@ async function boot(){
       error
     );
 
-
     showLogin();
-
 
     showAuthMessage(
       "Verbindung zu Supabase fehlgeschlagen: " +
       formatError(error)
     );
-
   }
-
 }
 
-
 boot();
-
 </script>
 
 </body>
