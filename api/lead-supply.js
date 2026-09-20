@@ -86,7 +86,11 @@ const ALLOWED_FIELDS = [
     "notes"
 ];
 
-function buildPayload(body, userId, leadId) {
+function buildPayload(
+    body,
+    userId,
+    leadId
+) {
     const payload = {
         user_id: userId,
         lead_id: leadId
@@ -94,8 +98,7 @@ function buildPayload(body, userId, leadId) {
 
     for (const field of ALLOWED_FIELDS) {
         if (body[field] !== undefined) {
-            payload[field] =
-                body[field];
+            payload[field] = body[field];
         }
     }
 
@@ -103,6 +106,7 @@ function buildPayload(body, userId, leadId) {
 }
 
 function validatePayload(payload) {
+
     if (
         payload.malo_id !== undefined &&
         payload.malo_id !== null &&
@@ -175,7 +179,9 @@ export default async function handler(
     req,
     res
 ) {
+
     try {
+
         const user =
             await getUser(req);
 
@@ -184,50 +190,80 @@ export default async function handler(
                 ? JSON.parse(req.body)
                 : req.body || {};
 
-        const leadId = String(
-            body.lead_id ||
-            req.query?.lead_id ||
-            ""
-        ).trim();
+        const leadId =
+            String(
+                body.lead_id ||
+                req.query?.lead_id ||
+                ""
+            ).trim();
 
-        if (!leadId) {
-            return res.status(400).json({
-                error: "Lead-ID fehlt."
-            });
-        }
-
-        const ownsLead =
-            await verifyLeadOwnership(
-                user.id,
-                leadId
-            );
-
-        if (!ownsLead) {
-            return res.status(404).json({
-                error: "Lead nicht gefunden."
-            });
-        }
 
         /*
+         * ==================================================
          * GET
-         * Belieferungsdaten eines Leads laden.
+         *
+         * Ohne lead_id:
+         *   Alle Belieferungen laden.
+         *
+         * Mit lead_id:
+         *   Belieferung dieses Leads laden.
+         * ==================================================
          */
+
         if (req.method === "GET") {
-            const response = await fetch(
-                `${SUPABASE_URL}/rest/v1/lead_supply?user_id=eq.${encodeURIComponent(
-                    user.id
-                )}&lead_id=eq.${encodeURIComponent(
-                    leadId
-                )}&select=*&limit=1`,
-                {
-                    headers: serviceHeaders()
+
+            let url;
+
+            if (leadId) {
+
+                const ownsLead =
+                    await verifyLeadOwnership(
+                        user.id,
+                        leadId
+                    );
+
+                if (!ownsLead) {
+                    return res.status(404).json({
+                        error:
+                            "Lead nicht gefunden."
+                    });
                 }
-            );
+
+                url =
+                    `${SUPABASE_URL}/rest/v1/lead_supply` +
+                    `?user_id=eq.${encodeURIComponent(user.id)}` +
+                    `&lead_id=eq.${encodeURIComponent(leadId)}` +
+                    `&select=*` +
+                    `&limit=1`;
+
+            } else {
+
+                /*
+                 * Übersicht:
+                 * Alle Belieferungen des Users.
+                 */
+
+                url =
+                    `${SUPABASE_URL}/rest/v1/lead_supply` +
+                    `?user_id=eq.${encodeURIComponent(user.id)}` +
+                    `&select=*` +
+                    `&order=created_at.desc`;
+            }
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        headers:
+                            serviceHeaders()
+                    }
+                );
 
             const text =
                 await response.text();
 
             if (!response.ok) {
+
                 throw new Error(
                     text ||
                     "Belieferungsdaten konnten nicht geladen werden."
@@ -235,24 +271,69 @@ export default async function handler(
             }
 
             const rows =
-                text ? JSON.parse(text) : [];
+                text
+                    ? JSON.parse(text)
+                    : [];
 
             return res.status(200).json({
-                success: true,
+
+                success:
+                    true,
+
+                supplies:
+                    rows,
+
+                /*
+                 * Einzelnen Datensatz zusätzlich
+                 * zurückgeben, wenn nach lead_id
+                 * gefragt wurde.
+                 */
+
                 supply:
-                    rows[0] || null
+                    leadId
+                        ? (rows[0] || null)
+                        : null
             });
         }
 
+
         /*
+         * ==================================================
          * POST / PATCH
+         *
          * Kunde in Belieferung übernehmen
          * bzw. Belieferungsdaten speichern.
+         * ==================================================
          */
+
         if (
             req.method === "POST" ||
             req.method === "PATCH"
         ) {
+
+            if (!leadId) {
+
+                return res.status(400).json({
+                    error:
+                        "Lead-ID fehlt."
+                });
+            }
+
+            const ownsLead =
+                await verifyLeadOwnership(
+                    user.id,
+                    leadId
+                );
+
+            if (!ownsLead) {
+
+                return res.status(404).json({
+                    error:
+                        "Lead nicht gefunden."
+                });
+            }
+
+
             const payload =
                 buildPayload(
                     body,
@@ -260,29 +341,33 @@ export default async function handler(
                     leadId
                 );
 
+
             const validationError =
                 validatePayload(
                     payload
                 );
 
             if (validationError) {
+
                 return res.status(400).json({
                     error:
                         validationError
                 });
             }
 
+
             /*
              * Prüfen, ob bereits ein
              * Belieferungseintrag existiert.
              */
+
             const existingResponse =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/lead_supply?user_id=eq.${encodeURIComponent(
-                        user.id
-                    )}&lead_id=eq.${encodeURIComponent(
-                        leadId
-                    )}&select=id&limit=1`,
+                    `${SUPABASE_URL}/rest/v1/lead_supply` +
+                    `?user_id=eq.${encodeURIComponent(user.id)}` +
+                    `&lead_id=eq.${encodeURIComponent(leadId)}` +
+                    `&select=id` +
+                    `&limit=1`,
                     {
                         headers:
                             serviceHeaders()
@@ -293,6 +378,7 @@ export default async function handler(
                 await existingResponse.text();
 
             if (!existingResponse.ok) {
+
                 throw new Error(
                     existingText ||
                     "Belieferung konnte nicht geprüft werden."
@@ -306,18 +392,23 @@ export default async function handler(
                     )
                     : [];
 
+
             let response;
 
+
             /*
-             * Bereits vorhanden:
-             * aktualisieren.
+             * Bestehenden Datensatz aktualisieren.
              */
+
             if (existing.length) {
+
                 response =
                     await fetch(
-                        `${SUPABASE_URL}/rest/v1/lead_supply?id=eq.${encodeURIComponent(
+                        `${SUPABASE_URL}/rest/v1/lead_supply` +
+                        `?id=eq.${encodeURIComponent(
                             existing[0].id
-                        )}&user_id=eq.${encodeURIComponent(
+                        )}` +
+                        `&user_id=eq.${encodeURIComponent(
                             user.id
                         )}`,
                         {
@@ -326,6 +417,7 @@ export default async function handler(
 
                             headers: {
                                 ...serviceHeaders(),
+
                                 Prefer:
                                     "return=representation"
                             },
@@ -336,13 +428,15 @@ export default async function handler(
                                 )
                         }
                     );
+
             }
 
             /*
-             * Noch nicht vorhanden:
-             * neu anlegen.
+             * Neuen Datensatz anlegen.
              */
+
             else {
+
                 response =
                     await fetch(
                         `${SUPABASE_URL}/rest/v1/lead_supply`,
@@ -352,6 +446,7 @@ export default async function handler(
 
                             headers: {
                                 ...serviceHeaders(),
+
                                 Prefer:
                                     "return=representation"
                             },
@@ -364,19 +459,24 @@ export default async function handler(
                     );
             }
 
+
             const text =
                 await response.text();
 
+
             if (!response.ok) {
+
                 throw new Error(
                     text ||
                     "Belieferungsdaten konnten nicht gespeichert werden."
                 );
             }
 
+
             let supply = null;
 
             try {
+
                 const rows =
                     text
                         ? JSON.parse(text)
@@ -384,103 +484,161 @@ export default async function handler(
 
                 supply =
                     rows[0] || null;
+
             } catch {
+
                 supply = null;
             }
 
+
             /*
-             * Lead gleichzeitig auf
-             * "signed" setzen, wenn der
-             * Kunde übernommen wurde.
+             * ==================================================
+             * WICHTIG:
+             *
+             * Sobald die Belieferungsdaten gespeichert wurden,
+             * wird der Lead automatisch auf "signed" gesetzt.
+             *
+             * Dadurch verschwindet er aus der normalen
+             * Lead-Liste und gehört zur Belieferung.
+             * ==================================================
              */
-            if (
-                body.mark_as_signed === true
-            ) {
-                const leadResponse =
-                    await fetch(
-                        `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(
-                            leadId
-                        )}&user_id=eq.${encodeURIComponent(
-                            user.id
-                        )}`,
-                        {
-                            method:
-                                "PATCH",
 
-                            headers: {
-                                ...serviceHeaders()
-                            },
+            const leadUpdateResponse =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/leads` +
+                    `?id=eq.${encodeURIComponent(leadId)}` +
+                    `&user_id=eq.${encodeURIComponent(user.id)}`,
+                    {
+                        method:
+                            "PATCH",
 
-                            body:
-                                JSON.stringify({
-                                    status:
-                                        "signed",
+                        headers: {
+                            ...serviceHeaders(),
 
-                                    status_updated_at:
-                                        new Date().toISOString()
-                                })
-                        }
-                    );
+                            Prefer:
+                                "return=representation"
+                        },
 
-                if (!leadResponse.ok) {
-                    console.error(
-                        "Lead status update failed:",
-                        await leadResponse.text()
-                    );
-                }
+                        body:
+                            JSON.stringify({
+                                status:
+                                    "signed",
+
+                                status_updated_at:
+                                    new Date().toISOString()
+                            })
+                    }
+                );
+
+
+            const leadUpdateText =
+                await leadUpdateResponse.text();
+
+
+            if (!leadUpdateResponse.ok) {
+
+                console.error(
+                    "Lead status update failed:",
+                    leadUpdateText
+                );
+
+                throw new Error(
+                    "Belieferung wurde gespeichert, aber der Lead konnte nicht auf 'signed' gesetzt werden."
+                );
             }
 
+
             return res.status(200).json({
-                success: true,
-                supply
+
+                success:
+                    true,
+
+                supply,
+
+                lead_status:
+                    "signed"
             });
         }
 
+
         /*
+         * ==================================================
          * DELETE
-         * Belieferungseintrag entfernen.
+         * ==================================================
          */
+
         if (req.method === "DELETE") {
+
+            if (!leadId) {
+
+                return res.status(400).json({
+                    error:
+                        "Lead-ID fehlt."
+                });
+            }
+
+            const ownsLead =
+                await verifyLeadOwnership(
+                    user.id,
+                    leadId
+                );
+
+            if (!ownsLead) {
+
+                return res.status(404).json({
+                    error:
+                        "Lead nicht gefunden."
+                });
+            }
+
+
             const response =
                 await fetch(
-                    `${SUPABASE_URL}/rest/v1/lead_supply?user_id=eq.${encodeURIComponent(
-                        user.id
-                    )}&lead_id=eq.${encodeURIComponent(
-                        leadId
-                    )}`,
+                    `${SUPABASE_URL}/rest/v1/lead_supply` +
+                    `?user_id=eq.${encodeURIComponent(user.id)}` +
+                    `&lead_id=eq.${encodeURIComponent(leadId)}`,
                     {
                         method:
                             "DELETE",
 
                         headers: {
                             ...serviceHeaders(),
+
                             Prefer:
                                 "return=representation"
                         }
                     }
                 );
 
+
             const text =
                 await response.text();
 
+
             if (!response.ok) {
+
                 throw new Error(
                     text ||
                     "Belieferung konnte nicht gelöscht werden."
                 );
             }
 
+
             return res.status(200).json({
-                success: true
+                success:
+                    true
             });
         }
+
 
         return res.status(405).json({
             error:
                 "Method Not Allowed"
         });
 
+
     } catch (error) {
+
         console.error(
             "Lead supply API error:",
             error
