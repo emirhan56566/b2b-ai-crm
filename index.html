@@ -20,7 +20,10 @@ body{
   color:#172033;
 }
 
-button,input,select,textarea{
+button,
+input,
+select,
+textarea{
   font:inherit;
 }
 
@@ -160,6 +163,19 @@ button{
 .auth-button:disabled{
   opacity:.6;
   cursor:not-allowed;
+}
+
+.btn-secondary{
+  border:1px solid #d9dee8;
+  background:#fff;
+  color:#344054;
+  font-weight:600;
+  border-radius:8px;
+  padding:10px 14px;
+}
+
+.btn-secondary:hover{
+  background:#f8fafc;
 }
 
 .auth-message,
@@ -330,7 +346,7 @@ button{
 }
 
 .search-card{
-  max-width:1100px;
+  max-width:1250px;
 }
 
 .search-grid{
@@ -399,6 +415,7 @@ button{
   display:flex;
   gap:10px;
   margin-bottom:16px;
+  flex-wrap:wrap;
 }
 
 .table-toolbar input,
@@ -411,6 +428,7 @@ button{
 
 .table-toolbar input{
   flex:1;
+  min-width:220px;
 }
 
 .table-wrapper{
@@ -429,12 +447,28 @@ td{
   padding:12px 10px;
   border-bottom:1px solid #eaecf0;
   white-space:nowrap;
+  vertical-align:middle;
 }
 
 th{
   color:#667085;
   font-size:12px;
   font-weight:650;
+  background:#fafbfc;
+}
+
+th.sortable{
+  cursor:pointer;
+  user-select:none;
+}
+
+th.sortable:hover{
+  background:#f2f4f7;
+}
+
+.sort-indicator{
+  margin-left:5px;
+  color:#98a2b3;
 }
 
 .status{
@@ -463,6 +497,86 @@ th{
 .status-lost{
   background:#f2f4f7;
   color:#475467;
+}
+
+.energy-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border-radius:999px;
+  padding:5px 10px;
+  font-size:11px;
+  font-weight:750;
+  text-transform:capitalize;
+}
+
+.energy-high{
+  background:#fee4e2;
+  color:#b42318;
+}
+
+.energy-medium{
+  background:#fef0c7;
+  color:#b54708;
+}
+
+.energy-low{
+  background:#dcfae6;
+  color:#027a48;
+}
+
+.energy-none{
+  background:#f2f4f7;
+  color:#667085;
+}
+
+.contact-cell{
+  line-height:1.35;
+}
+
+.contact-name{
+  font-weight:650;
+}
+
+.contact-role{
+  color:#667085;
+  font-size:11px;
+  margin-top:2px;
+}
+
+.phone-link{
+  color:#344054;
+  text-decoration:none;
+}
+
+.phone-link:hover{
+  text-decoration:underline;
+}
+
+.website-link{
+  color:#4f46e5;
+  text-decoration:none;
+}
+
+.website-link:hover{
+  text-decoration:underline;
+}
+
+.energy-reason{
+  max-width:280px;
+  white-space:normal;
+  line-height:1.4;
+  color:#667085;
+  font-size:12px;
+}
+
+.source-link{
+  color:#4f46e5;
+  text-decoration:none;
+}
+
+.source-link:hover{
+  text-decoration:underline;
 }
 
 .empty{
@@ -500,7 +614,14 @@ th{
   margin-bottom:12px;
 }
 
-@media(max-width:1000px){
+.result-summary{
+  color:#667085;
+  font-size:13px;
+  margin-bottom:12px;
+}
+
+@media(max-width:1200px){
+
   .stats{
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
@@ -508,9 +629,11 @@ th{
   .content-grid{
     grid-template-columns:1fr;
   }
+
 }
 
 @media(max-width:760px){
+
   #app{
     display:block;
   }
@@ -540,17 +663,37 @@ th{
     align-items:flex-start;
     flex-direction:column;
   }
+
+  .card{
+    padding:15px;
+  }
+
+  .table-toolbar{
+    flex-direction:column;
+  }
+
+  .table-toolbar input{
+    min-width:0;
+    width:100%;
+  }
+
 }
 </style>
 </head>
 
 <body>
 
+<!-- ==================================================
+     LOGIN
+================================================== -->
+
 <div id="authScreen">
 
   <div class="auth-card">
 
-    <div class="auth-logo">AI</div>
+    <div class="auth-logo">
+      AI
+    </div>
 
     <h1>B2B CRM</h1>
 
@@ -578,11 +721,19 @@ th{
 
     </div>
 
-    <form id="authForm" data-mode="login">
+    <form
+      id="authForm"
+      data-mode="login"
+    >
 
-      <div id="nameGroup" class="form-group hidden">
+      <div
+        id="nameGroup"
+        class="form-group hidden"
+      >
 
-        <label for="authName">Name</label>
+        <label for="authName">
+          Name
+        </label>
 
         <input
           id="authName"
@@ -594,7 +745,9 @@ th{
 
       <div class="form-group">
 
-        <label for="authEmail">E-Mail</label>
+        <label for="authEmail">
+          E-Mail
+        </label>
 
         <input
           id="authEmail"
@@ -607,7 +760,9 @@ th{
 
       <div class="form-group">
 
-        <label for="authPassword">Passwort</label>
+        <label for="authPassword">
+          Passwort
+        </label>
 
         <input
           id="authPassword"
@@ -629,36 +784,54 @@ th{
 
     </form>
 
-    <div id="authMessage" class="auth-message hidden"></div>
+    <div
+      id="authMessage"
+      class="auth-message hidden"
+    ></div>
 
   </div>
 
 </div>
 
 
-<div id="app" class="hidden">
+<!-- ==================================================
+     APP
+================================================== -->
+
+<div
+  id="app"
+  class="hidden"
+>
 
   <aside class="sidebar">
 
     <div class="brand">
 
-      <div class="brand-icon">AI</div>
+      <div class="brand-icon">
+        AI
+      </div>
 
-      <div class="brand-name">B2B CRM</div>
+      <div class="brand-name">
+        B2B CRM
+      </div>
 
     </div>
 
 
     <div class="nav-section">
 
-      <div class="nav-label">Übersicht</div>
+      <div class="nav-label">
+        Übersicht
+      </div>
 
       <button
         class="nav-item active"
         data-page="dashboard"
         type="button"
       >
-        <span class="nav-icon">⌂</span>
+        <span class="nav-icon">
+          ⌂
+        </span>
         Dashboard
       </button>
 
@@ -667,14 +840,18 @@ th{
 
     <div class="nav-section">
 
-      <div class="nav-label">Vertrieb</div>
+      <div class="nav-label">
+        Vertrieb
+      </div>
 
       <button
         class="nav-item"
         data-page="lead-search"
         type="button"
       >
-        <span class="nav-icon">✦</span>
+        <span class="nav-icon">
+          ✦
+        </span>
         Lead-Suche
       </button>
 
@@ -683,7 +860,9 @@ th{
         data-page="leads"
         type="button"
       >
-        <span class="nav-icon">▣</span>
+        <span class="nav-icon">
+          ▣
+        </span>
         Leads
       </button>
 
@@ -692,7 +871,9 @@ th{
         data-page="contacts"
         type="button"
       >
-        <span class="nav-icon">♙</span>
+        <span class="nav-icon">
+          ♙
+        </span>
         Kontakte
       </button>
 
@@ -701,7 +882,9 @@ th{
         data-page="calls"
         type="button"
       >
-        <span class="nav-icon">☎</span>
+        <span class="nav-icon">
+          ☎
+        </span>
         Anrufe
       </button>
 
@@ -710,7 +893,9 @@ th{
         data-page="tasks"
         type="button"
       >
-        <span class="nav-icon">✓</span>
+        <span class="nav-icon">
+          ✓
+        </span>
         Aufgaben
       </button>
 
@@ -719,7 +904,9 @@ th{
         data-page="pipeline"
         type="button"
       >
-        <span class="nav-icon">↗</span>
+        <span class="nav-icon">
+          ↗
+        </span>
         Pipeline
       </button>
 
@@ -728,14 +915,18 @@ th{
 
     <div class="nav-section">
 
-      <div class="nav-label">System</div>
+      <div class="nav-label">
+        System
+      </div>
 
       <button
         class="nav-item"
         data-page="settings"
         type="button"
       >
-        <span class="nav-icon">⚙</span>
+        <span class="nav-icon">
+          ⚙
+        </span>
         Einstellungen
       </button>
 
@@ -746,7 +937,10 @@ th{
 
       <div class="user-box">
 
-        <div id="sidebarUserEmail" class="user-email">
+        <div
+          id="sidebarUserEmail"
+          class="user-email"
+        >
           —
         </div>
 
@@ -767,15 +961,26 @@ th{
 
   <main class="main">
 
-    <section id="page-dashboard" class="page active">
+    <!-- ==================================================
+         DASHBOARD
+    ================================================== -->
+
+    <section
+      id="page-dashboard"
+      class="page active"
+    >
 
       <div class="page-header">
 
         <div>
 
-          <h1>Dashboard</h1>
+          <h1>
+            Dashboard
+          </h1>
 
-          <p>Deine Vertriebsübersicht</p>
+          <p>
+            Deine Vertriebsübersicht
+          </p>
 
         </div>
 
@@ -794,9 +999,14 @@ th{
 
         <div class="stat-card">
 
-          <div class="stat-title">Leads gesamt</div>
+          <div class="stat-title">
+            Leads gesamt
+          </div>
 
-          <div id="statLeads" class="stat-value">
+          <div
+            id="statLeads"
+            class="stat-value"
+          >
             0
           </div>
 
@@ -805,9 +1015,14 @@ th{
 
         <div class="stat-card">
 
-          <div class="stat-title">Neue Leads</div>
+          <div class="stat-title">
+            Neue Leads
+          </div>
 
-          <div id="statNewLeads" class="stat-value">
+          <div
+            id="statNewLeads"
+            class="stat-value"
+          >
             0
           </div>
 
@@ -816,9 +1031,14 @@ th{
 
         <div class="stat-card">
 
-          <div class="stat-title">Qualifizierte Leads</div>
+          <div class="stat-title">
+            Qualifizierte Leads
+          </div>
 
-          <div id="statQualifiedLeads" class="stat-value">
+          <div
+            id="statQualifiedLeads"
+            class="stat-value"
+          >
             0
           </div>
 
@@ -827,9 +1047,14 @@ th{
 
         <div class="stat-card">
 
-          <div class="stat-title">Pipeline</div>
+          <div class="stat-title">
+            Pipeline
+          </div>
 
-          <div id="statPipeline" class="stat-value">
+          <div
+            id="statPipeline"
+            class="stat-value"
+          >
             0 €
           </div>
 
@@ -842,9 +1067,13 @@ th{
 
         <div class="card">
 
-          <h2>Willkommen im B2B CRM</h2>
+          <h2>
+            Willkommen im B2B CRM
+          </h2>
 
-          <p style="color:#667085;line-height:1.7">
+          <p
+            style="color:#667085;line-height:1.7"
+          >
             Füge deine Unternehmensdaten ein. Danach kannst du
             Unternehmen anhand ihrer Branche suchen und ausgewählte
             Unternehmen als Leads übernehmen.
@@ -855,7 +1084,9 @@ th{
 
         <div class="card">
 
-          <h2>Schnellstart</h2>
+          <h2>
+            Schnellstart
+          </h2>
 
           <button
             class="btn-primary"
@@ -872,16 +1103,25 @@ th{
     </section>
 
 
-    <section id="page-lead-search" class="page">
+    <!-- ==================================================
+         LEAD-SUCHE
+    ================================================== -->
+
+    <section
+      id="page-lead-search"
+      class="page"
+    >
 
       <div class="page-header">
 
         <div>
 
-          <h1>Lead-Suche</h1>
+          <h1>
+            Lead-Suche
+          </h1>
 
           <p>
-            Unternehmen anhand der Branche als Leads auswählen.
+            Unternehmen importieren, filtern und als Leads auswählen.
           </p>
 
         </div>
@@ -889,9 +1129,13 @@ th{
       </div>
 
 
+      <!-- IMPORT -->
+
       <div class="card search-card">
 
-        <h2>Unternehmensdaten hinzufügen</h2>
+        <h2>
+          Unternehmensdaten hinzufügen
+        </h2>
 
         <div class="form-group">
 
@@ -901,23 +1145,33 @@ th{
 
           <textarea
             id="companyImportText"
-            rows="14"
-            placeholder="Muster Sanitär GmbH
-Branche: Sanitär
-Adresse: Musterstraße 12
-PLZ: 56068
-Ort: Koblenz
-Telefon: 0261 123456
-Website: https://www.beispiel.de
-Mitarbeiter: 8
-Rechtsform: GmbH
+            rows="18"
+            placeholder="[1] Bäckerei Hans-Peter Schiffer
+Branche: Bäckerei- und Konditorenhandwerk
+Adresse: Alte Schloßstraße 22
+Postleitzahl: 56566
+Ort: Neuwied
+Telefon (Zentrale/Geschäftsleitung): +49 2622 2442 (ungeprüft)
+Ansprechpartner (Name, Funktion): Hans-Peter Schiffer (Inhaber)
+Website: k. A.
+Mitarbeiteranzahl: k. A. (Kleinstbetrieb/Handwerk)
+Rechtsform: Einzelunternehmen
+Handelsregister-Status: nicht geprüft
+Energiebedarf (hoch/mittel/niedrig, kurze Begründung): hoch (Backöfen, Teigknetmaschinen, Gärräume und Kühlung)
+Quelle (URL): https://www.handwerk.de
 
-Nächstes Unternehmen
-Branche: Maschinenbau
-PLZ: 56070
-Ort: Koblenz
-Mitarbeiter: 6
-Rechtsform: Einzelunternehmen"
+[2] Bäckerei Kurt Hommen
+Branche: Bäckerei- und Konditorenhandwerk
+Adresse: Rodenbacher Straße 57
+Postleitzahl: 56567
+Ort: Neuwied
+Telefon (Zentrale/Geschäftsleitung): +49 2631 71676 (ungeprüft)
+Ansprechpartner (Name, Funktion): Kurt Hommen (Inhaber)
+Website: k. A.
+Mitarbeiteranzahl: k. A.
+Rechtsform: Einzelunternehmen
+Energiebedarf (hoch/mittel/niedrig, kurze Begründung): hoch (Etagenbacköfen, Teigkühlung, Mehlförderung)
+Quelle (URL): https://www.gelbeseiten.de"
           ></textarea>
 
         </div>
@@ -943,12 +1197,16 @@ Rechtsform: Einzelunternehmen"
       </div>
 
 
+      <!-- SEARCH -->
+
       <div
         class="card search-card"
         style="margin-top:18px"
       >
 
-        <h2>Unternehmen als Leads suchen</h2>
+        <h2>
+          Unternehmen suchen
+        </h2>
 
         <div class="search-grid">
 
@@ -958,7 +1216,9 @@ Rechtsform: Einzelunternehmen"
               Branche
             </label>
 
-            <select id="leadIndustry">
+            <select
+              id="leadIndustry"
+            >
 
               <option value="__ALL__">
                 Alle Branchen
@@ -975,7 +1235,9 @@ Rechtsform: Einzelunternehmen"
 
           <div class="form-group full">
 
-            <label>Unternehmenstyp</label>
+            <label>
+              Unternehmenstyp
+            </label>
 
             <div class="type-options">
 
@@ -1041,6 +1303,8 @@ Rechtsform: Einzelunternehmen"
       </div>
 
 
+      <!-- RESULTS -->
+
       <div
         id="companySearchResultsCard"
         class="card table-card hidden"
@@ -1054,18 +1318,22 @@ Rechtsform: Einzelunternehmen"
 
           <div>
 
-            <h2 style="margin-bottom:0">
-
+            <h2 style="margin-bottom:4px">
               Suchergebnisse
-
               <span
                 id="companySearchCount"
                 style="color:#667085;font-weight:500"
               >
                 (0)
               </span>
-
             </h2>
+
+            <div
+              id="companySearchSummary"
+              class="result-summary"
+            >
+              —
+            </div>
 
           </div>
 
@@ -1081,6 +1349,47 @@ Rechtsform: Einzelunternehmen"
         </div>
 
 
+        <div class="table-toolbar">
+
+          <input
+            id="companyTableSearch"
+            type="search"
+            placeholder="Unternehmen, Ansprechpartner, Telefon, Ort..."
+          >
+
+          <select
+            id="energyFilter"
+          >
+
+            <option value="">
+              Alle Energiebedarfe
+            </option>
+
+            <option value="hoch">
+              Hoch
+            </option>
+
+            <option value="mittel">
+              Mittel
+            </option>
+
+            <option value="niedrig">
+              Niedrig
+            </option>
+
+          </select>
+
+          <button
+            id="resetCompanyFilters"
+            class="btn-secondary"
+            type="button"
+          >
+            Filter zurücksetzen
+          </button>
+
+        </div>
+
+
         <div class="table-wrapper">
 
           <table>
@@ -1090,25 +1399,71 @@ Rechtsform: Einzelunternehmen"
               <tr>
 
                 <th>
+
                   <input
                     id="selectAllCompanies"
                     type="checkbox"
                   >
+
                 </th>
 
-                <th>Unternehmen</th>
-                <th>Branche</th>
-                <th>PLZ</th>
-                <th>Ort</th>
-                <th>Mitarbeiter</th>
-                <th>Rechtsform</th>
-                <th>Status</th>
+                <th>
+                  Unternehmen
+                </th>
+
+                <th>
+                  Branche
+                </th>
+
+                <th>
+                  Ansprechpartner
+                </th>
+
+                <th>
+                  Telefon
+                </th>
+
+                <th>
+                  PLZ
+                </th>
+
+                <th>
+                  Ort
+                </th>
+
+                <th
+                  class="sortable"
+                  id="energySortHeader"
+                  title="Nach Energiebedarf sortieren"
+                >
+                  Energiebedarf
+                  <span
+                    id="energySortIndicator"
+                    class="sort-indicator"
+                  >
+                    ↕
+                  </span>
+                </th>
+
+                <th>
+                  Mitarbeiter
+                </th>
+
+                <th>
+                  Rechtsform
+                </th>
+
+                <th>
+                  Status
+                </th>
 
               </tr>
 
             </thead>
 
-            <tbody id="companySearchResultsBody"></tbody>
+            <tbody
+              id="companySearchResultsBody"
+            ></tbody>
 
           </table>
 
@@ -1119,15 +1474,26 @@ Rechtsform: Einzelunternehmen"
     </section>
 
 
-    <section id="page-leads" class="page">
+    <!-- ==================================================
+         LEADS
+    ================================================== -->
+
+    <section
+      id="page-leads"
+      class="page"
+    >
 
       <div class="page-header">
 
         <div>
 
-          <h1>Leads</h1>
+          <h1>
+            Leads
+          </h1>
 
-          <p>Deine gespeicherten B2B-Leads</p>
+          <p>
+            Deine gespeicherten B2B-Leads
+          </p>
 
         </div>
 
@@ -1149,10 +1515,12 @@ Rechtsform: Einzelunternehmen"
           <input
             id="leadSearch"
             type="search"
-            placeholder="Unternehmen, Stadt, Telefon..."
+            placeholder="Unternehmen, Stadt, Telefon, Ansprechpartner..."
           >
 
-          <select id="leadStatus">
+          <select
+            id="leadStatus"
+          >
 
             <option value="">
               Alle Status
@@ -1187,23 +1555,54 @@ Rechtsform: Einzelunternehmen"
 
               <tr>
 
-                <th>Unternehmen</th>
-                <th>Branche</th>
-                <th>Telefon</th>
-                <th>Ort</th>
-                <th>Mitarbeiter</th>
-                <th>Status</th>
+                <th>
+                  Unternehmen
+                </th>
+
+                <th>
+                  Branche
+                </th>
+
+                <th>
+                  Ansprechpartner
+                </th>
+
+                <th>
+                  Telefon
+                </th>
+
+                <th>
+                  Ort
+                </th>
+
+                <th>
+                  Energie
+                </th>
+
+                <th>
+                  Mitarbeiter
+                </th>
+
+                <th>
+                  Rechtsform
+                </th>
+
+                <th>
+                  Status
+                </th>
 
               </tr>
 
             </thead>
 
-            <tbody id="leadsTableBody">
+            <tbody
+              id="leadsTableBody"
+            >
 
               <tr>
 
                 <td
-                  colspan="6"
+                  colspan="9"
                   class="empty"
                 >
                   Noch keine Leads vorhanden.
@@ -1222,28 +1621,45 @@ Rechtsform: Einzelunternehmen"
     </section>
 
 
-    <section id="page-contacts" class="page">
+    <!-- ==================================================
+         KONTAKTE
+    ================================================== -->
+
+    <section
+      id="page-contacts"
+      class="page"
+    >
 
       <div class="page-header">
 
         <div>
 
-          <h1>Kontakte</h1>
+          <h1>
+            Kontakte
+          </h1>
 
-          <p>Ansprechpartner deiner Unternehmen</p>
+          <p>
+            Ansprechpartner deiner Unternehmen
+          </p>
 
         </div>
 
       </div>
 
+
       <div class="card placeholder">
 
-        <div class="placeholder-icon">♙</div>
+        <div class="placeholder-icon">
+          ♙
+        </div>
 
-        <h2>Kontaktverwaltung</h2>
+        <h2>
+          Kontaktverwaltung
+        </h2>
 
         <p>
-          Dieser Bereich wird später ausgebaut.
+          Die Ansprechpartner werden bereits beim
+          Unternehmensimport gespeichert.
         </p>
 
       </div>
@@ -1251,13 +1667,22 @@ Rechtsform: Einzelunternehmen"
     </section>
 
 
-    <section id="page-calls" class="page">
+    <!-- ==================================================
+         ANRUFE
+    ================================================== -->
+
+    <section
+      id="page-calls"
+      class="page"
+    >
 
       <div class="page-header">
 
         <div>
 
-          <h1>Anrufe</h1>
+          <h1>
+            Anrufe
+          </h1>
 
           <p>
             Telefonaktivitäten und Gesprächsergebnisse
@@ -1267,11 +1692,16 @@ Rechtsform: Einzelunternehmen"
 
       </div>
 
+
       <div class="card placeholder">
 
-        <div class="placeholder-icon">☎</div>
+        <div class="placeholder-icon">
+          ☎
+        </div>
 
-        <h2>Anrufverwaltung</h2>
+        <h2>
+          Anrufverwaltung
+        </h2>
 
         <p>
           Dieser Bereich wird später ausgebaut.
@@ -1282,13 +1712,22 @@ Rechtsform: Einzelunternehmen"
     </section>
 
 
-    <section id="page-tasks" class="page">
+    <!-- ==================================================
+         AUFGABEN
+    ================================================== -->
+
+    <section
+      id="page-tasks"
+      class="page"
+    >
 
       <div class="page-header">
 
         <div>
 
-          <h1>Aufgaben</h1>
+          <h1>
+            Aufgaben
+          </h1>
 
           <p>
             Follow-ups und Wiedervorlagen
@@ -1298,11 +1737,16 @@ Rechtsform: Einzelunternehmen"
 
       </div>
 
+
       <div class="card placeholder">
 
-        <div class="placeholder-icon">✓</div>
+        <div class="placeholder-icon">
+          ✓
+        </div>
 
-        <h2>Aufgabenverwaltung</h2>
+        <h2>
+          Aufgabenverwaltung
+        </h2>
 
         <p>
           Dieser Bereich wird später ausgebaut.
@@ -1313,13 +1757,22 @@ Rechtsform: Einzelunternehmen"
     </section>
 
 
-    <section id="page-pipeline" class="page">
+    <!-- ==================================================
+         PIPELINE
+    ================================================== -->
+
+    <section
+      id="page-pipeline"
+      class="page"
+    >
 
       <div class="page-header">
 
         <div>
 
-          <h1>Pipeline</h1>
+          <h1>
+            Pipeline
+          </h1>
 
           <p>
             Vertriebschancen und Verkaufsprozess
@@ -1329,11 +1782,16 @@ Rechtsform: Einzelunternehmen"
 
       </div>
 
+
       <div class="card placeholder">
 
-        <div class="placeholder-icon">↗</div>
+        <div class="placeholder-icon">
+          ↗
+        </div>
 
-        <h2>Pipeline</h2>
+        <h2>
+          Pipeline
+        </h2>
 
         <p>
           Dieser Bereich wird später ausgebaut.
@@ -1344,29 +1802,47 @@ Rechtsform: Einzelunternehmen"
     </section>
 
 
-    <section id="page-settings" class="page">
+    <!-- ==================================================
+         EINSTELLUNGEN
+    ================================================== -->
+
+    <section
+      id="page-settings"
+      class="page"
+    >
 
       <div class="page-header">
 
         <div>
 
-          <h1>Einstellungen</h1>
+          <h1>
+            Einstellungen
+          </h1>
 
-          <p>Kontoeinstellungen</p>
+          <p>
+            Kontoeinstellungen
+          </p>
 
         </div>
 
       </div>
 
+
       <div class="card">
 
-        <h2>Konto</h2>
+        <h2>
+          Konto
+        </h2>
 
-        <p style="color:#667085">
+        <p
+          style="color:#667085"
+        >
           Angemeldet als:
         </p>
 
-        <strong id="settingsEmail">—</strong>
+        <strong id="settingsEmail">
+          —
+        </strong>
 
       </div>
 
@@ -1379,29 +1855,31 @@ Rechtsform: Einzelunternehmen"
 
 <script>
 
-/*
- * ============================================================
- * SUPABASE KONFIGURATION
- * ============================================================
- *
- * WICHTIG:
- * Diese URL gehört zu deinem aktuellen Supabase-Projekt:
- * ippummtfsjfrayosofxb
- *
- * Die alte URL wurde entfernt.
- */
+/* ==================================================
+   SUPABASE
+================================================== */
 
 const SUPABASE_URL =
   "https://ippummtfsjfrayosofxb.supabase.co";
 
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzIiwicmVmIjoiaXBwdW1tdGZzamZyYXlvc29meGIiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc4OTc1NDgwNSwiZXhwIjoyMTA1MzMwODA1fQ.-BrJuSK9S28uG53a2T8kkk43BljiJX5kIDGwu44x-5A";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcHVtbXRmc2pmcmF5b3NvZnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTQ4MDUsImV4cCI6MjEwNTMzMDgwNX0.-BrJuSK9S28uG53a2T8kkk43BljiJX5kIDGwu44x-5A";
 
 
 let supabaseClient = null;
+
 let currentUser = null;
+
 let currentLeads = [];
 
+let currentCompanies = [];
+
+let companySortDirection = "asc";
+
+
+/* ==================================================
+   HILFSFUNKTIONEN
+================================================== */
 
 function $(id){
   return document.getElementById(id);
@@ -1427,13 +1905,35 @@ function formatError(error){
 }
 
 
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+function escapeAttribute(value){
+  return escapeHtml(value);
+}
+
+
+/* ==================================================
+   STATUS
+================================================== */
+
 function showStatus(
   id,
   message,
   type=""
 ){
 
-  const element = $(id);
+  const element =
+    $(id);
 
   if(!element){
     return;
@@ -1470,6 +1970,10 @@ function showAuthMessage(
 }
 
 
+/* ==================================================
+   SUPABASE INITIALISIEREN
+================================================== */
+
 async function initSupabase(){
 
   if(
@@ -1491,6 +1995,10 @@ async function initSupabase(){
 
 }
 
+
+/* ==================================================
+   AUTH
+================================================== */
 
 function switchAuthMode(mode){
 
@@ -1514,29 +2022,44 @@ function switchAuthMode(mode){
 
   if(mode === "register"){
 
-    nameGroup.classList.remove("hidden");
+    nameGroup.classList.remove(
+      "hidden"
+    );
 
     submit.textContent =
       "Account erstellen";
 
-    loginTab.classList.remove("active");
+    loginTab.classList.remove(
+      "active"
+    );
 
-    registerTab.classList.add("active");
+    registerTab.classList.add(
+      "active"
+    );
 
   }else{
 
-    nameGroup.classList.add("hidden");
+    nameGroup.classList.add(
+      "hidden"
+    );
 
     submit.textContent =
       "Anmelden";
 
-    loginTab.classList.add("active");
+    loginTab.classList.add(
+      "active"
+    );
 
-    registerTab.classList.remove("active");
+    registerTab.classList.remove(
+      "active"
+    );
 
   }
 
-  showAuthMessage("", "");
+  showAuthMessage(
+    "",
+    ""
+  );
 
 }
 
@@ -1558,16 +2081,22 @@ async function handleAuth(event){
     $("authForm");
 
   const mode =
-    form.dataset.mode || "login";
+    form.dataset.mode ||
+    "login";
 
   const email =
-    $("authEmail").value.trim();
+    $("authEmail")
+      .value
+      .trim();
 
   const password =
-    $("authPassword").value;
+    $("authPassword")
+      .value;
 
   const name =
-    $("authName").value.trim();
+    $("authName")
+      .value
+      .trim();
 
   const button =
     $("authSubmit");
@@ -1580,7 +2109,10 @@ async function handleAuth(event){
       ? "⏳ Account wird erstellt..."
       : "⏳ Anmeldung...";
 
-  showAuthMessage("", "");
+  showAuthMessage(
+    "",
+    ""
+  );
 
   try{
 
@@ -1602,6 +2134,7 @@ async function handleAuth(event){
       );
     }
 
+
     if(mode === "register"){
 
       if(!name){
@@ -1615,13 +2148,18 @@ async function handleAuth(event){
         error
       } =
         await supabaseClient.auth.signUp({
+
           email,
+
           password,
+
           options:{
             data:{
-              full_name:name
+              full_name:
+                name
             }
           }
+
         });
 
       if(error){
@@ -1651,8 +2189,11 @@ async function handleAuth(event){
         error
       } =
         await supabaseClient.auth.signInWithPassword({
+
           email,
+
           password
+
         });
 
       if(error){
@@ -1695,24 +2236,34 @@ async function handleAuth(event){
 }
 
 
+/* ==================================================
+   APP ANZEIGEN
+================================================== */
+
 function showApp(user){
 
   currentUser =
     user;
 
   $("authScreen")
-    .classList.add("hidden");
+    .classList.add(
+      "hidden"
+    );
 
   $("app")
-    .classList.remove("hidden");
+    .classList.remove(
+      "hidden"
+    );
 
   $("sidebarUserEmail")
     .textContent =
-      user?.email || "—";
+      user?.email ||
+      "—";
 
   $("settingsEmail")
     .textContent =
-      user?.email || "—";
+      user?.email ||
+      "—";
 
   loadLeads();
 
@@ -1725,10 +2276,14 @@ function showLogin(){
     null;
 
   $("app")
-    .classList.add("hidden");
+    .classList.add(
+      "hidden"
+    );
 
   $("authScreen")
-    .classList.remove("hidden");
+    .classList.remove(
+      "hidden"
+    );
 
 }
 
@@ -1816,54 +2371,72 @@ async function getApiToken(){
 }
 
 
+/* ==================================================
+   NAVIGATION
+================================================== */
+
 function showPage(page){
 
   document
-    .querySelectorAll(".page")
-    .forEach(element => {
-      element.classList.remove("active");
-    });
+    .querySelectorAll(
+      ".page"
+    )
+    .forEach(
+      element => {
+        element.classList.remove(
+          "active"
+        );
+      }
+    );
+
 
   document
-    .querySelectorAll(".nav-item")
-    .forEach(element => {
+    .querySelectorAll(
+      ".nav-item"
+    )
+    .forEach(
+      element => {
 
-      element.classList.toggle(
-        "active",
-        element.dataset.page === page
-      );
+        element.classList.toggle(
+          "active",
+          element.dataset.page === page
+        );
 
-    });
+      }
+    );
+
 
   const target =
     $("page-" + page);
 
   if(target){
-    target.classList.add("active");
+
+    target.classList.add(
+      "active"
+    );
+
   }
+
 
   if(page === "leads"){
+
     loadLeads();
+
   }
+
 
   if(page === "lead-search"){
+
     loadCompanyIndustries();
+
   }
 
 }
 
 
-function escapeHtml(value){
-
-  return String(value ?? "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-
-}
-
+/* ==================================================
+   IMPORT
+================================================== */
 
 async function importCompanies(){
 
@@ -1874,6 +2447,7 @@ async function importCompanies(){
 
   const button =
     $("importCompaniesButton");
+
 
   if(!text){
 
@@ -1887,44 +2461,56 @@ async function importCompanies(){
 
   }
 
+
   button.disabled =
     true;
 
   button.textContent =
     "⏳ Speichere...";
 
+
   showStatus(
     "importStatus",
     "Unternehmensdaten werden verarbeitet..."
   );
+
 
   try{
 
     const token =
       await getApiToken();
 
+
     const response =
       await fetch(
         "/api/company-import",
         {
-          method:"POST",
+
+          method:
+            "POST",
 
           headers:{
+
             "Content-Type":
               "application/json",
 
             "Authorization":
               "Bearer " + token
+
           },
 
-          body:JSON.stringify({
-            text
-          })
+          body:
+            JSON.stringify({
+              text
+            })
+
         }
       );
 
+
     const result =
       await response.json();
+
 
     if(!response.ok){
 
@@ -1935,6 +2521,7 @@ async function importCompanies(){
 
     }
 
+
     showStatus(
       "importStatus",
 
@@ -1942,13 +2529,30 @@ async function importCompanies(){
       `${result.duplicates || 0} bereits vorhanden. ` +
       `${result.invalid || 0} nicht erkannt.`,
 
-      "success"
+      result.invalid
+        ? "success"
+        : "success"
     );
+
 
     $("companyImportText")
       .value = "";
 
+
     await loadCompanyIndustries();
+
+
+    /*
+    Nach erfolgreichem Import
+    direkt alle Unternehmen anzeigen.
+    */
+
+    $("leadIndustry").value =
+      "__ALL__";
+
+
+    await searchCompaniesForLeads();
+
 
   }catch(error){
 
@@ -1976,6 +2580,10 @@ async function importCompanies(){
 }
 
 
+/* ==================================================
+   BRANCHEN
+================================================== */
+
 async function loadCompanyIndustries(){
 
   if(!currentUser){
@@ -1987,19 +2595,24 @@ async function loadCompanyIndustries(){
     const token =
       await getApiToken();
 
+
     const response =
       await fetch(
         "/api/company-search?industries=1",
         {
+
           headers:{
             "Authorization":
               "Bearer " + token
           }
+
         }
       );
 
+
     const result =
       await response.json();
+
 
     if(!response.ok){
 
@@ -2010,13 +2623,17 @@ async function loadCompanyIndustries(){
 
     }
 
+
     const select =
       $("leadIndustry");
+
 
     const old =
       select.value;
 
+
     select.innerHTML = `
+
       <option value="__ALL__">
         Alle Branchen
       </option>
@@ -2024,27 +2641,41 @@ async function loadCompanyIndustries(){
       <option value="">
         Branche auswählen
       </option>
+
     `;
 
+
     (result.industries || [])
-      .forEach(industry => {
+      .forEach(
+        industry => {
 
-        const option =
-          document.createElement("option");
+          const option =
+            document.createElement(
+              "option"
+            );
 
-        option.value =
-          industry;
+          option.value =
+            industry;
 
-        option.textContent =
-          industry;
+          option.textContent =
+            industry;
 
-        select.appendChild(option);
+          select.appendChild(
+            option
+          );
 
-      });
+        }
+      );
+
 
     if(
-      [...select.options]
-        .some(option => option.value === old)
+      [
+        ...select.options
+      ]
+      .some(
+        option =>
+          option.value === old
+      )
     ){
 
       select.value =
@@ -2069,6 +2700,10 @@ async function loadCompanyIndustries(){
 }
 
 
+/* ==================================================
+   UNTERNEHMEN SUCHEN
+================================================== */
+
 async function searchCompaniesForLeads(){
 
   const industry =
@@ -2076,19 +2711,42 @@ async function searchCompaniesForLeads(){
       .value
       .trim();
 
+
   const types = [];
 
-  if($("typeMicro").checked){
-    types.push("kleinstunternehmen");
+
+  if(
+    $("typeMicro").checked
+  ){
+
+    types.push(
+      "kleinstunternehmen"
+    );
+
   }
 
-  if($("typeEinzel").checked){
-    types.push("einzelunternehmen");
+
+  if(
+    $("typeEinzel").checked
+  ){
+
+    types.push(
+      "einzelunternehmen"
+    );
+
   }
 
-  if($("typeEk").checked){
-    types.push("ek");
+
+  if(
+    $("typeEk").checked
+  ){
+
+    types.push(
+      "ek"
+    );
+
   }
+
 
   if(!industry){
 
@@ -2102,8 +2760,10 @@ async function searchCompaniesForLeads(){
 
   }
 
+
   const button =
     $("companySearchButton");
+
 
   button.disabled =
     true;
@@ -2111,15 +2771,20 @@ async function searchCompaniesForLeads(){
   button.textContent =
     "⏳ Suche...";
 
+
   try{
 
     const token =
       await getApiToken();
 
+
     const params =
       new URLSearchParams();
 
-    if(industry === "__ALL__"){
+
+    if(
+      industry === "__ALL__"
+    ){
 
       params.set(
         "all",
@@ -2135,6 +2800,7 @@ async function searchCompaniesForLeads(){
 
     }
 
+
     if(types.length){
 
       params.set(
@@ -2144,20 +2810,25 @@ async function searchCompaniesForLeads(){
 
     }
 
+
     const response =
       await fetch(
         "/api/company-search?" +
         params.toString(),
         {
+
           headers:{
             "Authorization":
               "Bearer " + token
           }
+
         }
       );
 
+
     const result =
       await response.json();
+
 
     if(!response.ok){
 
@@ -2168,15 +2839,24 @@ async function searchCompaniesForLeads(){
 
     }
 
+
+    currentCompanies =
+      result.companies || [];
+
+
     renderCompanySearchResults(
-      result.companies || []
+      currentCompanies
     );
+
 
     showStatus(
       "companySearchStatus",
-      `${result.companies?.length || 0} Unternehmen gefunden.`,
+
+      `${currentCompanies.length} Unternehmen gefunden.`,
+
       "success"
     );
+
 
   }catch(error){
 
@@ -2204,7 +2884,220 @@ async function searchCompaniesForLeads(){
 }
 
 
-function renderCompanySearchResults(companies){
+/* ==================================================
+   ENERGIE
+================================================== */
+
+function energyRank(value){
+
+  const energy =
+    String(value || "")
+      .toLowerCase()
+      .trim();
+
+
+  if(energy === "hoch"){
+    return 3;
+  }
+
+  if(energy === "mittel"){
+    return 2;
+  }
+
+  if(energy === "niedrig"){
+    return 1;
+  }
+
+  return 0;
+}
+
+
+function energyBadge(value){
+
+  const energy =
+    String(value || "")
+      .toLowerCase()
+      .trim();
+
+
+  if(
+    energy === "hoch"
+  ){
+
+    return `
+      <span class="energy-badge energy-high">
+        ● Hoch
+      </span>
+    `;
+
+  }
+
+
+  if(
+    energy === "mittel"
+  ){
+
+    return `
+      <span class="energy-badge energy-medium">
+        ● Mittel
+      </span>
+    `;
+
+  }
+
+
+  if(
+    energy === "niedrig"
+  ){
+
+    return `
+      <span class="energy-badge energy-low">
+        ● Niedrig
+      </span>
+    `;
+
+  }
+
+
+  return `
+    <span class="energy-badge energy-none">
+      —
+    </span>
+  `;
+
+}
+
+
+/* ==================================================
+   UNTERNEHMENSLISTE FILTERN
+================================================== */
+
+function getFilteredCompanies(){
+
+  const search =
+    $("companyTableSearch")
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  const energy =
+    $("energyFilter")
+      .value;
+
+
+  let companies =
+    [...currentCompanies];
+
+
+  if(search){
+
+    companies =
+      companies.filter(
+        company => {
+
+          const text =
+            [
+
+              company.name,
+
+              company.industry,
+
+              company.contact_name,
+
+              company.contact_role,
+
+              company.phone,
+
+              company.postal_code,
+
+              company.city,
+
+              company.legal_form,
+
+              company.energy_demand,
+
+              company.energy_reason
+
+            ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+
+          return text.includes(
+            search
+          );
+
+        }
+      );
+
+  }
+
+
+  if(energy){
+
+    companies =
+      companies.filter(
+        company =>
+          String(
+            company.energy_demand || ""
+          )
+          .toLowerCase() === energy
+      );
+
+  }
+
+
+  companies.sort(
+    (a,b) => {
+
+      const difference =
+        energyRank(
+          a.energy_demand
+        ) -
+        energyRank(
+          b.energy_demand
+        );
+
+
+      if(
+        difference !== 0
+      ){
+
+        return (
+          companySortDirection === "asc"
+            ? difference
+            : -difference
+        );
+
+      }
+
+
+      return String(
+        a.name || ""
+      ).localeCompare(
+        String(
+          b.name || ""
+        ),
+        "de"
+      );
+
+    }
+  );
+
+
+  return companies;
+}
+
+
+/* ==================================================
+   UNTERNEHMENSLISTE RENDERN
+================================================== */
+
+function renderCompanySearchResults(
+  companies
+){
 
   const card =
     $("companySearchResultsCard");
@@ -2212,114 +3105,333 @@ function renderCompanySearchResults(companies){
   const tbody =
     $("companySearchResultsBody");
 
+
   $("companySearchCount")
     .textContent =
       `(${companies.length})`;
+
 
   $("selectAllCompanies")
     .checked =
       false;
 
-  if(!companies.length){
+
+  const filtered =
+    getFilteredCompanies();
+
+
+  $("companySearchSummary")
+    .textContent =
+      `${filtered.length} angezeigt`;
+
+
+  if(!filtered.length){
 
     tbody.innerHTML = `
+
       <tr>
-        <td colspan="8" class="empty">
+
+        <td
+          colspan="11"
+          class="empty"
+        >
           Keine passenden Unternehmen gefunden.
         </td>
+
       </tr>
+
     `;
 
-    card.classList.remove("hidden");
+
+    card.classList.remove(
+      "hidden"
+    );
 
     return;
+
   }
 
+
   tbody.innerHTML =
-    companies
-      .map(company => {
+    filtered
+      .map(
+        company => {
 
-        const disabled =
-          Boolean(company.already_lead);
+          const disabled =
+            Boolean(
+              company.already_lead
+            );
 
-        return `
-          <tr>
 
-            <td>
+          const contact =
+            company.contact_name
+              ? `
+                <div class="contact-cell">
 
-              <input
-                type="checkbox"
-                class="company-select"
-                value="${escapeHtml(company.id)}"
-                ${disabled ? "disabled" : ""}
-              >
+                  <div class="contact-name">
+                    ${escapeHtml(
+                      company.contact_name
+                    )}
+                  </div>
 
-            </td>
+                  ${
+                    company.contact_role
+                      ? `
+                        <div class="contact-role">
+                          ${escapeHtml(
+                            company.contact_role
+                          )}
+                        </div>
+                      `
+                      : ""
+                  }
 
-            <td>
-              <strong>
+                </div>
+              `
+              : "—";
+
+
+          const phone =
+            company.phone
+              ? `
+                <a
+                  class="phone-link"
+                  href="tel:${escapeAttribute(
+                    company.phone
+                  )}"
+                >
+                  ${escapeHtml(
+                    company.phone
+                  )}
+                </a>
+              `
+              : "—";
+
+
+          const website =
+            company.website
+              ? `
+                <a
+                  class="website-link"
+                  href="${escapeAttribute(
+                    company.website
+                  )}"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Website
+                </a>
+              `
+              : "—";
+
+
+          return `
+
+            <tr>
+
+              <td>
+
+                <input
+                  type="checkbox"
+                  class="company-select"
+                  value="${escapeAttribute(
+                    company.id
+                  )}"
+                  ${disabled ? "disabled" : ""}
+                >
+
+              </td>
+
+
+              <td>
+
+                <strong>
+                  ${escapeHtml(
+                    company.name ||
+                    "—"
+                  )}
+                </strong>
+
+                <div style="margin-top:3px">
+                  ${website}
+                </div>
+
+              </td>
+
+
+              <td>
                 ${escapeHtml(
-                  company.name || "—"
+                  company.industry ||
+                  "—"
                 )}
-              </strong>
-            </td>
+              </td>
 
-            <td>
-              ${escapeHtml(
-                company.industry || "—"
-              )}
-            </td>
 
-            <td>
-              ${escapeHtml(
-                company.postal_code || "—"
-              )}
-            </td>
+              <td>
+                ${contact}
+              </td>
 
-            <td>
-              ${escapeHtml(
-                company.city || "—"
-              )}
-            </td>
 
-            <td>
-              ${company.employees ?? "—"}
-            </td>
+              <td>
+                ${phone}
+              </td>
 
-            <td>
-              ${escapeHtml(
-                company.legal_form || "—"
-              )}
-            </td>
 
-            <td>
+              <td>
+                ${escapeHtml(
+                  company.postal_code ||
+                  "—"
+                )}
+              </td>
 
-              ${
-                disabled
-                  ? '<span class="status status-lost">Bereits Lead</span>'
-                  : '<span class="status status-new">Verfügbar</span>'
-              }
 
-            </td>
+              <td>
+                ${escapeHtml(
+                  company.city ||
+                  "—"
+                )}
+              </td>
 
-          </tr>
-        `;
 
-      })
+              <td>
+
+                ${energyBadge(
+                  company.energy_demand
+                )}
+
+                ${
+                  company.energy_reason
+                    ? `
+                      <div class="energy-reason">
+                        ${escapeHtml(
+                          company.energy_reason
+                        )}
+                      </div>
+                    `
+                    : ""
+                }
+
+              </td>
+
+
+              <td>
+                ${
+                  company.employees ??
+                  "—"
+                }
+              </td>
+
+
+              <td>
+                ${escapeHtml(
+                  company.legal_form ||
+                  "—"
+                )}
+              </td>
+
+
+              <td>
+
+                ${
+                  disabled
+
+                    ? `
+                      <span class="status status-lost">
+                        Bereits Lead
+                      </span>
+                    `
+
+                    : `
+                      <span class="status status-new">
+                        Verfügbar
+                      </span>
+                    `
+                }
+
+              </td>
+
+            </tr>
+
+          `;
+
+        }
+      )
       .join("");
 
-  card.classList.remove("hidden");
+
+  card.classList.remove(
+    "hidden"
+  );
+
+
+  $("energySortIndicator")
+    .textContent =
+      companySortDirection === "asc"
+        ? "↑"
+        : "↓";
 
 }
 
 
+/* ==================================================
+   SORTIERUNG
+================================================== */
+
+function toggleEnergySort(){
+
+  companySortDirection =
+    companySortDirection === "asc"
+      ? "desc"
+      : "asc";
+
+
+  renderCompanySearchResults(
+    currentCompanies
+  );
+
+}
+
+
+/* ==================================================
+   FILTER ZURÜCKSETZEN
+================================================== */
+
+function resetCompanyFilters(){
+
+  $("companyTableSearch")
+    .value = "";
+
+  $("energyFilter")
+    .value = "";
+
+  companySortDirection =
+    "asc";
+
+
+  renderCompanySearchResults(
+    currentCompanies
+  );
+
+}
+
+
+/* ==================================================
+   LEADS ERSTELLEN
+================================================== */
+
 async function addSelectedCompaniesAsLeads(){
 
   const selected =
-    [...document.querySelectorAll(
-      ".company-select:checked:not(:disabled)"
-    )]
-    .map(element => element.value);
+    [
+      ...document.querySelectorAll(
+        ".company-select:checked:not(:disabled)"
+      )
+    ]
+    .map(
+      element =>
+        element.value
+    );
+
 
   if(!selected.length){
 
@@ -2330,35 +3442,47 @@ async function addSelectedCompaniesAsLeads(){
     );
 
     return;
+
   }
+
 
   try{
 
     const token =
       await getApiToken();
 
+
     const response =
       await fetch(
         "/api/leads",
         {
-          method:"POST",
+
+          method:
+            "POST",
 
           headers:{
+
             "Content-Type":
               "application/json",
 
             "Authorization":
               "Bearer " + token
+
           },
 
-          body:JSON.stringify({
-            company_ids:selected
-          })
+          body:
+            JSON.stringify({
+              company_ids:
+                selected
+            })
+
         }
       );
 
+
     const result =
       await response.json();
+
 
     if(!response.ok){
 
@@ -2369,6 +3493,7 @@ async function addSelectedCompaniesAsLeads(){
 
     }
 
+
     showStatus(
       "companySearchStatus",
 
@@ -2378,9 +3503,11 @@ async function addSelectedCompaniesAsLeads(){
       "success"
     );
 
+
     await loadLeads();
 
     await searchCompaniesForLeads();
+
 
   }catch(error){
 
@@ -2400,30 +3527,40 @@ async function addSelectedCompaniesAsLeads(){
 }
 
 
+/* ==================================================
+   LEADS LADEN
+================================================== */
+
 async function loadLeads(){
 
   if(!currentUser){
     return;
   }
 
+
   try{
 
     const token =
       await getApiToken();
 
+
     const response =
       await fetch(
         "/api/leads",
         {
+
           headers:{
             "Authorization":
               "Bearer " + token
           }
+
         }
       );
 
+
     const result =
       await response.json();
+
 
     if(!response.ok){
 
@@ -2434,16 +3571,20 @@ async function loadLeads(){
 
     }
 
+
     currentLeads =
       result.leads || [];
+
 
     renderLeads(
       currentLeads
     );
 
+
     updateDashboardStats(
       currentLeads
     );
+
 
   }catch(error){
 
@@ -2459,139 +3600,269 @@ async function loadLeads(){
 }
 
 
-function renderLeads(leads){
+/* ==================================================
+   LEADS RENDERN
+================================================== */
+
+function renderLeads(
+  leads
+){
 
   const tbody =
     $("leadsTableBody");
 
+
   if(!leads.length){
 
     tbody.innerHTML = `
+
       <tr>
-        <td colspan="6" class="empty">
+
+        <td
+          colspan="9"
+          class="empty"
+        >
           Noch keine Leads vorhanden.
         </td>
+
       </tr>
+
     `;
 
     return;
+
   }
+
 
   tbody.innerHTML =
     leads
-      .map(lead => {
+      .map(
+        lead => {
 
-        const company =
-          lead.companies || {};
+          const company =
+            lead.companies ||
+            {};
 
-        const status =
-          lead.status || "new";
+          const status =
+            lead.status ||
+            "new";
 
-        return `
-          <tr>
 
-            <td>
-              <strong>
+          const contact =
+            company.contact_name
+              ? `
+                <div class="contact-cell">
+
+                  <div class="contact-name">
+                    ${escapeHtml(
+                      company.contact_name
+                    )}
+                  </div>
+
+                  ${
+                    company.contact_role
+                      ? `
+                        <div class="contact-role">
+                          ${escapeHtml(
+                            company.contact_role
+                          )}
+                        </div>
+                      `
+                      : ""
+                  }
+
+                </div>
+              `
+              : "—";
+
+
+          return `
+
+            <tr>
+
+              <td>
+
+                <strong>
+                  ${escapeHtml(
+                    company.name ||
+                    "Unbekannt"
+                  )}
+                </strong>
+
+              </td>
+
+
+              <td>
                 ${escapeHtml(
-                  company.name || "Unbekannt"
+                  company.industry ||
+                  "—"
                 )}
-              </strong>
-            </td>
+              </td>
 
-            <td>
-              ${escapeHtml(
-                company.industry || "—"
-              )}
-            </td>
 
-            <td>
-              ${escapeHtml(
-                company.phone || "—"
-              )}
-            </td>
+              <td>
+                ${contact}
+              </td>
 
-            <td>
-              ${escapeHtml(
-                [
-                  company.postal_code,
-                  company.city
-                ]
-                .filter(Boolean)
-                .join(" ") || "—"
-              )}
-            </td>
 
-            <td>
-              ${
-                company.employees ??
-                company.employee_count ??
-                "—"
-              }
-            </td>
+              <td>
+                ${escapeHtml(
+                  company.phone ||
+                  "—"
+                )}
+              </td>
 
-            <td>
 
-              <span
-                class="status ${statusClass(status)}"
-              >
-                ${statusLabel(status)}
-              </span>
+              <td>
+                ${escapeHtml(
+                  [
+                    company.postal_code,
+                    company.city
+                  ]
+                  .filter(Boolean)
+                  .join(" ") ||
+                  "—"
+                )}
+              </td>
 
-            </td>
 
-          </tr>
-        `;
+              <td>
+                ${energyBadge(
+                  company.energy_demand
+                )}
+              </td>
 
-      })
+
+              <td>
+                ${
+                  company.employees ??
+                  company.employee_count ??
+                  "—"
+                }
+              </td>
+
+
+              <td>
+                ${escapeHtml(
+                  company.legal_form ||
+                  "—"
+                )}
+              </td>
+
+
+              <td>
+
+                <span
+                  class="status ${statusClass(
+                    status
+                  )}"
+                >
+                  ${statusLabel(
+                    status
+                  )}
+                </span>
+
+              </td>
+
+            </tr>
+
+          `;
+
+        }
+      )
       .join("");
 
 }
 
 
-function statusClass(status){
+/* ==================================================
+   STATUS
+================================================== */
+
+function statusClass(
+  status
+){
 
   return {
-    new:"status-new",
-    called:"status-called",
-    qualified:"status-qualified",
-    lost:"status-lost"
-  }[status] || "status-new";
+
+    new:
+      "status-new",
+
+    called:
+      "status-called",
+
+    qualified:
+      "status-qualified",
+
+    lost:
+      "status-lost"
+
+  }[
+    status
+  ] || "status-new";
 
 }
 
 
-function statusLabel(status){
+function statusLabel(
+  status
+){
 
   return {
-    new:"Neu",
-    called:"Angerufen",
-    qualified:"Qualifiziert",
-    lost:"Verloren"
-  }[status] || status;
+
+    new:
+      "Neu",
+
+    called:
+      "Angerufen",
+
+    qualified:
+      "Qualifiziert",
+
+    lost:
+      "Verloren"
+
+  }[
+    status
+  ] || status;
 
 }
 
 
-function updateDashboardStats(leads){
+/* ==================================================
+   DASHBOARD
+================================================== */
+
+function updateDashboardStats(
+  leads
+){
 
   $("statLeads")
     .textContent =
       leads.length;
 
+
   $("statNewLeads")
     .textContent =
       leads.filter(
-        lead => lead.status === "new"
+        lead =>
+          lead.status === "new"
       ).length;
+
 
   $("statQualifiedLeads")
     .textContent =
       leads.filter(
-        lead => lead.status === "qualified"
+        lead =>
+          lead.status === "qualified"
       ).length;
 
 }
 
+
+/* ==================================================
+   LEAD FILTER
+================================================== */
 
 function filterLeads(){
 
@@ -2601,36 +3872,67 @@ function filterLeads(){
       .trim()
       .toLowerCase();
 
+
   const status =
     $("leadStatus")
       .value;
 
+
   const filtered =
-    currentLeads.filter(lead => {
+    currentLeads.filter(
+      lead => {
 
-      const company =
-        lead.companies || {};
+        const company =
+          lead.companies ||
+          {};
 
-      const text =
-        [
-          company.name,
-          company.industry,
-          company.phone,
-          company.address,
-          company.postal_code,
-          company.city,
-          lead.status
-        ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
 
-      return (
-        (!search || text.includes(search)) &&
-        (!status || lead.status === status)
-      );
+        const text =
+          [
 
-    });
+            company.name,
+
+            company.industry,
+
+            company.phone,
+
+            company.address,
+
+            company.postal_code,
+
+            company.city,
+
+            company.contact_name,
+
+            company.contact_role,
+
+            company.energy_demand,
+
+            company.legal_form,
+
+            lead.status
+
+          ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+
+        return (
+
+          (!search ||
+            text.includes(
+              search
+            )) &&
+
+          (!status ||
+            lead.status === status)
+
+        );
+
+      }
+    );
+
 
   renderLeads(
     filtered
@@ -2638,6 +3940,10 @@ function filterLeads(){
 
 }
 
+
+/* ==================================================
+   LOGOUT
+================================================== */
 
 async function logout(){
 
@@ -2658,24 +3964,37 @@ async function logout(){
 
   }
 
+
   showLogin();
 
 }
 
+
+/* ==================================================
+   EVENTS
+================================================== */
 
 async function boot(){
 
   $("loginTab")
     .addEventListener(
       "click",
-      () => switchAuthMode("login")
+      () =>
+        switchAuthMode(
+          "login"
+        )
     );
+
 
   $("registerTab")
     .addEventListener(
       "click",
-      () => switchAuthMode("register")
+      () =>
+        switchAuthMode(
+          "register"
+        )
     );
+
 
   $("authForm")
     .addEventListener(
@@ -2683,11 +4002,13 @@ async function boot(){
       handleAuth
     );
 
+
   $("logoutButton")
     .addEventListener(
       "click",
       logout
     );
+
 
   $("importCompaniesButton")
     .addEventListener(
@@ -2695,17 +4016,20 @@ async function boot(){
       importCompanies
     );
 
+
   $("companySearchButton")
     .addEventListener(
       "click",
       searchCompaniesForLeads
     );
 
+
   $("addSelectedButton")
     .addEventListener(
       "click",
       addSelectedCompaniesAsLeads
     );
+
 
   $("selectAllCompanies")
     .addEventListener(
@@ -2716,21 +4040,59 @@ async function boot(){
           .querySelectorAll(
             ".company-select:not(:disabled)"
           )
-          .forEach(element => {
+          .forEach(
+            element => {
 
-            element.checked =
-              event.target.checked;
+              element.checked =
+                event.target.checked;
 
-          });
+            }
+          );
 
       }
     );
+
+
+  $("companyTableSearch")
+    .addEventListener(
+      "input",
+      () =>
+        renderCompanySearchResults(
+          currentCompanies
+        )
+    );
+
+
+  $("energyFilter")
+    .addEventListener(
+      "change",
+      () =>
+        renderCompanySearchResults(
+          currentCompanies
+        )
+    );
+
+
+  $("resetCompanyFilters")
+    .addEventListener(
+      "click",
+      resetCompanyFilters
+    );
+
+
+  $("energySortHeader")
+    .addEventListener(
+      "click",
+      toggleEnergySort
+    );
+
 
   $("leadSearch")
     .addEventListener(
       "input",
       filterLeads
     );
+
 
   $("leadStatus")
     .addEventListener(
@@ -2740,44 +4102,53 @@ async function boot(){
 
 
   document
-    .querySelectorAll(".nav-item")
-    .forEach(button => {
+    .querySelectorAll(
+      ".nav-item"
+    )
+    .forEach(
+      button => {
 
-      button.addEventListener(
-        "click",
-        () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-          showPage(
-            button.dataset.page
-          );
+            showPage(
+              button.dataset.page
+            );
 
-        }
-      );
+          }
+        );
 
-    });
+      }
+    );
 
 
   document
-    .querySelectorAll("[data-open-page]")
-    .forEach(button => {
+    .querySelectorAll(
+      "[data-open-page]"
+    )
+    .forEach(
+      button => {
 
-      button.addEventListener(
-        "click",
-        () => {
+        button.addEventListener(
+          "click",
+          () => {
 
-          showPage(
-            button.dataset.openPage
-          );
+            showPage(
+              button.dataset.openPage
+            );
 
-        }
-      );
+          }
+        );
 
-    });
+      }
+    );
 
 
   try{
 
     await initSupabase();
+
 
     supabaseClient.auth.onAuthStateChange(
       (
@@ -2790,7 +4161,10 @@ async function boot(){
           event
         );
 
-        if(session?.user){
+
+        if(
+          session?.user
+        ){
 
           showApp(
             session.user
@@ -2805,7 +4179,9 @@ async function boot(){
       }
     );
 
+
     await checkSession();
+
 
   }catch(error){
 
@@ -2814,7 +4190,9 @@ async function boot(){
       error
     );
 
+
     showLogin();
+
 
     showAuthMessage(
       "Verbindung zu Supabase fehlgeschlagen: " +
