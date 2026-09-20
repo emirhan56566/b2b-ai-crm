@@ -2370,24 +2370,47 @@ async function moveLeadToSupply(){
 async function loadSupplies(){
   if(!currentUser) return;
 
+  const tbody = $("supplyTableBody");
+
   try{
-    const token =
-      await getApiToken();
+    const token = await getApiToken();
 
-    const response =
-      await fetch("/api/lead-supply",{
-        headers:{
-          Authorization:"Bearer " + token
+    if(!token || typeof token !== "string"){
+      throw new Error(
+        "Kein gültiger Supabase-Anmeldetoken vorhanden."
+      );
+    }
+
+    const response = await fetch(
+      window.location.origin + "/api/lead-supply",
+      {
+        method: "GET",
+        headers: {
+          "Authorization": "Bearer " + token.trim(),
+          "Accept": "application/json"
         }
-      });
+      }
+    );
 
-    const result =
-      await response.json();
+    const responseText = await response.text();
+
+    let result = {};
+
+    try{
+      result = responseText
+        ? JSON.parse(responseText)
+        : {};
+    }catch(parseError){
+      throw new Error(
+        "Ungültige Antwort von /api/lead-supply: " +
+        responseText.slice(0,300)
+      );
+    }
 
     if(!response.ok){
       throw new Error(
         result.error ||
-        "Belieferungen konnten nicht geladen werden."
+        `Belieferungen konnten nicht geladen werden (${response.status}).`
       );
     }
 
@@ -2406,15 +2429,10 @@ async function loadSupplies(){
 
     currentSupplies = [];
 
-    renderSupply();
-
-    const tbody =
-      $("supplyTableBody");
-
     if(tbody){
       tbody.innerHTML =
         `<tr>
-          <td colspan="8" class="empty">
+          <td colspan="10" class="empty">
             ${escapeHtml(formatError(error))}
           </td>
         </tr>`;
