@@ -148,6 +148,10 @@ th.sortable{cursor:pointer}
 .supply-type-options label{display:flex;align-items:center;gap:7px;font-weight:600}
 .supply-type-options input{width:17px;height:17px}
 
+.supply-date{font-weight:700}
+.supply-date.cancellation-soon{color:#b42318}
+.supply-date.offer-soon{color:#b54708}
+
 .calendar-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
 .calendar-title{font-size:20px;font-weight:750}
 .calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);border-top:1px solid #eaecf0;border-left:1px solid #eaecf0}
@@ -157,6 +161,10 @@ th.sortable{cursor:pointer}
 .calendar-number{font-size:12px;font-weight:700;margin-bottom:7px}
 .calendar-event{background:#eef4ff;color:#3538cd;border-radius:6px;padding:5px;margin-bottom:4px;font-size:11px;cursor:pointer;overflow:hidden}
 .calendar-event:hover{background:#e0e7ff}
+.calendar-event.supply-calendar-event{background:#ecfdf3;color:#027a48}
+.calendar-event.supply-cancellation-event{background:#fef2f2;color:#b42318}
+.calendar-event.supply-offer-event{background:#fff7ed;color:#b54708}
+
 .pipeline-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px}
 .pipeline-box{border:1px solid #eaecf0;border-radius:12px;padding:18px}
 .pipeline-label{font-size:12px;color:#667085;margin-bottom:7px}
@@ -582,6 +590,8 @@ Quelle (URL): https://example.de"></textarea>
             <thead>
               <tr>
                 <th>Unternehmen</th>
+                <th>Nächster Kündigungstag</th>
+                <th>Nächster Angebotstag</th>
                 <th>Belieferungsstart</th>
                 <th>Gewünschter Liefertermin</th>
                 <th>RLM / SLP</th>
@@ -978,6 +988,16 @@ Quelle (URL): https://example.de"></textarea>
         <div class="form-group">
           <label for="supplyOldContractNotice">Kündigungsfrist / Selbstkündigung</label>
           <input id="supplyOldContractNotice" type="text" placeholder="z. B. 3 Monate zum Vertragsende">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyNextCancellationDate">Nächster Kündigungstag</label>
+          <input id="supplyNextCancellationDate" type="date">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyNextOfferDate">Nächster Angebotstag</label>
+          <input id="supplyNextOfferDate" type="date">
         </div>
 
       </div>
@@ -1815,23 +1835,47 @@ async function loadLeads(){
       );
     }
 
-    currentLeads =
-  (result.leads || []).filter(
-    lead => normalizeStatus(lead.status) !== "signed"
-  );
+    /*
+      WICHTIG:
+      Alle Leads bleiben in currentLeads.
+      Dadurch können unterschriebene Leads weiterhin
+      über ihre Belieferung gefunden werden.
 
-    renderLeads(currentLeads);
-    updateDashboardStats(currentLeads);
+      Die normale Leads-Tabelle filtert signed separat aus.
+    */
+    currentLeads =
+      result.leads || [];
+
+    renderLeads(
+      getVisibleLeads()
+    );
+
+    updateDashboardStats(
+      getVisibleLeads()
+    );
+
     renderPipeline();
     renderContacts();
 
   }catch(error){
-    console.error("LOAD LEADS FEHLER:",error);
+    console.error(
+      "LOAD LEADS FEHLER:",
+      error
+    );
 
     currentLeads = [];
     renderLeads([]);
     updateDashboardStats([]);
+    renderPipeline();
+    renderContacts();
   }
+}
+
+function getVisibleLeads(){
+  return currentLeads.filter(
+    lead =>
+      normalizeStatus(lead.status) !== "signed"
+  );
 }
 
 function filterLeads(){
@@ -1842,7 +1886,7 @@ function filterLeads(){
     $("leadStatus").value;
 
   const filtered =
-    currentLeads.filter(lead => {
+    getVisibleLeads().filter(lead => {
 
       const company =
         lead.companies || {};
@@ -1978,9 +2022,6 @@ function renderLeads(leads){
     });
 }
 
-function openLeadDetail(leadId){
-  /* folgt in Teil 2 */
-}
 async function openLeadDetail(leadId){
   const lead =
     currentLeads.find(
@@ -2172,9 +2213,10 @@ async function updateLeadStatus(){
       "success"
     );
 
-    renderLeads(currentLeads);
-    updateDashboardStats(currentLeads);
+    renderLeads(getVisibleLeads());
+    updateDashboardStats(getVisibleLeads());
     renderPipeline();
+    renderContacts();
 
   }catch(error){
     showStatus(
@@ -2184,8 +2226,7 @@ async function updateLeadStatus(){
     );
   }
 }
-
-
+<script>
 /* =========================================================
    LEAD-NOTIZEN
 ========================================================= */
@@ -2331,9 +2372,10 @@ async function moveLeadToSupply(){
       result.supply ||
       result;
 
-    renderLeads(currentLeads);
+    renderLeads(getVisibleLeads());
     renderPipeline();
-    updateDashboardStats(currentLeads);
+    updateDashboardStats(getVisibleLeads());
+    renderContacts();
     renderSupply();
 
     closeLeadDetail();
@@ -2388,6 +2430,7 @@ async function loadSupplies(){
       [];
 
     renderSupply();
+    renderCalendar();
 
   }catch(error){
     console.error(
@@ -2398,6 +2441,7 @@ async function loadSupplies(){
     currentSupplies = [];
 
     renderSupply();
+    renderCalendar();
 
     const tbody =
       $("supplyTableBody");
@@ -2405,7 +2449,7 @@ async function loadSupplies(){
     if(tbody){
       tbody.innerHTML =
         `<tr>
-          <td colspan="8" class="empty">
+          <td colspan="10" class="empty">
             ${escapeHtml(formatError(error))}
           </td>
         </tr>`;
@@ -2443,6 +2487,8 @@ function getFilteredSupplies(){
         supply.meter_number,
         supply.previous_supplier,
         supply.previous_customer_number,
+        supply.next_offer_date,
+        supply.next_cancellation_date,
         company.name,
         company.city
       ]
@@ -2456,6 +2502,48 @@ function getFilteredSupplies(){
         String(supply.supply_type || "") === type)
     );
   });
+}
+
+function daysUntilDate(dateString){
+  if(!dateString) return null;
+
+  const today =
+    new Date();
+
+  today.setHours(0,0,0,0);
+
+  const target =
+    new Date(
+      String(dateString) + "T00:00:00"
+    );
+
+  if(Number.isNaN(target.getTime())){
+    return null;
+  }
+
+  target.setHours(0,0,0,0);
+
+  return Math.ceil(
+    (target.getTime() - today.getTime()) /
+    86400000
+  );
+}
+
+function supplyDateClass(dateString,type){
+  const days =
+    daysUntilDate(dateString);
+
+  if(days == null) return "supply-date";
+
+  if(type === "cancellation" && days >= 0 && days <= 30){
+    return "supply-date cancellation-soon";
+  }
+
+  if(type === "offer" && days >= 0 && days <= 30){
+    return "supply-date offer-soon";
+  }
+
+  return "supply-date";
 }
 
 function renderSupply(){
@@ -2494,7 +2582,7 @@ function renderSupply(){
   if(!supplies.length){
     tbody.innerHTML =
       `<tr>
-        <td colspan="8" class="empty">
+        <td colspan="10" class="empty">
           Noch keine Kunden in Belieferung vorhanden.
         </td>
       </tr>`;
@@ -2514,6 +2602,12 @@ function renderSupply(){
       const company =
         lead?.companies || {};
 
+      const cancellationDate =
+        supply.next_cancellation_date;
+
+      const offerDate =
+        supply.next_offer_date;
+
       return `
         <tr
           class="supply-row"
@@ -2528,6 +2622,18 @@ function renderSupply(){
                 "Unbekannt"
               )}
             </strong>
+          </td>
+
+          <td>
+            <span class="${supplyDateClass(cancellationDate,"cancellation")}">
+              ${formatDate(cancellationDate)}
+            </span>
+          </td>
+
+          <td>
+            <span class="${supplyDateClass(offerDate,"offer")}">
+              ${formatDate(offerDate)}
+            </span>
           </td>
 
           <td>
@@ -2622,6 +2728,8 @@ function clearSupplyForm(){
   $("supplyDeliveryStartDate").value = "";
   $("supplyOldContractDeadline").value = "";
   $("supplyOldContractNotice").value = "";
+  $("supplyNextOfferDate").value = "";
+  $("supplyNextCancellationDate").value = "";
   $("supplyNotes").value = "";
 
   document
@@ -2706,6 +2814,1617 @@ async function openSupplyDetail(supplyId){
 
   $("supplyOldContractNotice").value =
     supply.old_contract_notice || "";
+
+  $("supplyNextOfferDate").value =
+    supply.next_offer_date || "";
+
+  $("supplyNextCancellationDate").value =
+    supply.next_cancellation_date || "";
+
+  $("supplyNotes").value =
+    supply.notes || "";
+
+  document
+    .querySelectorAll(
+      'input[name="supplyType"]'
+    )
+    .forEach(input => {
+      input.checked =
+        input.value ===
+        supply.supply_type;
+    });
+
+  $("supplyDetailTitle").textContent =
+    supply.company_name ||
+    company.name ||
+    "Belieferung";
+
+  $("supplyDetailSubtitle").textContent =
+    [
+      supply.supply_type,
+      company.city
+    ]
+    .filter(Boolean)
+    .join(" · ");
+
+  $("supplyLinkedLeadName").textContent =
+    company.name ||
+    supply.company_name ||
+    "Unbekannter Kunde";
+
+  $("supplyLinkedLeadInfo").textContent =
+    [
+      company.contact_name,
+      company.phone,
+      company.city
+    ]
+    .filter(Boolean)
+    .join(" · ");
+
+  hideStatus("supplyMessage");
+
+  $("supplyDetailModal")
+    .classList
+    .remove("hidden");
+}
+
+function closeSupplyDetail(){
+  selectedSupply = null;
+
+  $("supplyDetailModal")
+    .classList
+    .add("hidden");
+}
+
+
+/* =========================================================
+   BELIEFERUNG SPEICHERN
+========================================================= */
+
+async function saveSupply(event){
+  event.preventDefault();
+
+  const supplyId =
+    $("supplyId").value.trim();
+
+  const leadId =
+    $("supplyLeadId").value.trim();
+
+  const supplyType =
+    document.querySelector(
+      'input[name="supplyType"]:checked'
+    )?.value || null;
+
+  if(!leadId){
+    showStatus(
+      "supplyMessage",
+      "Der zugehörige Lead fehlt.",
+      "error"
+    );
+    return;
+  }
+
+  if(!supplyType){
+    showStatus(
+      "supplyMessage",
+      "Bitte RLM oder SLP auswählen.",
+      "error"
+    );
+    return;
+  }
+
+  const maloId =
+    $("supplyMaloId").value.trim();
+
+  if(
+    maloId &&
+    !/^\d{11}$/.test(maloId)
+  ){
+    showStatus(
+      "supplyMessage",
+      "Die MaLo-ID muss genau 11 Ziffern enthalten.",
+      "error"
+    );
+    return;
+  }
+
+  const button =
+    $("saveSupplyButton");
+
+  button.disabled = true;
+
+  const payload = {
+    lead_id:leadId,
+
+    company_name:
+      $("supplyCompanyName")
+        .value
+        .trim(),
+
+    business_address:
+      $("supplyBusinessAddress")
+        .value
+        .trim(),
+
+    vat_id:
+      $("supplyVatId")
+        .value
+        .trim(),
+
+    malo_id:maloId,
+
+    meter_number:
+      $("supplyMeterNumber")
+        .value
+        .trim(),
+
+    annual_consumption_kwh:
+      $("supplyAnnualConsumption").value === ""
+        ? null
+        : Number(
+            $("supplyAnnualConsumption").value
+          ),
+
+    current_meter_reading:
+      $("supplyMeterReading").value === ""
+        ? null
+        : Number(
+            $("supplyMeterReading").value
+          ),
+
+    previous_supplier:
+      $("supplyPreviousSupplier")
+        .value
+        .trim(),
+
+    previous_customer_number:
+      $("supplyPreviousCustomerNumber")
+        .value
+        .trim(),
+
+    iban:
+      $("supplyIban")
+        .value
+        .trim(),
+
+    desired_delivery_date:
+      $("supplyDesiredDeliveryDate").value ||
+      null,
+
+    delivery_start_date:
+      $("supplyDeliveryStartDate").value ||
+      null,
+
+    old_contract_deadline:
+      $("supplyOldContractDeadline").value ||
+      null,
+
+    old_contract_notice:
+      $("supplyOldContractNotice")
+        .value
+        .trim(),
+
+    next_offer_date:
+      $("supplyNextOfferDate").value ||
+      null,
+
+    next_cancellation_date:
+      $("supplyNextCancellationDate").value ||
+      null,
+
+    supply_type:supplyType,
+
+    notes:
+      $("supplyNotes")
+        .value
+        .trim()
+  };
+
+  try{
+
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-supply" +
+        (
+          supplyId
+            ? "?id=" +
+              encodeURIComponent(supplyId)
+            : ""
+        ),
+        {
+          method:
+            supplyId
+              ? "PATCH"
+              : "POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              "Bearer " + token
+          },
+
+          body:
+            JSON.stringify(payload)
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Belieferungsdaten konnten nicht gespeichert werden."
+      );
+    }
+
+    await loadLeads();
+    await loadSupplies();
+
+    const saved =
+      result.supply || result;
+
+    const refreshedSupply =
+      currentSupplies.find(
+        item =>
+          String(item.id) ===
+          String(saved.id)
+      ) ||
+      currentSupplies.find(
+        item =>
+          String(item.lead_id) ===
+          String(leadId)
+      ) ||
+      saved;
+
+    selectedSupply =
+      refreshedSupply;
+
+    renderLeads(getVisibleLeads());
+    renderSupply();
+    renderPipeline();
+    updateDashboardStats(getVisibleLeads());
+    renderContacts();
+    renderCalendar();
+
+    showStatus(
+      "supplyMessage",
+      "Belieferungsdaten gespeichert. Angebotstag und Kündigungstag wurden übernommen und im Kalender eingetragen.",
+      "success"
+    );
+
+  }catch(error){
+
+    console.error(
+      "BELIEFERUNG SPEICHERN FEHLER:",
+      error
+    );
+
+    showStatus(
+      "supplyMessage",
+      formatError(error),
+      "error"
+    );
+
+  }finally{
+
+    button.disabled = false;
+  }
+}
+
+function openSupplyAppointment(){
+  if(!selectedSupply) return;
+
+  const lead =
+    currentLeads.find(
+      item =>
+        String(item.id) ===
+        String(selectedSupply.lead_id)
+    );
+
+  if(!lead){
+    showStatus(
+      "supplyMessage",
+      "Der zugehörige Lead wurde nicht gefunden.",
+      "error"
+    );
+    return;
+  }
+
+  closeSupplyDetail();
+
+  openLeadDetail(
+    lead.id
+  );
+}
+
+
+/* =========================================================
+   TERMINE
+========================================================= */
+
+async function loadAppointmentsForLead(leadId){
+  try{
+
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-appointments?lead_id=" +
+        encodeURIComponent(leadId),
+        {
+          headers:{
+            Authorization:
+              "Bearer " + token
+          }
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Termine konnten nicht geladen werden."
+      );
+    }
+
+    currentAppointments =
+      currentAppointments.filter(
+        appointment =>
+          String(
+            appointment.lead_id
+          ) !==
+          String(leadId)
+      );
+
+    currentAppointments =
+      currentAppointments.concat(
+        result.appointments || []
+      );
+
+    renderLeadAppointments(
+      result.appointments || []
+    );
+
+    renderCalendar();
+
+  }catch(error){
+
+    console.error(
+      "TERMINE FEHLER:",
+      error
+    );
+
+    $("leadAppointments").innerHTML =
+      `<div class="empty">
+        Termine konnten nicht geladen werden.
+      </div>`;
+  }
+}
+
+async function loadAllAppointments(){
+  try{
+
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-appointments",
+        {
+          headers:{
+            Authorization:
+              "Bearer " + token
+          }
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Termine konnten nicht geladen werden."
+      );
+    }
+
+    currentAppointments =
+      result.appointments || [];
+
+    renderCalendar();
+
+  }catch(error){
+
+    console.error(
+      "KALENDER FEHLER:",
+      error
+    );
+
+    currentAppointments = [];
+
+    renderCalendar();
+  }
+}
+
+async function createAppointment(event){
+  event.preventDefault();
+
+  if(!selectedLead) return;
+
+  const title =
+    $("appointmentTitle")
+      .value
+      .trim();
+
+  const date =
+    $("appointmentDate").value;
+
+  const time =
+    $("appointmentTime").value;
+
+  const notes =
+    $("appointmentNotes")
+      .value
+      .trim();
+
+  if(!title || !date){
+    showStatus(
+      "appointmentMessage",
+      "Titel und Datum sind erforderlich.",
+      "error"
+    );
+    return;
+  }
+
+  try{
+
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-appointments",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              "Bearer " + token
+          },
+
+          body:
+            JSON.stringify({
+              lead_id:
+                selectedLead.id,
+
+              title,
+
+              appointment_date:
+                date,
+
+              appointment_time:
+                time || null,
+
+              notes:
+                notes || null
+            })
+          }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Termin konnte nicht gespeichert werden."
+      );
+    }
+
+    showStatus(
+      "appointmentMessage",
+      "Termin gespeichert.",
+      "success"
+    );
+
+    $("appointmentNotes").value = "";
+    $("appointmentTime").value = "";
+
+    await loadAppointmentsForLead(
+      selectedLead.id
+    );
+
+    await loadAllAppointments();
+
+  }catch(error){
+
+    showStatus(
+      "appointmentMessage",
+      formatError(error),
+      "error"
+    );
+  }
+}
+
+async function deleteAppointment(id){
+
+  if(
+    !confirm(
+      "Diesen Termin wirklich löschen?"
+    )
+  ){
+    return;
+  }
+
+  try{
+
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-appointments?id=" +
+        encodeURIComponent(id),
+        {
+          method:"DELETE",
+
+          headers:{
+            Authorization:
+              "Bearer " + token
+          }
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Termin konnte nicht gelöscht werden."
+      );
+    }
+
+    if(selectedLead){
+      await loadAppointmentsForLead(
+        selectedLead.id
+      );
+    }
+
+    await loadAllAppointments();
+
+  }catch(error){
+
+    alert(
+      formatError(error)
+    );
+  }
+}
+
+function renderLeadAppointments(
+  appointments
+){
+  const container =
+    $("leadAppointments");
+
+  if(!appointments.length){
+    container.innerHTML =
+      `<div class="empty">
+        Für diesen Lead gibt es noch keine Termine.
+      </div>`;
+
+    return;
+  }
+
+  const sorted =
+    [...appointments].sort(
+      (a,b) => {
+
+        const first =
+          `${a.appointment_date} ${a.appointment_time || ""}`;
+
+        const second =
+          `${b.appointment_date} ${b.appointment_time || ""}`;
+
+        return first.localeCompare(
+          second
+        );
+      }
+    );
+
+  container.innerHTML =
+    sorted.map(
+      appointment => `
+
+        <div class="appointment">
+
+          <div>
+
+            <div class="appointment-title">
+              ${escapeHtml(
+                appointment.title
+              )}
+            </div>
+
+            <div class="appointment-meta">
+              ${formatDate(
+                appointment.appointment_date
+              )}
+
+              ${
+                appointment.appointment_time
+                  ? " · " +
+                    escapeHtml(
+                      appointment.appointment_time
+                    )
+                  : ""
+              }
+            </div>
+
+            ${
+              appointment.notes
+                ? `
+                  <div class="appointment-notes">
+                    ${escapeHtml(
+                      appointment.notes
+                    )}
+                  </div>
+                `
+                : ""
+            }
+
+          </div>
+
+          <button
+            class="btn-danger btn-small"
+            type="button"
+            onclick="deleteAppointment('${escapeAttribute(appointment.id)}')"
+          >
+            Löschen
+          </button>
+
+        </div>
+
+      `
+    ).join("");
+}
+<script>
+/* =========================================================
+   KALENDER
+========================================================= */
+
+function formatDate(date){
+  if(!date) return "—";
+
+  const parts =
+    String(date).split("-");
+
+  if(parts.length !== 3){
+    return date;
+  }
+
+  return `${parts[2]}.${parts[1]}.${parts[0]}`;
+}
+
+function formatDateTime(value){
+  try{
+
+    return new Date(
+      value
+    ).toLocaleString(
+      "de-DE",
+      {
+        dateStyle:"short",
+        timeStyle:"short"
+      }
+    );
+
+  }catch{
+    return value;
+  }
+}
+
+function getSupplyCalendarEvents(){
+  return currentSupplies.flatMap(
+    supply => {
+
+      const lead =
+        currentLeads.find(
+          item =>
+            String(item.id) ===
+            String(supply.lead_id)
+        );
+
+      const company =
+        lead?.companies || {};
+
+      const companyName =
+        company.name ||
+        supply.company_name ||
+        "Unbekannter Kunde";
+
+      const events = [];
+
+      if(supply.next_offer_date){
+        events.push({
+          appointment_date:
+            supply.next_offer_date,
+
+          appointment_time:
+            null,
+
+          title:
+            "Angebot: " +
+            companyName,
+
+          lead_id:
+            supply.lead_id,
+
+          supplyEvent:true,
+          supplyEventType:"offer"
+        });
+      }
+
+      if(supply.next_cancellation_date){
+        events.push({
+          appointment_date:
+            supply.next_cancellation_date,
+
+          appointment_time:
+            null,
+
+          title:
+            "Kündigung: " +
+            companyName,
+
+          lead_id:
+            supply.lead_id,
+
+          supplyEvent:true,
+          supplyEventType:"cancellation"
+        });
+      }
+
+      return events;
+    }
+  );
+}
+
+function renderCalendar(){
+
+  const title =
+    $("calendarTitle");
+
+  const daysContainer =
+    $("calendarDays");
+
+  if(!title || !daysContainer){
+    return;
+  }
+
+  const year =
+    calendarDate.getFullYear();
+
+  const month =
+    calendarDate.getMonth();
+
+  title.textContent =
+    new Intl.DateTimeFormat(
+      "de-DE",
+      {
+        month:"long",
+        year:"numeric"
+      }
+    ).format(calendarDate);
+
+  const first =
+    new Date(
+      year,
+      month,
+      1
+    );
+
+  let startDay =
+    first.getDay();
+
+  startDay =
+    startDay === 0
+      ? 6
+      : startDay - 1;
+
+  const daysInMonth =
+    new Date(
+      year,
+      month + 1,
+      0
+    ).getDate();
+
+  const previousMonthDays =
+    new Date(
+      year,
+      month,
+      0
+    ).getDate();
+
+  const totalCells =
+    Math.ceil(
+      (startDay + daysInMonth) / 7
+    ) * 7;
+
+  const supplyCalendarEvents =
+    getSupplyCalendarEvents();
+
+  const calendarAppointments =
+    [
+      ...currentAppointments,
+      ...supplyCalendarEvents
+    ];
+
+  let html = "";
+
+  for(
+    let index = 0;
+    index < totalCells;
+    index++
+  ){
+
+    const dayNumber =
+      index - startDay + 1;
+
+    let dateObject;
+    let displayNumber;
+    let otherMonth = false;
+
+    if(dayNumber < 1){
+
+      displayNumber =
+        previousMonthDays +
+        dayNumber;
+
+      dateObject =
+        new Date(
+          year,
+          month - 1,
+          displayNumber
+        );
+
+      otherMonth = true;
+
+    }else if(
+      dayNumber > daysInMonth
+    ){
+
+      displayNumber =
+        dayNumber -
+        daysInMonth;
+
+      dateObject =
+        new Date(
+          year,
+          month + 1,
+          displayNumber
+        );
+
+      otherMonth = true;
+
+    }else{
+
+      displayNumber =
+        dayNumber;
+
+      dateObject =
+        new Date(
+          year,
+          month,
+          displayNumber
+        );
+    }
+
+    const dateString =
+      [
+        dateObject.getFullYear(),
+
+        String(
+          dateObject.getMonth() + 1
+        ).padStart(2,"0"),
+
+        String(
+          dateObject.getDate()
+        ).padStart(2,"0")
+      ].join("-");
+
+    const appointments =
+      calendarAppointments.filter(
+        appointment =>
+          appointment.appointment_date ===
+          dateString
+      );
+
+    html += `
+      <div class="calendar-day ${
+        otherMonth
+          ? "other-month"
+          : ""
+      }">
+
+        <div class="calendar-number">
+          ${displayNumber}
+        </div>
+
+        ${
+          appointments
+            .map(
+              appointment => {
+
+                const lead =
+                  currentLeads.find(
+                    item =>
+                      String(item.id) ===
+                      String(
+                        appointment.lead_id
+                      )
+                  );
+
+                const company =
+                  lead?.companies || {};
+
+                const isSupplyEvent =
+                  Boolean(
+                    appointment.supplyEvent
+                  );
+
+                let eventClass =
+                  "calendar-event";
+
+                if(isSupplyEvent){
+                  eventClass +=
+                    " supply-calendar-event";
+
+                  if(
+                    appointment.supplyEventType ===
+                    "cancellation"
+                  ){
+                    eventClass +=
+                      " supply-cancellation-event";
+                  }
+
+                  if(
+                    appointment.supplyEventType ===
+                    "offer"
+                  ){
+                    eventClass +=
+                      " supply-offer-event";
+                  }
+                }
+
+                return `
+                  <div
+                    class="${eventClass}"
+                    data-lead-id="${escapeAttribute(
+                      appointment.lead_id
+                    )}"
+                    title="${escapeAttribute(
+                      appointment.title
+                    )}"
+                  >
+
+                    ${
+                      appointment.appointment_time
+                        ? escapeHtml(
+                            appointment.appointment_time
+                          ) + " "
+                        : ""
+                    }
+
+                    ${escapeHtml(
+                      isSupplyEvent
+                        ? appointment.title
+                        : (
+                            company.name ||
+                            appointment.title
+                          )
+                    )}
+
+                  </div>
+                `;
+              }
+            )
+            .join("")
+        }
+
+      </div>
+    `;
+  }
+
+  daysContainer.innerHTML =
+    html;
+
+  daysContainer
+    .querySelectorAll(
+      ".calendar-event"
+    )
+    .forEach(event => {
+
+      event.addEventListener(
+        "click",
+        () =>
+          openLeadDetail(
+            event.dataset.leadId
+          )
+      );
+
+    });
+}
+
+
+/* =========================================================
+   PIPELINE
+========================================================= */
+
+function updateDashboardStats(
+  leads
+){
+
+  $("statLeads").textContent =
+    leads.length;
+
+  $("statNewLeads").textContent =
+    leads.filter(
+      lead =>
+        normalizeStatus(
+          lead.status
+        ) === "new"
+    ).length;
+
+  $("statQualifiedLeads").textContent =
+    leads.filter(
+      lead =>
+        [
+          "called",
+          "not_reached",
+          "negotiation",
+          "calculation"
+        ].includes(
+          normalizeStatus(
+            lead.status
+          )
+        )
+    ).length;
+
+  $("statPipeline").textContent =
+    `${leads.length * LEAD_VALUE} €`;
+}
+
+function renderPipeline(){
+
+  const visibleLeads =
+    getVisibleLeads();
+
+  const total =
+    visibleLeads.length *
+    LEAD_VALUE;
+
+  $("pipelineLeadCount").textContent =
+    visibleLeads.length;
+
+  $("pipelineTotal").textContent =
+    `${total} €`;
+
+  const statuses =
+    [
+      "new",
+      "called",
+      "not_reached",
+      "negotiation",
+      "calculation",
+      "no_interest",
+      "qualified",
+      "lost"
+    ];
+
+  $("pipelineTableBody").innerHTML =
+    statuses
+      .map(
+        status => {
+
+          const count =
+            visibleLeads.filter(
+              lead =>
+                normalizeStatus(
+                  lead.status
+                ) === status
+            ).length;
+
+          return `
+            <tr>
+
+              <td>
+                <span class="status ${
+                  statusClass(status)
+                }">
+                  ${statusLabel(status)}
+                </span>
+              </td>
+
+              <td>
+                ${count}
+              </td>
+
+              <td>
+                ${count * LEAD_VALUE} €
+              </td>
+
+            </tr>
+          `;
+        }
+      )
+      .join("");
+}
+
+
+/* =========================================================
+   KONTAKTE
+========================================================= */
+
+function renderContacts(){
+
+  const container =
+    $("contactsContent");
+
+  const visibleLeads =
+    getVisibleLeads();
+
+  if(!visibleLeads.length){
+
+    container.innerHTML =
+      `<div class="empty">
+        Noch keine Leads vorhanden.
+      </div>`;
+
+    return;
+  }
+
+  container.innerHTML = `
+
+    <div class="table-wrapper">
+
+      <table>
+
+        <thead>
+
+          <tr>
+            <th>Unternehmen</th>
+            <th>Kontakt</th>
+            <th>Telefon</th>
+            <th>E-Mail</th>
+            <th>Status</th>
+          </tr>
+
+        </thead>
+
+        <tbody>
+
+          ${
+            visibleLeads
+              .map(
+                lead => {
+
+                  const company =
+                    lead.companies || {};
+
+                  return `
+                    <tr>
+
+                      <td>
+                        ${escapeHtml(
+                          company.name ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+                        ${escapeHtml(
+                          company.contact_name ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+                        ${escapeHtml(
+                          company.phone ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+                        ${escapeHtml(
+                          company.email ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+
+                        <span class="status ${
+                          statusClass(
+                            lead.status
+                          )
+                        }">
+
+                          ${statusLabel(
+                            lead.status
+                          )}
+
+                        </span>
+
+                      </td>
+
+                    </tr>
+                  `;
+                }
+              )
+              .join("")
+          }
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  `;
+}
+
+
+/* =========================================================
+   EVENTS
+========================================================= */
+
+function setupEvents(){
+
+  $("loginTab").addEventListener(
+    "click",
+    () =>
+      switchAuthMode("login")
+  );
+
+  $("registerTab").addEventListener(
+    "click",
+    () =>
+      switchAuthMode("register")
+  );
+
+  $("authForm").addEventListener(
+    "submit",
+    handleAuth
+  );
+
+  $("logoutButton").addEventListener(
+    "click",
+    logout
+  );
+
+  $("importCompaniesButton").addEventListener(
+    "click",
+    importCompanies
+  );
+
+  $("companySearchButton").addEventListener(
+    "click",
+    searchCompaniesForLeads
+  );
+
+  $("addSelectedButton").addEventListener(
+    "click",
+    addSelectedCompaniesAsLeads
+  );
+
+  $("refreshLeadsButton").addEventListener(
+    "click",
+    loadLeads
+  );
+
+  $("leadSearch").addEventListener(
+    "input",
+    filterLeads
+  );
+
+  $("leadStatus").addEventListener(
+    "change",
+    filterLeads
+  );
+
+  $("companyTableSearch").addEventListener(
+    "input",
+    renderCompanySearchResults
+  );
+
+  $("energyFilter").addEventListener(
+    "change",
+    renderCompanySearchResults
+  );
+
+  $("resetCompanyFilters").addEventListener(
+    "click",
+    () => {
+
+      $("companyTableSearch").value = "";
+      $("energyFilter").value = "";
+
+      renderCompanySearchResults();
+    }
+  );
+
+  $("selectAllCompanies").addEventListener(
+    "change",
+    event => {
+
+      document
+        .querySelectorAll(
+          ".company-select:not(:disabled)"
+        )
+        .forEach(
+          checkbox =>
+            checkbox.checked =
+              event.target.checked
+        );
+
+    }
+  );
+
+  $("energySortHeader").addEventListener(
+    "click",
+    () => {
+
+      companySortDirection =
+        companySortDirection === "asc"
+          ? "desc"
+          : "asc";
+
+      renderCompanySearchResults();
+    }
+  );
+
+  $("closeLeadDetailButton").addEventListener(
+    "click",
+    closeLeadDetail
+  );
+
+  $("leadDetailModal").addEventListener(
+    "click",
+    event => {
+
+      if(
+        event.target ===
+        $("leadDetailModal")
+      ){
+        closeLeadDetail();
+      }
+
+    }
+  );
+
+  $("saveLeadStatusButton").addEventListener(
+    "click",
+    updateLeadStatus
+  );
+
+  $("saveLeadNotesButton").addEventListener(
+    "click",
+    saveLeadNotes
+  );
+
+  $("moveLeadToSupplyButton").addEventListener(
+    "click",
+    moveLeadToSupply
+  );
+
+  $("appointmentForm").addEventListener(
+    "submit",
+    createAppointment
+  );
+
+  $("closeSupplyDetailButton").addEventListener(
+    "click",
+    closeSupplyDetail
+  );
+
+  $("supplyDetailModal").addEventListener(
+    "click",
+    event => {
+
+      if(
+        event.target ===
+        $("supplyDetailModal")
+      ){
+        closeSupplyDetail();
+      }
+
+    }
+  );
+
+  $("supplyForm").addEventListener(
+    "submit",
+    saveSupply
+  );
+
+  $("supplyAppointmentButton").addEventListener(
+    "click",
+    openSupplyAppointment
+  );
+
+  $("refreshSupplyButton").addEventListener(
+    "click",
+    loadSupplies
+  );
+
+  $("supplySearch").addEventListener(
+    "input",
+    renderSupply
+  );
+
+  $("supplyTypeFilter").addEventListener(
+    "change",
+    renderSupply
+  );
+
+  $("calendarPrev").addEventListener(
+    "click",
+    async () => {
+
+      calendarDate =
+        new Date(
+          calendarDate.getFullYear(),
+          calendarDate.getMonth() - 1,
+          1
+        );
+
+      await loadAllAppointments();
+
+      renderCalendar();
+    }
+  );
+
+  $("calendarNext").addEventListener(
+    "click",
+    async () => {
+
+      calendarDate =
+        new Date(
+          calendarDate.getFullYear(),
+          calendarDate.getMonth() + 1,
+          1
+        );
+
+      await loadAllAppointments();
+
+      renderCalendar();
+    }
+  );
+
+  document
+    .querySelectorAll(".nav-item")
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            showPage(
+              button.dataset.page
+            )
+        );
+
+      }
+    );
+
+  document
+    .querySelectorAll(
+      "[data-open-page]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            showPage(
+              button.dataset.openPage
+            )
+        );
+
+      }
+    );
+}
+
+
+/* =========================================================
+   START
+========================================================= */
+
+async function boot(){
+
+  setupEvents();
+
+  try{
+
+    initSupabase();
+
+    supabaseClient.auth.onAuthStateChange(
+      async (
+        event,
+        session
+      ) => {
+
+        if(session?.user){
+
+          await showApp(
+            session.user
+          );
+
+        }else{
+
+          showLogin();
+
+        }
+
+      }
+    );
+
+    await checkSession();
+
+    if(currentUser){
+      await loadIndustries();
+    }
+
+  }catch(error){
+
+    console.error(
+      "SUPABASE INITIALISIERUNG FEHLER:",
+      error
+    );
+
+    showLogin();
+
+    showAuthMessage(
+      "Verbindung zu Supabase fehlgeschlagen: " +
+      formatError(error)
+    );
+  }
+}
+
+boot();
+
+</script>
+
+</body>
+</html>
+  $("supplyDeliveryStartDate").value =
+    supply.delivery_start_date || "";
+
+  $("supplyOldContractDeadline").value =
+    supply.old_contract_deadline || "";
+
+  $("supplyOldContractNotice").value =
+    supply.old_contract_notice || "";
+
+  $("supplyNextOfferDate").value =
+    supply.next_offer_date || "";
+
+  $("supplyNextCancellationDate").value =
+    supply.next_cancellation_date || "";
 
   $("supplyNotes").value =
     supply.notes || "";
@@ -2891,6 +4610,14 @@ async function saveSupply(event){
         .value
         .trim(),
 
+    next_offer_date:
+      $("supplyNextOfferDate").value ||
+      null,
+
+    next_cancellation_date:
+      $("supplyNextCancellationDate").value ||
+      null,
+
     supply_type:supplyType,
 
     notes:
@@ -2942,19 +4669,6 @@ async function saveSupply(event){
       );
     }
 
-    /*
-      NEU:
-
-      Nicht nur lokal currentSupplies verändern.
-      Stattdessen beide Datenquellen neu laden.
-
-      Dadurch:
-      1. wird der Lead-Status aus Supabase neu geladen
-      2. wird die Belieferung aus Supabase neu geladen
-      3. die Leads-Tabelle wird aktualisiert
-      4. die Belieferungs-Tabelle wird aktualisiert
-    */
-
     await loadLeads();
     await loadSupplies();
 
@@ -2981,6 +4695,7 @@ async function saveSupply(event){
     renderSupply();
     renderPipeline();
     updateDashboardStats(currentLeads);
+    renderCalendar();
 
     showStatus(
       "supplyMessage",
@@ -3488,6 +5203,85 @@ function renderCalendar(){
       (startDay + daysInMonth) / 7
     ) * 7;
 
+  const supplyCalendarEvents =
+    currentSupplies.flatMap(
+      supply => {
+
+        const lead =
+          currentLeads.find(
+            item =>
+              String(item.id) ===
+              String(supply.lead_id)
+          );
+
+        const company =
+          lead?.companies || {};
+
+        const companyName =
+          company.name ||
+          supply.company_name ||
+          "Unbekannter Kunde";
+
+        const events = [];
+
+        if(supply.next_offer_date){
+
+          events.push({
+            appointment_date:
+              supply.next_offer_date,
+
+            appointment_time:
+              null,
+
+            title:
+              `Angebot: ${companyName}`,
+
+            lead_id:
+              supply.lead_id,
+
+            supplyEvent:
+              true,
+
+            supplyEventType:
+              "offer"
+          });
+
+        }
+
+        if(supply.next_cancellation_date){
+
+          events.push({
+            appointment_date:
+              supply.next_cancellation_date,
+
+            appointment_time:
+              null,
+
+            title:
+              `Kündigung: ${companyName}`,
+
+            lead_id:
+              supply.lead_id,
+
+            supplyEvent:
+              true,
+
+            supplyEventType:
+              "cancellation"
+          });
+
+        }
+
+        return events;
+      }
+    );
+
+  const calendarAppointments =
+    [
+      ...currentAppointments,
+      ...supplyCalendarEvents
+    ];
+
   let html = "";
 
   for(
@@ -3562,7 +5356,7 @@ function renderCalendar(){
       ].join("-");
 
     const appointments =
-      currentAppointments.filter(
+      calendarAppointments.filter(
         appointment =>
           appointment.appointment_date ===
           dateString
@@ -3596,9 +5390,19 @@ function renderCalendar(){
                 const company =
                   lead?.companies || {};
 
+                const eventClass =
+                  appointment.supplyEvent
+                    ? (
+                        appointment.supplyEventType ===
+                        "cancellation"
+                          ? " supply-event-cancellation"
+                          : " supply-event-offer"
+                      )
+                    : "";
+
                 return `
                   <div
-                    class="calendar-event"
+                    class="calendar-event${eventClass}"
                     data-lead-id="${escapeAttribute(
                       appointment.lead_id
                     )}"
@@ -3616,8 +5420,12 @@ function renderCalendar(){
                     }
 
                     ${escapeHtml(
-                      company.name ||
-                      appointment.title
+                      appointment.supplyEvent
+                        ? appointment.title
+                        : (
+                            company.name ||
+                            appointment.title
+                          )
                     )}
 
                   </div>
@@ -4124,8 +5932,6 @@ function setupEvents(){
       }
     );
 }
-
-
 /* =========================================================
    START
 ========================================================= */
