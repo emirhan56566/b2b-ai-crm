@@ -1053,7 +1053,7 @@ async function insertCompany(
     ...company,
     user_id: userId
 };
-
+}
 
 /* =========================================================
    API
