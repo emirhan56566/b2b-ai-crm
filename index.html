@@ -1020,15 +1020,11 @@ Quelle (URL): https://example.de"></textarea>
 <script>
 "use strict";
 
-/* =========================================================
-   SUPABASE
-========================================================= */
-
 const SUPABASE_URL =
   "https://ippummtfsjfrayosofxb.supabase.co";
 
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcHVtbXRmc2pmcmF5b3NvZnhiIiwicm9sZSI6Im5vbmUiLCJpYXQiOjE3ODk3NTQ4MDUsImV4cCI6MjEwNTMzMDgwNX0.-BrJuSK9S28uG53a2T8kkk43BljiJX5kIDGwu44x-5A";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJpcHB1bW10ZnNqZnJheW9zb2Z4YiIsInJlZiI6ImlwcHVtbXRmc2pmcmF5b3NvZnhiIiwicm9sZSI6Im5vbmUiLCJpYXQiOjE3ODk3NTQ4MDUsImV4cCI6MjEwNTMzMDgwNX0.-BrJuSK9S28uG53a2T8kkk43BljiJX5kIDGwu44x-5A";
 
 let supabaseClient = null;
 let currentUser = null;
@@ -1068,11 +1064,6 @@ const STATUS_CLASSES = {
 };
 
 const $ = id => document.getElementById(id);
-
-
-/* =========================================================
-   HILFSFUNKTIONEN
-========================================================= */
 
 function escapeHtml(value){
   return String(value ?? "")
@@ -1183,11 +1174,6 @@ async function getApiToken(){
 
   return data.session.access_token;
 }
-
-
-/* =========================================================
-   AUTH
-========================================================= */
 
 function initSupabase(){
   supabaseClient =
@@ -1332,11 +1318,6 @@ async function checkSession(){
   }
 }
 
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
 async function showPage(page){
   document
     .querySelectorAll(".page")
@@ -1383,11 +1364,6 @@ async function showPage(page){
     await loadSupplies();
   }
 }
-
-
-/* =========================================================
-   IMPORT
-========================================================= */
 
 async function importCompanies(){
   const text =
@@ -1452,11 +1428,6 @@ async function importCompanies(){
     button.disabled = false;
   }
 }
-
-
-/* =========================================================
-   UNTERNEHMENSSUCHE
-========================================================= */
 
 async function loadIndustries(){
   try{
@@ -1820,11 +1791,6 @@ async function addSelectedCompaniesAsLeads(){
   }
 }
 
-
-/* =========================================================
-   LEADS
-========================================================= */
-
 async function loadLeads(){
   if(!currentUser) return;
 
@@ -2010,11 +1976,9 @@ function renderLeads(leads){
     });
 }
 
-
-/* =========================================================
-   LEAD DETAIL
-========================================================= */
-
+function openLeadDetail(leadId){
+  /* folgt in Teil 2 */
+}
 async function openLeadDetail(leadId){
   const lead =
     currentLeads.find(
@@ -2106,7 +2070,8 @@ async function openLeadDetail(leadId){
     </div>
   `;
 
-  $("leadNotes").value = lead.notes || "";
+  $("leadNotes").value =
+    lead.notes || "";
 
   $("leadDetailModal").classList.remove("hidden");
 
@@ -2184,7 +2149,9 @@ async function updateLeadStatus(){
 
     const localLead =
       currentLeads.find(
-        lead => String(lead.id) === String(selectedLead.id)
+        lead =>
+          String(lead.id) ===
+          String(selectedLead.id)
       );
 
     if(localLead){
@@ -2264,7 +2231,9 @@ async function saveLeadNotes(){
 
     const localLead =
       currentLeads.find(
-        lead => String(lead.id) === String(selectedLead.id)
+        lead =>
+          String(lead.id) ===
+          String(selectedLead.id)
       );
 
     if(localLead){
@@ -2300,7 +2269,8 @@ async function moveLeadToSupply(){
   const existingSupply =
     currentSupplies.find(
       supply =>
-        String(supply.lead_id) === String(selectedLead.id)
+        String(supply.lead_id) ===
+        String(selectedLead.id)
     );
 
   if(existingSupply){
@@ -2347,58 +2317,17 @@ async function moveLeadToSupply(){
       );
     }
 
+    await loadLeads();
+    await loadSupplies();
+
     const supply =
-      result.supply || result;
-
-    currentSupplies =
-      [
-        ...currentSupplies.filter(
-          item =>
-            String(item.lead_id) !== String(selectedLead.id)
-        ),
-        supply
-      ];
-
-    const currentLeadId =
-      selectedLead.id;
-
-    try{
-      const statusResponse =
-        await fetch("/api/leads",{
-          method:"PATCH",
-          headers:{
-            "Content-Type":"application/json",
-            Authorization:"Bearer " + token
-          },
-          body:JSON.stringify({
-            lead_id:currentLeadId,
-            status:"signed"
-          })
-        });
-
-      if(statusResponse.ok){
-        const statusResult =
-          await statusResponse.json();
-
-        const localLead =
-          currentLeads.find(
-            lead =>
-              String(lead.id) === String(currentLeadId)
-          );
-
-        if(localLead){
-          localLead.status = "signed";
-          localLead.status_updated_at =
-            statusResult.lead?.status_updated_at ||
-            new Date().toISOString();
-        }
-      }
-    }catch(statusError){
-      console.error(
-        "Lead-Status konnte nach Übernahme nicht gesetzt werden:",
-        statusError
-      );
-    }
+      currentSupplies.find(
+        item =>
+          String(item.lead_id) ===
+          String(selectedLead.id)
+      ) ||
+      result.supply ||
+      result;
 
     renderLeads(currentLeads);
     renderPipeline();
@@ -2407,7 +2336,9 @@ async function moveLeadToSupply(){
 
     closeLeadDetail();
 
-    await openSupplyDetail(supply.id);
+    if(supply?.id){
+      await openSupplyDetail(supply.id);
+    }
 
   }catch(error){
     showStatus(
@@ -2457,7 +2388,10 @@ async function loadSupplies(){
     renderSupply();
 
   }catch(error){
-    console.error("BELIEFERUNGEN FEHLER:",error);
+    console.error(
+      "BELIEFERUNGEN FEHLER:",
+      error
+    );
 
     currentSupplies = [];
 
@@ -2468,7 +2402,11 @@ async function loadSupplies(){
 
     if(tbody){
       tbody.innerHTML =
-        `<tr><td colspan="8" class="empty">${escapeHtml(formatError(error))}</td></tr>`;
+        `<tr>
+          <td colspan="8" class="empty">
+            ${escapeHtml(formatError(error))}
+          </td>
+        </tr>`;
     }
   }
 }
@@ -2487,7 +2425,8 @@ function getFilteredSupplies(){
     const lead =
       currentLeads.find(
         item =>
-          String(item.id) === String(supply.lead_id)
+          String(item.id) ===
+          String(supply.lead_id)
       );
 
     const company =
@@ -2511,7 +2450,8 @@ function getFilteredSupplies(){
 
     return (
       (!search || text.includes(search)) &&
-      (!type || String(supply.supply_type || "") === type)
+      (!type ||
+        String(supply.supply_type || "") === type)
     );
   });
 }
@@ -2541,7 +2481,8 @@ function renderSupply(){
   const totalConsumption =
     currentSupplies.reduce(
       (sum,item) =>
-        sum + (Number(item.annual_consumption_kwh) || 0),
+        sum +
+        (Number(item.annual_consumption_kwh) || 0),
       0
     );
 
@@ -2550,7 +2491,11 @@ function renderSupply(){
 
   if(!supplies.length){
     tbody.innerHTML =
-      `<tr><td colspan="8" class="empty">Noch keine Kunden in Belieferung vorhanden.</td></tr>`;
+      `<tr>
+        <td colspan="8" class="empty">
+          Noch keine Kunden in Belieferung vorhanden.
+        </td>
+      </tr>`;
     return;
   }
 
@@ -2560,7 +2505,8 @@ function renderSupply(){
       const lead =
         currentLeads.find(
           item =>
-            String(item.id) === String(supply.lead_id)
+            String(item.id) ===
+            String(supply.lead_id)
         );
 
       const company =
@@ -2571,6 +2517,7 @@ function renderSupply(){
           class="supply-row"
           data-supply-id="${escapeAttribute(supply.id)}"
         >
+
           <td>
             <strong>
               ${escapeHtml(
@@ -2582,18 +2529,28 @@ function renderSupply(){
           </td>
 
           <td>
-            ${formatDate(supply.delivery_start_date)}
+            ${formatDate(
+              supply.delivery_start_date
+            )}
           </td>
 
           <td>
-            ${formatDate(supply.desired_delivery_date)}
+            ${formatDate(
+              supply.desired_delivery_date
+            )}
           </td>
 
           <td>
             ${
               supply.supply_type
-                ? `<span class="status ${supply.supply_type === "RLM" ? "status-calculation" : "status-new"}">
-                    ${escapeHtml(supply.supply_type)}
+                ? `<span class="status ${
+                    supply.supply_type === "RLM"
+                      ? "status-calculation"
+                      : "status-new"
+                  }">
+                    ${escapeHtml(
+                      supply.supply_type
+                    )}
                    </span>`
                 : "—"
             }
@@ -2602,22 +2559,33 @@ function renderSupply(){
           <td>
             ${
               supply.annual_consumption_kwh != null
-                ? escapeHtml(formatNumber(supply.annual_consumption_kwh)) + " kWh"
+                ? escapeHtml(
+                    formatNumber(
+                      supply.annual_consumption_kwh
+                    )
+                  ) + " kWh"
                 : "—"
             }
           </td>
 
           <td>
-            ${escapeHtml(supply.previous_supplier || "—")}
+            ${escapeHtml(
+              supply.previous_supplier || "—"
+            )}
           </td>
 
           <td>
-            ${escapeHtml(supply.malo_id || "—")}
+            ${escapeHtml(
+              supply.malo_id || "—"
+            )}
           </td>
 
           <td>
-            ${escapeHtml(supply.meter_number || "—")}
+            ${escapeHtml(
+              supply.meter_number || "—"
+            )}
           </td>
+
         </tr>
       `;
     }).join("");
@@ -2627,7 +2595,10 @@ function renderSupply(){
     .forEach(row => {
       row.addEventListener(
         "click",
-        () => openSupplyDetail(row.dataset.supplyId)
+        () =>
+          openSupplyDetail(
+            row.dataset.supplyId
+          )
       );
     });
 }
@@ -2652,15 +2623,20 @@ function clearSupplyForm(){
   $("supplyNotes").value = "";
 
   document
-    .querySelectorAll('input[name="supplyType"]')
-    .forEach(input => input.checked = false);
+    .querySelectorAll(
+      'input[name="supplyType"]'
+    )
+    .forEach(
+      input => input.checked = false
+    );
 }
 
 async function openSupplyDetail(supplyId){
   const supply =
     currentSupplies.find(
       item =>
-        String(item.id) === String(supplyId)
+        String(item.id) ===
+        String(supplyId)
     );
 
   if(!supply) return;
@@ -2670,7 +2646,8 @@ async function openSupplyDetail(supplyId){
   const lead =
     currentLeads.find(
       item =>
-        String(item.id) === String(supply.lead_id)
+        String(item.id) ===
+        String(supply.lead_id)
     );
 
   const company =
@@ -2732,10 +2709,13 @@ async function openSupplyDetail(supplyId){
     supply.notes || "";
 
   document
-    .querySelectorAll('input[name="supplyType"]')
+    .querySelectorAll(
+      'input[name="supplyType"]'
+    )
     .forEach(input => {
       input.checked =
-        input.value === supply.supply_type;
+        input.value ===
+        supply.supply_type;
     });
 
   $("supplyDetailTitle").textContent =
@@ -2767,13 +2747,24 @@ async function openSupplyDetail(supplyId){
 
   hideStatus("supplyMessage");
 
-  $("supplyDetailModal").classList.remove("hidden");
+  $("supplyDetailModal")
+    .classList
+    .remove("hidden");
 }
 
 function closeSupplyDetail(){
   selectedSupply = null;
-  $("supplyDetailModal").classList.add("hidden");
+
+  $("supplyDetailModal")
+    .classList
+    .add("hidden");
 }
+
+
+/* =========================================================
+   WICHTIG:
+   BELIEFERUNG SPEICHERN
+========================================================= */
 
 async function saveSupply(event){
   event.preventDefault();
@@ -2810,7 +2801,10 @@ async function saveSupply(event){
   const maloId =
     $("supplyMaloId").value.trim();
 
-  if(maloId && !/^\d{11}$/.test(maloId)){
+  if(
+    maloId &&
+    !/^\d{11}$/.test(maloId)
+  ){
     showStatus(
       "supplyMessage",
       "Die MaLo-ID muss genau 11 Ziffern enthalten.",
@@ -2826,47 +2820,113 @@ async function saveSupply(event){
 
   const payload = {
     lead_id:leadId,
-    company_name:$("supplyCompanyName").value.trim(),
-    business_address:$("supplyBusinessAddress").value.trim(),
-    vat_id:$("supplyVatId").value.trim(),
+
+    company_name:
+      $("supplyCompanyName")
+        .value
+        .trim(),
+
+    business_address:
+      $("supplyBusinessAddress")
+        .value
+        .trim(),
+
+    vat_id:
+      $("supplyVatId")
+        .value
+        .trim(),
+
     malo_id:maloId,
-    meter_number:$("supplyMeterNumber").value.trim(),
+
+    meter_number:
+      $("supplyMeterNumber")
+        .value
+        .trim(),
+
     annual_consumption_kwh:
       $("supplyAnnualConsumption").value === ""
         ? null
-        : Number($("supplyAnnualConsumption").value),
+        : Number(
+            $("supplyAnnualConsumption").value
+          ),
+
     current_meter_reading:
       $("supplyMeterReading").value === ""
         ? null
-        : Number($("supplyMeterReading").value),
-    previous_supplier:$("supplyPreviousSupplier").value.trim(),
-    previous_customer_number:$("supplyPreviousCustomerNumber").value.trim(),
-    iban:$("supplyIban").value.trim(),
-    desired_delivery_date:$("supplyDesiredDeliveryDate").value || null,
-    delivery_start_date:$("supplyDeliveryStartDate").value || null,
-    old_contract_deadline:$("supplyOldContractDeadline").value || null,
-    old_contract_notice:$("supplyOldContractNotice").value.trim(),
+        : Number(
+            $("supplyMeterReading").value
+          ),
+
+    previous_supplier:
+      $("supplyPreviousSupplier")
+        .value
+        .trim(),
+
+    previous_customer_number:
+      $("supplyPreviousCustomerNumber")
+        .value
+        .trim(),
+
+    iban:
+      $("supplyIban")
+        .value
+        .trim(),
+
+    desired_delivery_date:
+      $("supplyDesiredDeliveryDate").value ||
+      null,
+
+    delivery_start_date:
+      $("supplyDeliveryStartDate").value ||
+      null,
+
+    old_contract_deadline:
+      $("supplyOldContractDeadline").value ||
+      null,
+
+    old_contract_notice:
+      $("supplyOldContractNotice")
+        .value
+        .trim(),
+
     supply_type:supplyType,
-    notes:$("supplyNotes").value.trim()
+
+    notes:
+      $("supplyNotes")
+        .value
+        .trim()
   };
 
   try{
+
     const token =
       await getApiToken();
 
     const response =
       await fetch(
         "/api/lead-supply" +
-        (supplyId
-          ? "?id=" + encodeURIComponent(supplyId)
-          : ""),
+        (
+          supplyId
+            ? "?id=" +
+              encodeURIComponent(supplyId)
+            : ""
+        ),
         {
-          method:supplyId ? "PATCH" : "POST",
+          method:
+            supplyId
+              ? "PATCH"
+              : "POST",
+
           headers:{
-            "Content-Type":"application/json",
-            Authorization:"Bearer " + token
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              "Bearer " + token
           },
-          body:JSON.stringify(payload)
+
+          body:
+            JSON.stringify(payload)
         }
       );
 
@@ -2880,38 +2940,67 @@ async function saveSupply(event){
       );
     }
 
+    /*
+      NEU:
+
+      Nicht nur lokal currentSupplies verändern.
+      Stattdessen beide Datenquellen neu laden.
+
+      Dadurch:
+      1. wird der Lead-Status aus Supabase neu geladen
+      2. wird die Belieferung aus Supabase neu geladen
+      3. die Leads-Tabelle wird aktualisiert
+      4. die Belieferungs-Tabelle wird aktualisiert
+    */
+
+    await loadLeads();
+    await loadSupplies();
+
     const saved =
       result.supply || result;
 
-    const index =
-      currentSupplies.findIndex(
+    const refreshedSupply =
+      currentSupplies.find(
         item =>
-          String(item.id) === String(saved.id)
-      );
+          String(item.id) ===
+          String(saved.id)
+      ) ||
+      currentSupplies.find(
+        item =>
+          String(item.lead_id) ===
+          String(leadId)
+      ) ||
+      saved;
 
-    if(index >= 0){
-      currentSupplies[index] = saved;
-    }else{
-      currentSupplies.push(saved);
-    }
+    selectedSupply =
+      refreshedSupply;
 
-    selectedSupply = saved;
-
+    renderLeads(currentLeads);
     renderSupply();
+    renderPipeline();
+    updateDashboardStats(currentLeads);
 
     showStatus(
       "supplyMessage",
-      "Belieferungsdaten gespeichert.",
+      "Belieferungsdaten gespeichert. Der Lead wurde in „Leads in Belieferung“ übernommen.",
       "success"
     );
 
   }catch(error){
+
+    console.error(
+      "BELIEFERUNG SPEICHERN FEHLER:",
+      error
+    );
+
     showStatus(
       "supplyMessage",
       formatError(error),
       "error"
     );
+
   }finally{
+
     button.disabled = false;
   }
 }
@@ -2922,7 +3011,8 @@ function openSupplyAppointment(){
   const lead =
     currentLeads.find(
       item =>
-        String(item.id) === String(selectedSupply.lead_id)
+        String(item.id) ===
+        String(selectedSupply.lead_id)
     );
 
   if(!lead){
@@ -2935,16 +3025,20 @@ function openSupplyAppointment(){
   }
 
   closeSupplyDetail();
-  openLeadDetail(lead.id);
+
+  openLeadDetail(
+    lead.id
+  );
 }
 
 
 /* =========================================================
-   APPOINTMENTS
+   TERMINE
 ========================================================= */
 
 async function loadAppointmentsForLead(leadId){
   try{
+
     const token =
       await getApiToken();
 
@@ -2954,7 +3048,8 @@ async function loadAppointmentsForLead(leadId){
         encodeURIComponent(leadId),
         {
           headers:{
-            Authorization:"Bearer " + token
+            Authorization:
+              "Bearer " + token
           }
         }
       );
@@ -2972,7 +3067,10 @@ async function loadAppointmentsForLead(leadId){
     currentAppointments =
       currentAppointments.filter(
         appointment =>
-          String(appointment.lead_id) !== String(leadId)
+          String(
+            appointment.lead_id
+          ) !==
+          String(leadId)
       );
 
     currentAppointments =
@@ -2987,15 +3085,22 @@ async function loadAppointmentsForLead(leadId){
     renderCalendar();
 
   }catch(error){
-    console.error("TERMINE FEHLER:",error);
+
+    console.error(
+      "TERMINE FEHLER:",
+      error
+    );
 
     $("leadAppointments").innerHTML =
-      `<div class="empty">Termine konnten nicht geladen werden.</div>`;
+      `<div class="empty">
+        Termine konnten nicht geladen werden.
+      </div>`;
   }
 }
 
 async function loadAllAppointments(){
   try{
+
     const token =
       await getApiToken();
 
@@ -3004,7 +3109,8 @@ async function loadAllAppointments(){
         "/api/lead-appointments",
         {
           headers:{
-            Authorization:"Bearer " + token
+            Authorization:
+              "Bearer " + token
           }
         }
       );
@@ -3025,8 +3131,14 @@ async function loadAllAppointments(){
     renderCalendar();
 
   }catch(error){
-    console.error("KALENDER FEHLER:",error);
+
+    console.error(
+      "KALENDER FEHLER:",
+      error
+    );
+
     currentAppointments = [];
+
     renderCalendar();
   }
 }
@@ -3037,7 +3149,9 @@ async function createAppointment(event){
   if(!selectedLead) return;
 
   const title =
-    $("appointmentTitle").value.trim();
+    $("appointmentTitle")
+      .value
+      .trim();
 
   const date =
     $("appointmentDate").value;
@@ -3046,7 +3160,9 @@ async function createAppointment(event){
     $("appointmentTime").value;
 
   const notes =
-    $("appointmentNotes").value.trim();
+    $("appointmentNotes")
+      .value
+      .trim();
 
   if(!title || !date){
     showStatus(
@@ -3058,24 +3174,42 @@ async function createAppointment(event){
   }
 
   try{
+
     const token =
       await getApiToken();
 
     const response =
-      await fetch("/api/lead-appointments",{
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          Authorization:"Bearer " + token
-        },
-        body:JSON.stringify({
-          lead_id:selectedLead.id,
-          title,
-          appointment_date:date,
-          appointment_time:time || null,
-          notes:notes || null
-        })
-      });
+      await fetch(
+        "/api/lead-appointments",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              "Bearer " + token
+          },
+
+          body:
+            JSON.stringify({
+              lead_id:
+                selectedLead.id,
+
+              title,
+
+              appointment_date:
+                date,
+
+              appointment_time:
+                time || null,
+
+              notes:
+                notes || null
+            })
+          }
+      );
 
     const result =
       await response.json();
@@ -3096,10 +3230,14 @@ async function createAppointment(event){
     $("appointmentNotes").value = "";
     $("appointmentTime").value = "";
 
-    await loadAppointmentsForLead(selectedLead.id);
+    await loadAppointmentsForLead(
+      selectedLead.id
+    );
+
     await loadAllAppointments();
 
   }catch(error){
+
     showStatus(
       "appointmentMessage",
       formatError(error),
@@ -3109,11 +3247,17 @@ async function createAppointment(event){
 }
 
 async function deleteAppointment(id){
-  if(!confirm("Diesen Termin wirklich löschen?")){
+
+  if(
+    !confirm(
+      "Diesen Termin wirklich löschen?"
+    )
+  ){
     return;
   }
 
   try{
+
     const token =
       await getApiToken();
 
@@ -3123,8 +3267,10 @@ async function deleteAppointment(id){
         encodeURIComponent(id),
         {
           method:"DELETE",
+
           headers:{
-            Authorization:"Bearer " + token
+            Authorization:
+              "Bearer " + token
           }
         }
       );
@@ -3140,68 +3286,107 @@ async function deleteAppointment(id){
     }
 
     if(selectedLead){
-      await loadAppointmentsForLead(selectedLead.id);
+      await loadAppointmentsForLead(
+        selectedLead.id
+      );
     }
 
     await loadAllAppointments();
 
   }catch(error){
-    alert(formatError(error));
+
+    alert(
+      formatError(error)
+    );
   }
 }
 
-function renderLeadAppointments(appointments){
+function renderLeadAppointments(
+  appointments
+){
   const container =
     $("leadAppointments");
 
   if(!appointments.length){
     container.innerHTML =
-      `<div class="empty">Für diesen Lead gibt es noch keine Termine.</div>`;
+      `<div class="empty">
+        Für diesen Lead gibt es noch keine Termine.
+      </div>`;
+
     return;
   }
 
   const sorted =
-    [...appointments].sort((a,b) => {
-      const first =
-        `${a.appointment_date} ${a.appointment_time || ""}`;
+    [...appointments].sort(
+      (a,b) => {
 
-      const second =
-        `${b.appointment_date} ${b.appointment_time || ""}`;
+        const first =
+          `${a.appointment_date} ${a.appointment_time || ""}`;
 
-      return first.localeCompare(second);
-    });
+        const second =
+          `${b.appointment_date} ${b.appointment_time || ""}`;
+
+        return first.localeCompare(
+          second
+        );
+      }
+    );
 
   container.innerHTML =
-    sorted.map(appointment => `
-      <div class="appointment">
-        <div>
-          <div class="appointment-title">
-            ${escapeHtml(appointment.title)}
+    sorted.map(
+      appointment => `
+
+        <div class="appointment">
+
+          <div>
+
+            <div class="appointment-title">
+              ${escapeHtml(
+                appointment.title
+              )}
+            </div>
+
+            <div class="appointment-meta">
+              ${formatDate(
+                appointment.appointment_date
+              )}
+
+              ${
+                appointment.appointment_time
+                  ? " · " +
+                    escapeHtml(
+                      appointment.appointment_time
+                    )
+                  : ""
+              }
+            </div>
+
+            ${
+              appointment.notes
+                ? `
+                  <div class="appointment-notes">
+                    ${escapeHtml(
+                      appointment.notes
+                    )}
+                  </div>
+                `
+                : ""
+            }
+
           </div>
 
-          <div class="appointment-meta">
-            ${formatDate(appointment.appointment_date)}
-            ${appointment.appointment_time
-              ? " · " + escapeHtml(appointment.appointment_time)
-              : ""}
-          </div>
+          <button
+            class="btn-danger btn-small"
+            type="button"
+            onclick="deleteAppointment('${escapeAttribute(appointment.id)}')"
+          >
+            Löschen
+          </button>
 
-          ${
-            appointment.notes
-              ? `<div class="appointment-notes">${escapeHtml(appointment.notes)}</div>`
-              : ""
-          }
         </div>
 
-        <button
-          class="btn-danger btn-small"
-          type="button"
-          onclick="deleteAppointment('${escapeAttribute(appointment.id)}')"
-        >
-          Löschen
-        </button>
-      </div>
-    `).join("");
+      `
+    ).join("");
 }
 
 
@@ -3224,26 +3409,33 @@ function formatDate(date){
 
 function formatDateTime(value){
   try{
-    return new Date(value).toLocaleString(
+
+    return new Date(
+      value
+    ).toLocaleString(
       "de-DE",
       {
         dateStyle:"short",
         timeStyle:"short"
       }
     );
+
   }catch{
     return value;
   }
 }
 
 function renderCalendar(){
+
   const title =
     $("calendarTitle");
 
   const daysContainer =
     $("calendarDays");
 
-  if(!title || !daysContainer) return;
+  if(!title || !daysContainer){
+    return;
+  }
 
   const year =
     calendarDate.getFullYear();
@@ -3261,7 +3453,11 @@ function renderCalendar(){
     ).format(calendarDate);
 
   const first =
-    new Date(year,month,1);
+    new Date(
+      year,
+      month,
+      1
+    );
 
   let startDay =
     first.getDay();
@@ -3272,17 +3468,31 @@ function renderCalendar(){
       : startDay - 1;
 
   const daysInMonth =
-    new Date(year,month + 1,0).getDate();
+    new Date(
+      year,
+      month + 1,
+      0
+    ).getDate();
 
   const previousMonthDays =
-    new Date(year,month,0).getDate();
+    new Date(
+      year,
+      month,
+      0
+    ).getDate();
 
   const totalCells =
-    Math.ceil((startDay + daysInMonth) / 7) * 7;
+    Math.ceil(
+      (startDay + daysInMonth) / 7
+    ) * 7;
 
   let html = "";
 
-  for(let index = 0; index < totalCells; index++){
+  for(
+    let index = 0;
+    index < totalCells;
+    index++
+  ){
 
     const dayNumber =
       index - startDay + 1;
@@ -3294,7 +3504,8 @@ function renderCalendar(){
     if(dayNumber < 1){
 
       displayNumber =
-        previousMonthDays + dayNumber;
+        previousMonthDays +
+        dayNumber;
 
       dateObject =
         new Date(
@@ -3305,10 +3516,13 @@ function renderCalendar(){
 
       otherMonth = true;
 
-    }else if(dayNumber > daysInMonth){
+    }else if(
+      dayNumber > daysInMonth
+    ){
 
       displayNumber =
-        dayNumber - daysInMonth;
+        dayNumber -
+        daysInMonth;
 
       dateObject =
         new Date(
@@ -3335,68 +3549,103 @@ function renderCalendar(){
     const dateString =
       [
         dateObject.getFullYear(),
-        String(dateObject.getMonth() + 1).padStart(2,"0"),
-        String(dateObject.getDate()).padStart(2,"0")
+
+        String(
+          dateObject.getMonth() + 1
+        ).padStart(2,"0"),
+
+        String(
+          dateObject.getDate()
+        ).padStart(2,"0")
       ].join("-");
 
     const appointments =
-      currentAppointments
-        .filter(
-          appointment =>
-            appointment.appointment_date === dateString
-        );
+      currentAppointments.filter(
+        appointment =>
+          appointment.appointment_date ===
+          dateString
+      );
 
     html += `
-      <div class="calendar-day ${otherMonth ? "other-month" : ""}">
-        <div class="calendar-number">${displayNumber}</div>
+      <div class="calendar-day ${
+        otherMonth
+          ? "other-month"
+          : ""
+      }">
+
+        <div class="calendar-number">
+          ${displayNumber}
+        </div>
 
         ${
           appointments
-            .map(appointment => {
+            .map(
+              appointment => {
 
-              const lead =
-                currentLeads.find(
-                  item =>
-                    String(item.id) ===
-                    String(appointment.lead_id)
-                );
+                const lead =
+                  currentLeads.find(
+                    item =>
+                      String(item.id) ===
+                      String(
+                        appointment.lead_id
+                      )
+                  );
 
-              const company =
-                lead?.companies || {};
+                const company =
+                  lead?.companies || {};
 
-              return `
-                <div
-                  class="calendar-event"
-                  data-lead-id="${escapeAttribute(appointment.lead_id)}"
-                  title="${escapeAttribute(appointment.title)}"
-                >
-                  ${
-                    appointment.appointment_time
-                      ? escapeHtml(appointment.appointment_time) + " "
-                      : ""
-                  }
-                  ${escapeHtml(
-                    company.name ||
-                    appointment.title
-                  )}
-                </div>
-              `;
-            })
+                return `
+                  <div
+                    class="calendar-event"
+                    data-lead-id="${escapeAttribute(
+                      appointment.lead_id
+                    )}"
+                    title="${escapeAttribute(
+                      appointment.title
+                    )}"
+                  >
+
+                    ${
+                      appointment.appointment_time
+                        ? escapeHtml(
+                            appointment.appointment_time
+                          ) + " "
+                        : ""
+                    }
+
+                    ${escapeHtml(
+                      company.name ||
+                      appointment.title
+                    )}
+
+                  </div>
+                `;
+              }
+            )
             .join("")
         }
+
       </div>
     `;
   }
 
-  daysContainer.innerHTML = html;
+  daysContainer.innerHTML =
+    html;
 
   daysContainer
-    .querySelectorAll(".calendar-event")
+    .querySelectorAll(
+      ".calendar-event"
+    )
     .forEach(event => {
+
       event.addEventListener(
         "click",
-        () => openLeadDetail(event.dataset.leadId)
+        () =>
+          openLeadDetail(
+            event.dataset.leadId
+          )
       );
+
     });
 }
 
@@ -3405,13 +3654,19 @@ function renderCalendar(){
    PIPELINE
 ========================================================= */
 
-function updateDashboardStats(leads){
+function updateDashboardStats(
+  leads
+){
+
   $("statLeads").textContent =
     leads.length;
 
   $("statNewLeads").textContent =
     leads.filter(
-      lead => normalizeStatus(lead.status) === "new"
+      lead =>
+        normalizeStatus(
+          lead.status
+        ) === "new"
     ).length;
 
   $("statQualifiedLeads").textContent =
@@ -3423,7 +3678,9 @@ function updateDashboardStats(leads){
           "negotiation",
           "calculation"
         ].includes(
-          normalizeStatus(lead.status)
+          normalizeStatus(
+            lead.status
+          )
         )
     ).length;
 
@@ -3432,8 +3689,10 @@ function updateDashboardStats(leads){
 }
 
 function renderPipeline(){
+
   const total =
-    currentLeads.length * LEAD_VALUE;
+    currentLeads.length *
+    LEAD_VALUE;
 
   $("pipelineLeadCount").textContent =
     currentLeads.length;
@@ -3453,27 +3712,42 @@ function renderPipeline(){
     ];
 
   $("pipelineTableBody").innerHTML =
-    statuses.map(status => {
+    statuses
+      .map(
+        status => {
 
-      const count =
-        currentLeads.filter(
-          lead =>
-            normalizeStatus(lead.status) === status
-        ).length;
+          const count =
+            currentLeads.filter(
+              lead =>
+                normalizeStatus(
+                  lead.status
+                ) === status
+            ).length;
 
-      return `
-        <tr>
-          <td>
-            <span class="status ${statusClass(status)}">
-              ${statusLabel(status)}
-            </span>
-          </td>
+          return `
+            <tr>
 
-          <td>${count}</td>
-          <td>${count * LEAD_VALUE} €</td>
-        </tr>
-      `;
-    }).join("");
+              <td>
+                <span class="status ${
+                  statusClass(status)
+                }">
+                  ${statusLabel(status)}
+                </span>
+              </td>
+
+              <td>
+                ${count}
+              </td>
+
+              <td>
+                ${count * LEAD_VALUE} €
+              </td>
+
+            </tr>
+          `;
+        }
+      )
+      .join("");
 }
 
 
@@ -3482,19 +3756,28 @@ function renderPipeline(){
 ========================================================= */
 
 function renderContacts(){
+
   const container =
     $("contactsContent");
 
   if(!currentLeads.length){
+
     container.innerHTML =
-      `<div class="empty">Noch keine Leads vorhanden.</div>`;
+      `<div class="empty">
+        Noch keine Leads vorhanden.
+      </div>`;
+
     return;
   }
 
   container.innerHTML = `
+
     <div class="table-wrapper">
+
       <table>
+
         <thead>
+
           <tr>
             <th>Unternehmen</th>
             <th>Kontakt</th>
@@ -3502,33 +3785,79 @@ function renderContacts(){
             <th>E-Mail</th>
             <th>Status</th>
           </tr>
+
         </thead>
 
         <tbody>
+
           ${
-            currentLeads.map(lead => {
+            currentLeads
+              .map(
+                lead => {
 
-              const company =
-                lead.companies || {};
+                  const company =
+                    lead.companies || {};
 
-              return `
-                <tr>
-                  <td>${escapeHtml(company.name || "—")}</td>
-                  <td>${escapeHtml(company.contact_name || "—")}</td>
-                  <td>${escapeHtml(company.phone || "—")}</td>
-                  <td>${escapeHtml(company.email || "—")}</td>
-                  <td>
-                    <span class="status ${statusClass(lead.status)}">
-                      ${statusLabel(lead.status)}
-                    </span>
-                  </td>
-                </tr>
-              `;
-            }).join("")
+                  return `
+                    <tr>
+
+                      <td>
+                        ${escapeHtml(
+                          company.name ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+                        ${escapeHtml(
+                          company.contact_name ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+                        ${escapeHtml(
+                          company.phone ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+                        ${escapeHtml(
+                          company.email ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+
+                        <span class="status ${
+                          statusClass(
+                            lead.status
+                          )
+                        }">
+
+                          ${statusLabel(
+                            lead.status
+                          )}
+
+                        </span>
+
+                      </td>
+
+                    </tr>
+                  `;
+                }
+              )
+              .join("")
           }
+
         </tbody>
+
       </table>
+
     </div>
+
   `;
 }
 
@@ -3541,12 +3870,14 @@ function setupEvents(){
 
   $("loginTab").addEventListener(
     "click",
-    () => switchAuthMode("login")
+    () =>
+      switchAuthMode("login")
   );
 
   $("registerTab").addEventListener(
     "click",
-    () => switchAuthMode("register")
+    () =>
+      switchAuthMode("register")
   );
 
   $("authForm").addEventListener(
@@ -3602,8 +3933,10 @@ function setupEvents(){
   $("resetCompanyFilters").addEventListener(
     "click",
     () => {
+
       $("companyTableSearch").value = "";
       $("energyFilter").value = "";
+
       renderCompanySearchResults();
     }
   );
@@ -3611,6 +3944,7 @@ function setupEvents(){
   $("selectAllCompanies").addEventListener(
     "change",
     event => {
+
       document
         .querySelectorAll(
           ".company-select:not(:disabled)"
@@ -3620,12 +3954,14 @@ function setupEvents(){
             checkbox.checked =
               event.target.checked
         );
+
     }
   );
 
   $("energySortHeader").addEventListener(
     "click",
     () => {
+
       companySortDirection =
         companySortDirection === "asc"
           ? "desc"
@@ -3643,9 +3979,14 @@ function setupEvents(){
   $("leadDetailModal").addEventListener(
     "click",
     event => {
-      if(event.target === $("leadDetailModal")){
+
+      if(
+        event.target ===
+        $("leadDetailModal")
+      ){
         closeLeadDetail();
       }
+
     }
   );
 
@@ -3677,9 +4018,14 @@ function setupEvents(){
   $("supplyDetailModal").addEventListener(
     "click",
     event => {
-      if(event.target === $("supplyDetailModal")){
+
+      if(
+        event.target ===
+        $("supplyDetailModal")
+      ){
         closeSupplyDetail();
       }
+
     }
   );
 
@@ -3711,6 +4057,7 @@ function setupEvents(){
   $("calendarPrev").addEventListener(
     "click",
     async () => {
+
       calendarDate =
         new Date(
           calendarDate.getFullYear(),
@@ -3719,6 +4066,7 @@ function setupEvents(){
         );
 
       await loadAllAppointments();
+
       renderCalendar();
     }
   );
@@ -3726,6 +4074,7 @@ function setupEvents(){
   $("calendarNext").addEventListener(
     "click",
     async () => {
+
       calendarDate =
         new Date(
           calendarDate.getFullYear(),
@@ -3734,27 +4083,44 @@ function setupEvents(){
         );
 
       await loadAllAppointments();
+
       renderCalendar();
     }
   );
 
   document
     .querySelectorAll(".nav-item")
-    .forEach(button => {
-      button.addEventListener(
-        "click",
-        () => showPage(button.dataset.page)
-      );
-    });
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            showPage(
+              button.dataset.page
+            )
+        );
+
+      }
+    );
 
   document
-    .querySelectorAll("[data-open-page]")
-    .forEach(button => {
-      button.addEventListener(
-        "click",
-        () => showPage(button.dataset.openPage)
-      );
-    });
+    .querySelectorAll(
+      "[data-open-page]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () =>
+            showPage(
+              button.dataset.openPage
+            )
+        );
+
+      }
+    );
 }
 
 
@@ -3767,16 +4133,27 @@ async function boot(){
   setupEvents();
 
   try{
+
     initSupabase();
 
     supabaseClient.auth.onAuthStateChange(
-      async (event,session) => {
+      async (
+        event,
+        session
+      ) => {
 
         if(session?.user){
-          await showApp(session.user);
+
+          await showApp(
+            session.user
+          );
+
         }else{
+
           showLogin();
+
         }
+
       }
     );
 
@@ -3803,6 +4180,7 @@ async function boot(){
 }
 
 boot();
+
 </script>
 
 </body>
