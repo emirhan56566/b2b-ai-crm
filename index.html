@@ -5391,14 +5391,14 @@ function renderCalendar(){
                   lead?.companies || {};
 
                 const eventClass =
-                  appointment.supplyEvent
-                    ? (
-                        appointment.supplyEventType ===
-                        "cancellation"
-                          ? " supply-event-cancellation"
-                          : " supply-event-offer"
-                      )
-                    : "";
+  appointment.supplyEvent
+    ? (
+        appointment.supplyEventType ===
+        "cancellation"
+          ? " supply-cancellation-event"
+          : " supply-offer-event"
+      )
+    : "";
 
                 return `
                   <div
