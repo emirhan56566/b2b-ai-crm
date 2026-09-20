@@ -1049,8 +1049,10 @@ async function insertCompany(
         rows = [];
     }
 
-    return rows[0] || { ...company, user_id: userId };
-}
+    return rows[0] || {
+    ...company,
+    user_id: userId
+};
 
 
 /* =========================================================
