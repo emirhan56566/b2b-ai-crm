@@ -1,0 +1,2862 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>B2B CRM</title>
+
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+
+body{
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:#f5f7fb;
+  color:#172033
+}
+
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none!important}
+
+#authScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:linear-gradient(135deg,#eef2ff,#f8fafc)
+}
+
+.auth-card{
+  width:100%;
+  max-width:430px;
+  background:#fff;
+  border-radius:18px;
+  padding:32px;
+  box-shadow:0 20px 60px rgba(15,23,42,.1)
+}
+
+.auth-logo,.brand-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#4f46e5;
+  color:#fff;
+  font-weight:800
+}
+
+.auth-logo{
+  width:52px;
+  height:52px;
+  border-radius:14px;
+  font-size:22px;
+  margin-bottom:18px
+}
+
+.auth-card h1{
+  font-size:27px;
+  margin-bottom:7px
+}
+
+.auth-subtitle{
+  color:#667085;
+  margin-bottom:25px
+}
+
+.auth-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+  background:#f1f3f7;
+  padding:5px;
+  border-radius:10px;
+  margin-bottom:20px
+}
+
+.auth-tab{
+  border:0;
+  background:transparent;
+  padding:10px;
+  border-radius:7px;
+  color:#667085
+}
+
+.auth-tab.active{
+  background:#fff;
+  color:#172033;
+  font-weight:600
+}
+
+.form-group{
+  margin-bottom:16px
+}
+
+.form-group label{
+  display:block;
+  margin-bottom:7px;
+  font-size:14px;
+  font-weight:600
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea{
+  width:100%;
+  border:1px solid #d9dee8;
+  border-radius:9px;
+  padding:11px 12px;
+  outline:0;
+  background:#fff
+}
+
+.form-group textarea{
+  resize:vertical;
+  line-height:1.5
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus{
+  border-color:#6366f1;
+  box-shadow:0 0 0 3px rgba(99,102,241,.1)
+}
+
+.auth-button,
+.btn-primary{
+  border:0;
+  background:#4f46e5;
+  color:#fff;
+  font-weight:700;
+  border-radius:8px;
+  padding:11px 15px
+}
+
+.auth-button{
+  width:100%;
+  margin-top:5px
+}
+
+.btn-primary:hover,
+.auth-button:hover{
+  background:#4338ca
+}
+
+.btn-primary:disabled,
+.auth-button:disabled{
+  opacity:.6;
+  cursor:not-allowed
+}
+
+.btn-secondary{
+  border:1px solid #d9dee8;
+  background:#fff;
+  color:#344054;
+  border-radius:8px;
+  padding:10px 15px
+}
+
+.auth-message,
+.search-status{
+  padding:11px 13px;
+  border-radius:8px;
+  font-size:14px;
+  margin-top:14px;
+  line-height:1.5
+}
+
+.auth-message.error,
+.search-status.error{
+  background:#fef2f2;
+  color:#b42318
+}
+
+.auth-message.success,
+.search-status.success{
+  background:#ecfdf3;
+  color:#027a48
+}
+
+#app{
+  min-height:100vh;
+  display:flex
+}
+
+.sidebar{
+  width:245px;
+  min-height:100vh;
+  background:#111827;
+  color:#fff;
+  padding:20px 14px;
+  position:fixed;
+  left:0;
+  top:0;
+  bottom:0
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:7px 10px 25px
+}
+
+.brand-icon{
+  width:38px;
+  height:38px;
+  border-radius:10px
+}
+
+.brand-name{
+  font-weight:750;
+  font-size:17px
+}
+
+.nav-section{
+  margin-top:12px
+}
+
+.nav-label{
+  color:#6b7280;
+  text-transform:uppercase;
+  font-size:10px;
+  font-weight:700;
+  padding:0 11px 7px;
+  letter-spacing:.08em
+}
+
+.nav-item{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#cbd5e1;
+  text-align:left;
+  padding:10px 11px;
+  border-radius:8px;
+  margin-bottom:3px;
+  font-size:14px
+}
+
+.nav-item:hover,
+.nav-item.active{
+  background:#1f2937;
+  color:#fff
+}
+
+.nav-icon{
+  display:inline-block;
+  width:23px
+}
+
+.sidebar-bottom{
+  position:absolute;
+  bottom:18px;
+  left:14px;
+  right:14px
+}
+
+.user-box{
+  background:#1f2937;
+  border-radius:10px;
+  padding:11px;
+  margin-bottom:8px
+}
+
+.user-email{
+  font-size:12px;
+  color:#d1d5db;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap
+}
+
+.logout-button{
+  width:100%;
+  border:0;
+  border-radius:8px;
+  background:#374151;
+  color:#fff;
+  padding:9px
+}
+
+.main{
+  margin-left:245px;
+  width:calc(100% - 245px);
+  padding:28px
+}
+
+.page{
+  display:none
+}
+
+.page.active{
+  display:block
+}
+
+.page-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  margin-bottom:25px
+}
+
+.page-header h1{
+  font-size:26px;
+  margin-bottom:4px
+}
+
+.page-header p{
+  color:#667085;
+  font-size:14px
+}
+
+.card{
+  background:#fff;
+  border:1px solid #eaecf0;
+  border-radius:12px;
+  padding:20px
+}
+
+.card h2{
+  font-size:16px;
+  margin-bottom:15px
+}
+
+.search-card{
+  max-width:1100px
+}
+
+.search-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:15px
+}
+
+.full{
+  grid-column:1/-1
+}
+
+.actions{
+  margin-top:18px;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap
+}
+
+.search-status{
+  display:none;
+  margin-top:0
+}
+
+.search-status.show{
+  display:block
+}
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:16px;
+  margin-bottom:22px
+}
+
+.stat-card{
+  background:#fff;
+  border:1px solid #eaecf0;
+  border-radius:12px;
+  padding:19px
+}
+
+.stat-title{
+  color:#667085;
+  font-size:13px;
+  margin-bottom:10px
+}
+
+.stat-value{
+  font-size:28px;
+  font-weight:750
+}
+
+.content-grid{
+  display:grid;
+  grid-template-columns:1.5fr 1fr;
+  gap:18px
+}
+
+.table-card{
+  overflow:hidden
+}
+
+.table-toolbar{
+  display:flex;
+  gap:10px;
+  margin-bottom:16px
+}
+
+.table-toolbar input,
+.table-toolbar select{
+  border:1px solid #d9dee8;
+  border-radius:8px;
+  padding:10px 12px;
+  background:#fff
+}
+
+.table-toolbar input{
+  flex:1
+}
+
+.table-wrapper{
+  overflow-x:auto
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:13px
+}
+
+th,td{
+  text-align:left;
+  padding:12px 10px;
+  border-bottom:1px solid #eaecf0;
+  white-space:nowrap
+}
+
+th{
+  color:#667085;
+  font-size:12px;
+  font-weight:650
+}
+
+.status{
+  display:inline-block;
+  border-radius:999px;
+  padding:4px 9px;
+  font-size:11px;
+  font-weight:650
+}
+
+.status-new{
+  background:#eef4ff;
+  color:#3538cd
+}
+
+.status-called{
+  background:#fff6ed;
+  color:#c4320a
+}
+
+.status-qualified{
+  background:#ecfdf3;
+  color:#027a48
+}
+
+.status-lost{
+  background:#f2f4f7;
+  color:#475467
+}
+
+.empty{
+  text-align:center;
+  padding:35px 15px;
+  color:#667085
+}
+
+.type-options{
+  display:flex;
+  gap:22px;
+  flex-wrap:wrap
+}
+
+.type-option{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-weight:400
+}
+
+.type-option input{
+  width:17px;
+  height:17px
+}
+
+.placeholder{
+  text-align:center;
+  padding:50px 20px;
+  color:#667085
+}
+
+.placeholder-icon{
+  font-size:40px;
+  margin-bottom:12px
+}
+
+@media(max-width:1000px){
+  .stats{
+    grid-template-columns:repeat(2,minmax(0,1fr))
+  }
+
+  .content-grid{
+    grid-template-columns:1fr
+  }
+}
+
+@media(max-width:760px){
+  #app{
+    display:block
+  }
+
+  .sidebar{
+    position:static;
+    width:100%;
+    min-height:auto
+  }
+
+  .sidebar-bottom{
+    position:static;
+    margin-top:15px
+  }
+
+  .main{
+    margin-left:0;
+    width:100%;
+    padding:18px
+  }
+
+  .search-grid{
+    grid-template-columns:1fr
+  }
+
+  .full{
+    grid-column:auto
+  }
+
+  .stats{
+    grid-template-columns:1fr
+  }
+
+  .page-header{
+    align-items:flex-start;
+    flex-direction:column
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div id="authScreen">
+  <div class="auth-card">
+
+    <div class="auth-logo">AI</div>
+
+    <h1>B2B CRM</h1>
+
+    <p class="auth-subtitle">
+      Melde dich an oder erstelle deinen Account.
+    </p>
+
+    <div class="auth-tabs">
+      <button id="loginTab" class="auth-tab active" type="button">
+        Anmelden
+      </button>
+
+      <button id="registerTab" class="auth-tab" type="button">
+        Registrieren
+      </button>
+    </div>
+
+    <form id="authForm" data-mode="login">
+
+      <div id="nameGroup" class="form-group hidden">
+        <label for="authName">Name</label>
+        <input
+          id="authName"
+          type="text"
+          placeholder="Max Mustermann"
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="authEmail">E-Mail</label>
+        <input
+          id="authEmail"
+          type="email"
+          placeholder="name@firma.de"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label for="authPassword">Passwort</label>
+        <input
+          id="authPassword"
+          type="password"
+          placeholder="Mindestens 6 Zeichen"
+          required
+          minlength="6"
+        >
+      </div>
+
+      <button id="authSubmit" class="auth-button" type="submit">
+        Anmelden
+      </button>
+
+    </form>
+
+    <div id="authMessage" class="auth-message hidden"></div>
+
+  </div>
+</div>
+
+
+<div id="app" class="hidden">
+
+  <aside class="sidebar">
+
+    <div class="brand">
+      <div class="brand-icon">AI</div>
+      <div class="brand-name">B2B CRM</div>
+    </div>
+
+    <div class="nav-section">
+
+      <div class="nav-label">
+        Übersicht
+      </div>
+
+      <button
+        class="nav-item active"
+        data-page="dashboard"
+        type="button"
+      >
+        <span class="nav-icon">⌂</span>
+        Dashboard
+      </button>
+
+    </div>
+
+
+    <div class="nav-section">
+
+      <div class="nav-label">
+        Vertrieb
+      </div>
+
+      <button
+        class="nav-item"
+        data-page="lead-search"
+        type="button"
+      >
+        <span class="nav-icon">✦</span>
+        Lead-Suche
+      </button>
+
+      <button
+        class="nav-item"
+        data-page="leads"
+        type="button"
+      >
+        <span class="nav-icon">▣</span>
+        Leads
+      </button>
+
+      <button
+        class="nav-item"
+        data-page="contacts"
+        type="button"
+      >
+        <span class="nav-icon">♙</span>
+        Kontakte
+      </button>
+
+      <button
+        class="nav-item"
+        data-page="calls"
+        type="button"
+      >
+        <span class="nav-icon">☎</span>
+        Anrufe
+      </button>
+
+      <button
+        class="nav-item"
+        data-page="tasks"
+        type="button"
+      >
+        <span class="nav-icon">✓</span>
+        Aufgaben
+      </button>
+
+      <button
+        class="nav-item"
+        data-page="pipeline"
+        type="button"
+      >
+        <span class="nav-icon">↗</span>
+        Pipeline
+      </button>
+
+    </div>
+
+
+    <div class="nav-section">
+
+      <div class="nav-label">
+        System
+      </div>
+
+      <button
+        class="nav-item"
+        data-page="settings"
+        type="button"
+      >
+        <span class="nav-icon">⚙</span>
+        Einstellungen
+      </button>
+
+    </div>
+
+
+    <div class="sidebar-bottom">
+
+      <div class="user-box">
+        <div id="sidebarUserEmail" class="user-email">
+          —
+        </div>
+      </div>
+
+      <button
+        id="logoutButton"
+        class="logout-button"
+        type="button"
+      >
+        Abmelden
+      </button>
+
+    </div>
+
+  </aside>
+
+
+  <main class="main">
+
+
+    <section id="page-dashboard" class="page active">
+
+      <div class="page-header">
+
+        <div>
+          <h1>Dashboard</h1>
+          <p>Deine Vertriebsübersicht</p>
+        </div>
+
+        <button
+          class="btn-primary"
+          type="button"
+          data-open-page="lead-search"
+        >
+          Unternehmen importieren
+        </button>
+
+      </div>
+
+
+      <div class="stats">
+
+        <div class="stat-card">
+          <div class="stat-title">
+            Leads gesamt
+          </div>
+
+          <div id="statLeads" class="stat-value">
+            0
+          </div>
+        </div>
+
+
+        <div class="stat-card">
+          <div class="stat-title">
+            Neue Leads
+          </div>
+
+          <div id="statNewLeads" class="stat-value">
+            0
+          </div>
+        </div>
+
+
+        <div class="stat-card">
+          <div class="stat-title">
+            Qualifizierte Leads
+          </div>
+
+          <div id="statQualifiedLeads" class="stat-value">
+            0
+          </div>
+        </div>
+
+
+        <div class="stat-card">
+          <div class="stat-title">
+            Pipeline
+          </div>
+
+          <div id="statPipeline" class="stat-value">
+            0 €
+          </div>
+        </div>
+
+      </div>
+
+
+      <div class="content-grid">
+
+        <div class="card">
+
+          <h2>
+            Willkommen im B2B CRM
+          </h2>
+
+          <p style="color:#667085;line-height:1.7">
+            Füge deine Unternehmensdaten als Text ein.
+            Die Unternehmen werden gespeichert und können anschließend
+            nach PLZ, Branche und Unternehmenstyp gefiltert werden.
+          </p>
+
+        </div>
+
+
+        <div class="card">
+
+          <h2>
+            Schnellstart
+          </h2>
+
+          <button
+            class="btn-primary"
+            type="button"
+            data-open-page="lead-search"
+          >
+            Lead-Suche öffnen
+          </button>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section id="page-lead-search" class="page">
+
+      <div class="page-header">
+
+        <div>
+          <h1>Lead-Suche</h1>
+          <p>Unternehmen aus deiner Datenbank finden</p>
+        </div>
+
+      </div>
+
+
+      <div class="card search-card">
+
+        <h2>
+          Unternehmen importieren
+        </h2>
+
+        <div class="form-group">
+
+          <label for="companyImportText">
+            Unternehmensdaten
+          </label>
+
+          <textarea
+            id="companyImportText"
+            rows="12"
+            placeholder="Firma: Muster GmbH
+Branche: IT
+Adresse: Musterstraße 1
+PLZ: 56068
+Ort: Koblenz
+Telefon: 0261 123456
+Website: https://example.de
+Mitarbeiter: 12
+Rechtsform: GmbH"
+          ></textarea>
+
+        </div>
+
+
+        <div class="actions">
+
+          <button
+            id="importCompaniesButton"
+            class="btn-primary"
+            type="button"
+          >
+            Unternehmen speichern
+          </button>
+
+          <div
+            id="importStatus"
+            class="search-status"
+          ></div>
+
+        </div>
+
+      </div>
+
+
+      <div class="card search-card" style="margin-top:18px">
+
+        <h2>
+          Unternehmen suchen
+        </h2>
+
+        <div class="search-grid">
+
+          <div class="form-group">
+
+            <label for="leadPostal">
+              PLZ
+            </label>
+
+            <input
+              id="leadPostal"
+              type="text"
+              inputmode="numeric"
+              maxlength="5"
+              placeholder="56068"
+            >
+
+          </div>
+
+
+          <div class="form-group">
+
+            <label for="leadIndustry">
+              Branche
+            </label>
+
+            <select id="leadIndustry">
+              <option value="">
+                Branche auswählen
+              </option>
+            </select>
+
+          </div>
+
+
+          <div class="form-group full">
+
+            <label>
+              Unternehmenstyp
+            </label>
+
+            <div class="type-options">
+
+              <label class="type-option">
+                <input
+                  id="typeMicro"
+                  type="checkbox"
+                >
+                Kleinstunternehmen
+              </label>
+
+              <label class="type-option">
+                <input
+                  id="typeEinzel"
+                  type="checkbox"
+                >
+                Einzelunternehmen
+              </label>
+
+              <label class="type-option">
+                <input
+                  id="typeEk"
+                  type="checkbox"
+                >
+                e.K.
+              </label>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="actions">
+
+          <button
+            id="companySearchButton"
+            class="btn-primary"
+            type="button"
+          >
+            Unternehmen suchen
+          </button>
+
+          <div
+            id="companySearchStatus"
+            class="search-status"
+          ></div>
+
+        </div>
+
+      </div>
+
+
+      <div
+        id="companySearchResultsCard"
+        class="card table-card hidden"
+        style="margin-top:18px"
+      >
+
+        <div class="page-header" style="margin-bottom:15px">
+
+          <div>
+            <h2 style="margin-bottom:0">
+              Suchergebnisse
+              <span id="companySearchCount">
+                (0)
+              </span>
+            </h2>
+          </div>
+
+          <button
+            id="addSelectedButton"
+            class="btn-primary"
+            type="button"
+          >
+            Auswahl als Leads hinzufügen
+          </button>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>
+                  <input
+                    id="selectAllCompanies"
+                    type="checkbox"
+                  >
+                </th>
+
+                <th>
+                  Unternehmen
+                </th>
+
+                <th>
+                  Branche
+                </th>
+
+                <th>
+                  PLZ
+                </th>
+
+                <th>
+                  Ort
+                </th>
+
+                <th>
+                  Mitarbeiter
+                </th>
+
+                <th>
+                  Rechtsform
+                </th>
+
+                <th>
+                  Status
+                </th>
+
+              </tr>
+
+            </thead>
+
+            <tbody id="companySearchResultsBody">
+
+              <tr>
+                <td
+                  colspan="8"
+                  class="empty"
+                >
+                  Noch keine Suche durchgeführt.
+                </td>
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section id="page-leads" class="page">
+
+      <div class="page-header">
+
+        <div>
+          <h1>Leads</h1>
+          <p>Deine gespeicherten Vertriebsleads</p>
+        </div>
+
+      </div>
+
+
+      <div class="card table-card">
+
+        <div class="table-toolbar">
+
+          <input
+            id="leadSearch"
+            type="search"
+            placeholder="Leads durchsuchen..."
+          >
+
+          <select id="leadStatus">
+
+            <option value="">
+              Alle Status
+            </option>
+
+            <option value="new">
+              Neu
+            </option>
+
+            <option value="called">
+              Angerufen
+            </option>
+
+            <option value="qualified">
+              Qualifiziert
+            </option>
+
+            <option value="lost">
+              Verloren
+            </option>
+
+          </select>
+
+        </div>
+
+
+        <div class="table-wrapper">
+
+          <table>
+
+            <thead>
+
+              <tr>
+                <th>Unternehmen</th>
+                <th>Branche</th>
+                <th>Telefon</th>
+                <th>Ort</th>
+                <th>Mitarbeiter</th>
+                <th>Status</th>
+              </tr>
+
+            </thead>
+
+            <tbody id="leadsTableBody">
+
+              <tr>
+                <td
+                  colspan="6"
+                  class="empty"
+                >
+                  Noch keine Leads vorhanden.
+                </td>
+              </tr>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section id="page-contacts" class="page">
+
+      <div class="page-header">
+
+        <div>
+          <h1>Kontakte</h1>
+          <p>Kontakte deiner Unternehmen</p>
+        </div>
+
+      </div>
+
+      <div class="card">
+
+        <div class="placeholder">
+
+          <div class="placeholder-icon">
+            ♙
+          </div>
+
+          <h2>
+            Kontakte
+          </h2>
+
+          <p>
+            Dieser Bereich wird mit den Kontaktdaten
+            deiner Unternehmen verbunden.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section id="page-calls" class="page">
+
+      <div class="page-header">
+
+        <div>
+          <h1>Anrufe</h1>
+          <p>Deine Anrufhistorie</p>
+        </div>
+
+      </div>
+
+      <div class="card">
+
+        <div class="placeholder">
+
+          <div class="placeholder-icon">
+            ☎
+          </div>
+
+          <h2>
+            Anrufe
+          </h2>
+
+          <p>
+            Hier werden später deine Anrufe und
+            Gesprächsergebnisse angezeigt.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section id="page-tasks" class="page">
+
+      <div class="page-header">
+
+        <div>
+          <h1>Aufgaben</h1>
+          <p>Offene Vertriebsaufgaben</p>
+        </div>
+
+      </div>
+
+      <div class="card">
+
+        <div class="placeholder">
+
+          <div class="placeholder-icon">
+            ✓
+          </div>
+
+          <h2>
+            Aufgaben
+          </h2>
+
+          <p>
+            Hier werden deine Aufgaben verwaltet.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section id="page-pipeline" class="page">
+
+      <div class="page-header">
+
+        <div>
+          <h1>Pipeline</h1>
+          <p>Verkaufschancen und Umsatz</p>
+        </div>
+
+      </div>
+
+      <div class="card">
+
+        <div class="placeholder">
+
+          <div class="placeholder-icon">
+            ↗
+          </div>
+
+          <h2>
+            Pipeline
+          </h2>
+
+          <p>
+            Deine Verkaufschancen werden hier angezeigt.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <section id="page-settings" class="page">
+
+      <div class="page-header">
+
+        <div>
+          <h1>Einstellungen</h1>
+          <p>CRM-Einstellungen</p>
+        </div>
+
+      </div>
+
+      <div class="card">
+
+        <div class="placeholder">
+
+          <div class="placeholder-icon">
+            ⚙
+          </div>
+
+          <h2>
+            Einstellungen
+          </h2>
+
+          <p>
+            Deine Systemeinstellungen werden hier verwaltet.
+          </p>
+
+        </div>
+
+      </div>
+
+    </section>
+
+
+  </main>
+
+</div>
+
+
+<script>
+
+const SUPABASE_URL =
+  "https://ippummtfsjfrayosofxb.supabase.co";
+
+const SUPABASE_PUBLISHABLE_KEY =
+  "sb_publishable_8pIR4I1i_30XdDcqp-JzJQ_3fznf-gi";
+
+
+let supabaseClient = null;
+let supabaseInitError = null;
+let currentUser = null;
+let currentLeads = [];
+
+
+function $(id){
+  return document.getElementById(id);
+}
+
+
+function formatError(error){
+
+  if(!error){
+    return "Unbekannter Fehler.";
+  }
+
+  if(typeof error === "string"){
+    return error;
+  }
+
+  return (
+    error.message ||
+    error.error_description ||
+    error.error ||
+    "Unbekannter Fehler."
+  );
+}
+
+
+function showAuthMessage(message,type="error"){
+
+  const element = $("authMessage");
+
+  if(!element){
+    return;
+  }
+
+  element.textContent = message;
+  element.className =
+    "auth-message " + type;
+
+  element.classList.remove("hidden");
+}
+
+
+function hideAuthMessage(){
+
+  const element = $("authMessage");
+
+  if(!element){
+    return;
+  }
+
+  element.classList.add("hidden");
+  element.textContent = "";
+}
+
+
+function showStatus(id,message,type="success"){
+
+  const element = $(id);
+
+  if(!element){
+    return;
+  }
+
+  element.textContent = message;
+
+  element.className =
+    "search-status show " + type;
+}
+
+
+async function initSupabase(){
+
+  if(
+    !window.supabase ||
+    typeof window.supabase.createClient !== "function"
+  ){
+
+    throw new Error(
+      "Supabase-JavaScript konnte nicht geladen werden. Bitte Internetverbindung oder CDN prüfen."
+    );
+
+  }
+
+
+  supabaseClient =
+    window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY,
+      {
+        auth:{
+          persistSession:true,
+          autoRefreshToken:true,
+          detectSessionInUrl:true
+        }
+      }
+    );
+
+
+  if(!supabaseClient){
+    throw new Error(
+      "Supabase Client konnte nicht erstellt werden."
+    );
+  }
+
+
+  const result =
+    await supabaseClient.auth.getSession();
+
+
+  if(result.error){
+    throw result.error;
+  }
+
+}
+
+
+function switchAuthMode(mode){
+
+  const form = $("authForm");
+
+  form.dataset.mode = mode;
+
+  hideAuthMessage();
+
+  if(mode === "register"){
+
+    $("loginTab").classList.remove("active");
+    $("registerTab").classList.add("active");
+
+    $("nameGroup").classList.remove("hidden");
+
+    $("authSubmit").textContent =
+      "Account erstellen";
+
+  }else{
+
+    $("loginTab").classList.add("active");
+    $("registerTab").classList.remove("active");
+
+    $("nameGroup").classList.add("hidden");
+
+    $("authSubmit").textContent =
+      "Anmelden";
+
+  }
+
+}
+
+
+async function handleAuth(event){
+
+  event.preventDefault();
+
+  hideAuthMessage();
+
+
+  if(!supabaseClient){
+
+    showAuthMessage(
+      supabaseInitError
+        ? "Supabase ist nicht verfügbar: " +
+          formatError(supabaseInitError)
+        : "Supabase ist noch nicht initialisiert."
+    );
+
+    return;
+  }
+
+
+  const mode =
+    $("authForm").dataset.mode || "login";
+
+  const email =
+    $("authEmail").value.trim();
+
+  const password =
+    $("authPassword").value;
+
+  const name =
+    $("authName").value.trim();
+
+  const button =
+    $("authSubmit");
+
+
+  if(!email || !password){
+
+    showAuthMessage(
+      "Bitte E-Mail und Passwort eingeben."
+    );
+
+    return;
+  }
+
+
+  button.disabled = true;
+
+  button.textContent =
+    mode === "register"
+      ? "Account wird erstellt..."
+      : "Anmeldung läuft...";
+
+
+  try{
+
+    let result;
+
+
+    if(mode === "register"){
+
+      result =
+        await supabaseClient.auth.signUp({
+          email,
+          password,
+          options:{
+            data:{
+              full_name:name
+            }
+          }
+        });
+
+
+      if(result.error){
+        throw result.error;
+      }
+
+
+      if(result.data?.session){
+
+        showApp(result.data.user);
+
+      }else{
+
+        showAuthMessage(
+          "Account wurde erstellt. Prüfe deine E-Mail zur Bestätigung.",
+          "success"
+        );
+
+      }
+
+    }else{
+
+      result =
+        await supabaseClient.auth.signInWithPassword({
+          email,
+          password
+        });
+
+
+      if(result.error){
+        throw result.error;
+      }
+
+
+      if(result.data?.user){
+
+        showApp(result.data.user);
+
+      }else{
+
+        throw new Error(
+          "Anmeldung war erfolgreich, aber es wurde keine Benutzersitzung zurückgegeben."
+        );
+
+      }
+
+    }
+
+
+  }catch(error){
+
+    console.error(
+      "AUTH FEHLER:",
+      error
+    );
+
+    showAuthMessage(
+      formatError(error)
+    );
+
+  }finally{
+
+    button.disabled = false;
+
+    button.textContent =
+      mode === "register"
+        ? "Account erstellen"
+        : "Anmelden";
+
+  }
+
+}
+
+
+function showApp(user){
+
+  currentUser = user;
+
+  $("authScreen")
+    .classList.add("hidden");
+
+  $("app")
+    .classList.remove("hidden");
+
+
+  $("sidebarUserEmail")
+    .textContent =
+      user?.email || "—";
+
+
+  loadLeads();
+
+}
+
+
+function showLogin(){
+
+  currentUser = null;
+
+  $("app")
+    .classList.add("hidden");
+
+  $("authScreen")
+    .classList.remove("hidden");
+
+}
+
+
+async function checkSession(){
+
+  if(!supabaseClient){
+    return;
+  }
+
+
+  const result =
+    await supabaseClient.auth.getSession();
+
+
+  if(result.error){
+    throw result.error;
+  }
+
+
+  const session =
+    result.data?.session;
+
+
+  if(session?.user){
+
+    showApp(session.user);
+
+  }else{
+
+    showLogin();
+
+  }
+
+}
+
+
+async function getApiToken(){
+
+  if(!supabaseClient){
+    throw new Error(
+      "Supabase ist nicht verbunden."
+    );
+  }
+
+
+  const result =
+    await supabaseClient.auth.getSession();
+
+
+  if(result.error){
+    throw result.error;
+  }
+
+
+  const session =
+    result.data?.session;
+
+
+  if(!session?.access_token){
+
+    throw new Error(
+      "Keine aktive Anmeldung gefunden. Bitte erneut anmelden."
+    );
+
+  }
+
+
+  return session.access_token;
+
+}
+
+
+function showPage(page){
+
+  document
+    .querySelectorAll(".page")
+    .forEach(element=>{
+      element.classList.remove("active");
+    });
+
+
+  document
+    .querySelectorAll(".nav-item")
+    .forEach(element=>{
+      element.classList.toggle(
+        "active",
+        element.dataset.page === page
+      );
+    });
+
+
+  const target =
+    $("page-" + page);
+
+
+  if(target){
+    target.classList.add("active");
+  }
+
+
+  if(page === "leads"){
+    loadLeads();
+  }
+
+
+  if(page === "lead-search"){
+    loadCompanyIndustries();
+  }
+
+}
+
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+async function importCompanies(){
+
+  const text =
+    $("companyImportText")
+      .value
+      .trim();
+
+
+  const button =
+    $("importCompaniesButton");
+
+
+  if(!text){
+
+    showStatus(
+      "importStatus",
+      "Bitte zuerst Unternehmensdaten einfügen.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  button.disabled = true;
+
+  button.textContent =
+    "⏳ Speichere...";
+
+
+  showStatus(
+    "importStatus",
+    "Unternehmensdaten werden verarbeitet..."
+  );
+
+
+  try{
+
+    const token =
+      await getApiToken();
+
+
+    const response =
+      await fetch(
+        "/api/company-import",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Bearer " + token
+          },
+
+          body:JSON.stringify({
+            text
+          })
+        }
+      );
+
+
+    const result =
+      await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        result.error ||
+        "Unternehmen konnten nicht gespeichert werden."
+      );
+
+    }
+
+
+    showStatus(
+      "importStatus",
+
+      `${result.imported || 0} Unternehmen gespeichert. ` +
+      `${result.duplicates || 0} bereits vorhanden.`,
+
+      "success"
+    );
+
+
+    $("companyImportText")
+      .value = "";
+
+
+    await loadCompanyIndustries();
+
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "importStatus",
+      formatError(error),
+      "error"
+    );
+
+  }finally{
+
+    button.disabled = false;
+
+    button.textContent =
+      "Unternehmen speichern";
+
+  }
+
+}
+
+
+async function loadCompanyIndustries(){
+
+  if(!currentUser){
+    return;
+  }
+
+
+  try{
+
+    const token =
+      await getApiToken();
+
+
+    const response =
+      await fetch(
+        "/api/company-search?industries=1",
+        {
+          headers:{
+            "Authorization":
+              "Bearer " + token
+          }
+        }
+      );
+
+
+    const result =
+      await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        result.error ||
+        "Branchen konnten nicht geladen werden."
+      );
+
+    }
+
+
+    const select =
+      $("leadIndustry");
+
+
+    const old =
+      select.value;
+
+
+    select.innerHTML =
+      '<option value="">Branche auswählen</option>';
+
+
+    (result.industries || [])
+      .forEach(industry=>{
+
+        const option =
+          document.createElement("option");
+
+        option.value =
+          industry;
+
+        option.textContent =
+          industry;
+
+        select.appendChild(option);
+
+      });
+
+
+    if(
+      [...select.options]
+        .some(option=>option.value === old)
+    ){
+
+      select.value = old;
+
+    }
+
+
+  }catch(error){
+
+    console.error(
+      "Industry error:",
+      error
+    );
+
+  }
+
+}
+
+
+async function searchCompaniesForLeads(){
+
+  const postal =
+    $("leadPostal")
+      .value
+      .trim();
+
+
+  const industry =
+    $("leadIndustry")
+      .value
+      .trim();
+
+
+  const types = [];
+
+
+  if($("typeMicro").checked){
+    types.push("kleinstunternehmen");
+  }
+
+
+  if($("typeEinzel").checked){
+    types.push("einzelunternehmen");
+  }
+
+
+  if($("typeEk").checked){
+    types.push("ek");
+  }
+
+
+  if(!/^\d{5}$/.test(postal)){
+
+    showStatus(
+      "companySearchStatus",
+      "Bitte eine gültige 5-stellige PLZ eingeben.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  if(!industry){
+
+    showStatus(
+      "companySearchStatus",
+      "Bitte eine Branche auswählen.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  const button =
+    $("companySearchButton");
+
+
+  button.disabled = true;
+
+  button.textContent =
+    "⏳ Suche...";
+
+
+  try{
+
+    const token =
+      await getApiToken();
+
+
+    const params =
+      new URLSearchParams({
+        postal_code:postal,
+        industry
+      });
+
+
+    if(types.length){
+
+      params.set(
+        "types",
+        types.join(",")
+      );
+
+    }
+
+
+    const response =
+      await fetch(
+        "/api/company-search?" +
+        params.toString(),
+        {
+          headers:{
+            "Authorization":
+              "Bearer " + token
+          }
+        }
+      );
+
+
+    const result =
+      await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        result.error ||
+        "Suche fehlgeschlagen."
+      );
+
+    }
+
+
+    renderCompanySearchResults(
+      result.companies || []
+    );
+
+
+    showStatus(
+      "companySearchStatus",
+
+      `${result.companies?.length || 0} Unternehmen gefunden.`,
+
+      "success"
+    );
+
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "companySearchStatus",
+      formatError(error),
+      "error"
+    );
+
+  }finally{
+
+    button.disabled = false;
+
+    button.textContent =
+      "Unternehmen suchen";
+
+  }
+
+}
+
+
+function renderCompanySearchResults(companies){
+
+  const card =
+    $("companySearchResultsCard");
+
+
+  const tbody =
+    $("companySearchResultsBody");
+
+
+  $("companySearchCount")
+    .textContent =
+      `(${companies.length})`;
+
+
+  $("selectAllCompanies")
+    .checked = false;
+
+
+  if(!companies.length){
+
+    tbody.innerHTML =
+      `
+      <tr>
+        <td colspan="8" class="empty">
+          Keine passenden Unternehmen gefunden.
+        </td>
+      </tr>
+      `;
+
+
+    card.classList.remove("hidden");
+
+    return;
+  }
+
+
+  tbody.innerHTML =
+    companies
+      .map(company=>{
+
+        const disabled =
+          Boolean(company.already_lead);
+
+
+        return `
+          <tr>
+
+            <td>
+              <input
+                type="checkbox"
+                class="company-select"
+                value="${escapeHtml(company.id)}"
+                ${disabled ? "disabled" : ""}
+              >
+            </td>
+
+            <td>
+              <strong>
+                ${escapeHtml(company.name || "—")}
+              </strong>
+            </td>
+
+            <td>
+              ${escapeHtml(company.industry || "—")}
+            </td>
+
+            <td>
+              ${escapeHtml(company.postal_code || "—")}
+            </td>
+
+            <td>
+              ${escapeHtml(company.city || "—")}
+            </td>
+
+            <td>
+              ${company.employees ?? "—"}
+            </td>
+
+            <td>
+              ${escapeHtml(company.legal_form || "—")}
+            </td>
+
+            <td>
+              ${
+                disabled
+                  ? '<span class="status status-lost">Bereits Lead</span>'
+                  : '<span class="status status-new">Verfügbar</span>'
+              }
+            </td>
+
+          </tr>
+        `;
+
+      })
+      .join("");
+
+
+  card.classList.remove("hidden");
+
+}
+
+
+async function addSelectedCompaniesAsLeads(){
+
+  const selected =
+    [
+      ...document.querySelectorAll(
+        ".company-select:checked:not(:disabled)"
+      )
+    ]
+    .map(element=>element.value);
+
+
+  if(!selected.length){
+
+    showStatus(
+      "companySearchStatus",
+      "Bitte mindestens ein Unternehmen auswählen.",
+      "error"
+    );
+
+    return;
+  }
+
+
+  try{
+
+    const token =
+      await getApiToken();
+
+
+    const response =
+      await fetch(
+        "/api/leads",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            "Authorization":
+              "Bearer " + token
+          },
+
+          body:JSON.stringify({
+            company_ids:selected
+          })
+        }
+      );
+
+
+    const result =
+      await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        result.error ||
+        "Leads konnten nicht angelegt werden."
+      );
+
+    }
+
+
+    showStatus(
+      "companySearchStatus",
+
+      `${result.created || 0} neue Leads hinzugefügt. ` +
+      `${result.skipped || 0} bereits vorhanden.`,
+
+      "success"
+    );
+
+
+    await loadLeads();
+
+    await searchCompaniesForLeads();
+
+
+  }catch(error){
+
+    console.error(error);
+
+    showStatus(
+      "companySearchStatus",
+      formatError(error),
+      "error"
+    );
+
+  }
+
+}
+
+
+async function loadLeads(){
+
+  if(!currentUser){
+    return;
+  }
+
+
+  try{
+
+    const token =
+      await getApiToken();
+
+
+    const response =
+      await fetch(
+        "/api/leads",
+        {
+          headers:{
+            "Authorization":
+              "Bearer " + token
+          }
+        }
+      );
+
+
+    const result =
+      await response.json();
+
+
+    if(!response.ok){
+
+      throw new Error(
+        result.error ||
+        "Leads konnten nicht geladen werden."
+      );
+
+    }
+
+
+    currentLeads =
+      result.leads || [];
+
+
+    renderLeads(
+      currentLeads
+    );
+
+
+    updateDashboardStats(
+      currentLeads
+    );
+
+
+  }catch(error){
+
+    console.error(
+      "Load leads error:",
+      error
+    );
+
+
+    renderLeads([]);
+
+  }
+
+}
+
+
+function renderLeads(leads){
+
+  const tbody =
+    $("leadsTableBody");
+
+
+  if(!leads.length){
+
+    tbody.innerHTML =
+      `
+      <tr>
+        <td colspan="6" class="empty">
+          Noch keine Leads vorhanden.
+        </td>
+      </tr>
+      `;
+
+    return;
+  }
+
+
+  tbody.innerHTML =
+    leads
+      .map(lead=>{
+
+        const company =
+          lead.companies || {};
+
+
+        const status =
+          lead.status || "new";
+
+
+        return `
+          <tr>
+
+            <td>
+              <strong>
+                ${escapeHtml(
+                  company.name ||
+                  "Unbekannt"
+                )}
+              </strong>
+            </td>
+
+            <td>
+              ${escapeHtml(
+                company.industry ||
+                "—"
+              )}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                company.phone ||
+                "—"
+              )}
+            </td>
+
+            <td>
+              ${escapeHtml(
+                [
+                  company.postal_code,
+                  company.city
+                ]
+                .filter(Boolean)
+                .join(" ") ||
+                "—"
+              )}
+            </td>
+
+            <td>
+              ${
+                company.employees ??
+                company.employee_count ??
+                "—"
+              }
+            </td>
+
+            <td>
+              <span
+                class="status ${statusClass(status)}"
+              >
+                ${statusLabel(status)}
+              </span>
+            </td>
+
+          </tr>
+        `;
+
+      })
+      .join("");
+
+}
+
+
+function statusClass(status){
+
+  return {
+    new:"status-new",
+    called:"status-called",
+    qualified:"status-qualified",
+    lost:"status-lost"
+  }[status] || "status-new";
+
+}
+
+
+function statusLabel(status){
+
+  return {
+    new:"Neu",
+    called:"Angerufen",
+    qualified:"Qualifiziert",
+    lost:"Verloren"
+  }[status] || status;
+
+}
+
+
+function updateDashboardStats(leads){
+
+  $("statLeads")
+    .textContent =
+      leads.length;
+
+
+  $("statNewLeads")
+    .textContent =
+      leads.filter(
+        lead=>lead.status === "new"
+      ).length;
+
+
+  $("statQualifiedLeads")
+    .textContent =
+      leads.filter(
+        lead=>lead.status === "qualified"
+      ).length;
+
+}
+
+
+function filterLeads(){
+
+  const search =
+    $("leadSearch")
+      .value
+      .trim()
+      .toLowerCase();
+
+
+  const status =
+    $("leadStatus")
+      .value;
+
+
+  const filtered =
+    currentLeads.filter(lead=>{
+
+      const company =
+        lead.companies || {};
+
+
+      const text =
+        [
+          company.name,
+          company.industry,
+          company.phone,
+          company.address,
+          company.postal_code,
+          company.city,
+          lead.status
+        ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+
+      return (
+        (!search || text.includes(search)) &&
+        (!status || lead.status === status)
+      );
+
+    });
+
+
+  renderLeads(
+    filtered
+  );
+
+}
+
+
+async function logout(){
+
+  if(supabaseClient){
+
+    try{
+
+      await supabaseClient.auth.signOut();
+
+    }catch(error){
+
+      console.error(
+        "LOGOUT FEHLER:",
+        error
+      );
+
+    }
+
+  }
+
+
+  showLogin();
+
+}
+
+
+async function boot(){
+
+  $("loginTab")
+    .addEventListener(
+      "click",
+      ()=>{
+        switchAuthMode("login");
+      }
+    );
+
+
+  $("registerTab")
+    .addEventListener(
+      "click",
+      ()=>{
+        switchAuthMode("register");
+      }
+    );
+
+
+  $("authForm")
+    .addEventListener(
+      "submit",
+      handleAuth
+    );
+
+
+  $("logoutButton")
+    .addEventListener(
+      "click",
+      logout
+    );
+
+
+  $("importCompaniesButton")
+    .addEventListener(
+      "click",
+      importCompanies
+    );
+
+
+  $("companySearchButton")
+    .addEventListener(
+      "click",
+      searchCompaniesForLeads
+    );
+
+
+  $("addSelectedButton")
+    .addEventListener(
+      "click",
+      addSelectedCompaniesAsLeads
+    );
+
+
+  $("selectAllCompanies")
+    .addEventListener(
+      "change",
+      event=>{
+
+        document
+          .querySelectorAll(
+            ".company-select:not(:disabled)"
+          )
+          .forEach(element=>{
+            element.checked =
+              event.target.checked;
+          });
+
+      }
+    );
+
+
+  $("leadSearch")
+    .addEventListener(
+      "input",
+      filterLeads
+    );
+
+
+  $("leadStatus")
+    .addEventListener(
+      "change",
+      filterLeads
+    );
+
+
+  document
+    .querySelectorAll(".nav-item")
+    .forEach(button=>{
+
+      button.addEventListener(
+        "click",
+        ()=>{
+          showPage(
+            button.dataset.page
+          );
+        }
+      );
+
+    });
+
+
+  document
+    .querySelectorAll("[data-open-page]")
+    .forEach(button=>{
+
+      button.addEventListener(
+        "click",
+        ()=>{
+          showPage(
+            button.dataset.openPage
+          );
+        }
+      );
+
+    });
+
+
+  try{
+
+    await initSupabase();
+
+
+    supabaseClient.auth.onAuthStateChange(
+      (event,session)=>{
+
+        console.log(
+          "AUTH EVENT:",
+          event
+        );
+
+
+        if(session?.user){
+
+          showApp(
+            session.user
+          );
+
+        }else{
+
+          showLogin();
+
+        }
+
+      }
+    );
+
+
+    await checkSession();
+
+
+  }catch(error){
+
+    supabaseInitError =
+      error;
+
+
+    console.error(
+      "SUPABASE INITIALISIERUNG FEHLER:",
+      error
+    );
+
+
+    showLogin();
+
+
+    showAuthMessage(
+      "Verbindung zu Supabase fehlgeschlagen: " +
+      formatError(error)
+    );
+
+  }
+
+}
+
+
+boot();
+
+</script>
+
+</body>
+</html>
