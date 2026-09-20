@@ -1091,7 +1091,43 @@ function escapeAttribute(value){
 }
 
 function formatError(error){
-  return error?.message || String(error || "Unbekannter Fehler");
+  if(!error){
+    return "Unbekannter Fehler.";
+  }
+
+  if(typeof error === "string"){
+    return error;
+  }
+
+  if(error instanceof Error){
+    return error.message || "Unbekannter Fehler.";
+  }
+
+  if(typeof error === "object"){
+    if(typeof error.message === "string" && error.message){
+      return error.message;
+    }
+
+    if(typeof error.error === "string" && error.error){
+      return error.error;
+    }
+
+    if(typeof error.details === "string" && error.details){
+      return error.details;
+    }
+
+    if(typeof error.hint === "string" && error.hint){
+      return error.hint;
+    }
+
+    try{
+      return JSON.stringify(error);
+    }catch(jsonError){
+      return "Unbekannter Fehler.";
+    }
+  }
+
+  return String(error);
 }
 
 function showStatus(id,message,type="success"){
