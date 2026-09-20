@@ -2503,7 +2503,7 @@ function renderSupply(){
   if(!supplies.length){
     tbody.innerHTML =
       `<tr>
-        <td colspan="8" class="empty">
+        <td colspan="10" class="empty">
           Noch keine Kunden in Belieferung vorhanden.
         </td>
       </tr>`;
@@ -2541,6 +2541,18 @@ function renderSupply(){
 
           <td>
             ${formatDate(
+              supply.next_cancellation_date
+            )}
+          </td>
+
+          <td>
+            ${formatDate(
+              supply.next_offer_date
+            )}
+          </td>
+
+          <td>
+            ${formatDate(
               supply.delivery_start_date
             )}
           </td>
@@ -2562,7 +2574,7 @@ function renderSupply(){
                     ${escapeHtml(
                       supply.supply_type
                     )}
-                   </span>`
+                  </span>`
                 : "—"
             }
           </td>
