@@ -2335,62 +2335,118 @@ async function moveLeadToSupply(){
     const company =
       selectedLead.companies || {};
 
-    const response =
-      await fetch("/api/lead-supply",{
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          Authorization:"Bearer " + token
-        },
-        body:JSON.stringify({
-          lead_id:selectedLead.id,
-          company_name:company.name || "",
-          business_address:company.address || "",
-          supply_type:"SLP",
-          notes:selectedLead.notes || ""
-        })
-      });
+    const payload = {
+      lead_id: selectedLead.id,
 
-    const result =
-      await response.json();
+      company_name:
+        company.name || "",
+
+      business_address:
+        company.address || "",
+
+      supply_type:
+        "SLP",
+
+      notes:
+        selectedLead.notes || ""
+    };
+
+    const response =
+      await fetch(
+        "/api/lead-supply",
+        {
+          method:"POST",
+
+          headers:{
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              "Bearer " + token,
+
+            Accept:
+              "application/json"
+          },
+
+          body:
+            JSON.stringify(payload)
+        }
+      );
+
+    const responseText =
+      await response.text();
+
+    let result = {};
+
+    try{
+      result =
+        responseText
+          ? JSON.parse(responseText)
+          : {};
+    }catch(error){
+      throw new Error(
+        "Ungültige Antwort von /api/lead-supply: " +
+        responseText.slice(0,300)
+      );
+    }
 
     if(!response.ok){
       throw new Error(
         result.error ||
-        "Kunde konnte nicht in die Belieferung übernommen werden."
+        `Kunde konnte nicht übernommen werden (${response.status}).`
       );
     }
+
+    if(!result.supply?.id){
+      throw new Error(
+        "Die Belieferung wurde nicht mit einer gültigen ID zurückgegeben."
+      );
+    }
+
+    /*
+      Die API hat die Belieferung erfolgreich gespeichert.
+      Jetzt beide Datenquellen neu laden.
+    */
 
     await loadLeads();
     await loadSupplies();
 
-    const supply =
+    const savedSupply =
       currentSupplies.find(
         item =>
-          String(item.lead_id) ===
-          String(selectedLead.id)
-      ) ||
-      result.supply ||
-      result;
+          String(item.id) ===
+          String(result.supply.id)
+      );
 
-    renderLeads(currentLeads);
-    renderPipeline();
-    updateDashboardStats(currentLeads);
+    if(!savedSupply){
+      throw new Error(
+        "Die Belieferung wurde gespeichert, konnte danach aber nicht wieder geladen werden."
+      );
+    }
+
     renderSupply();
 
     closeLeadDetail();
 
-    if(supply?.id){
-      await openSupplyDetail(supply.id);
-    }
+    await openSupplyDetail(
+      savedSupply.id
+    );
 
   }catch(error){
+
+    console.error(
+      "KUNDE IN BELIEFERUNG ÜBERNEHMEN FEHLER:",
+      error
+    );
+
     showStatus(
       "leadSupplyMessage",
       formatError(error),
       "error"
     );
+
   }finally{
+
     button.disabled = false;
   }
 }
