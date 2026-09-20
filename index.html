@@ -35,13 +35,14 @@ button{cursor:pointer}
 .btn-primary:disabled,.auth-button:disabled{opacity:.6;cursor:not-allowed}
 .btn-secondary{border:1px solid #d9dee8;background:#fff;color:#344054;font-weight:600;border-radius:8px;padding:10px 14px}
 .btn-danger{border:0;background:#dc2626;color:#fff;font-weight:600;border-radius:8px;padding:10px 14px}
+.btn-success{border:0;background:#039855;color:#fff;font-weight:700;border-radius:8px;padding:11px 15px}
 .btn-small{padding:7px 10px;font-size:12px}
 .auth-message,.search-status{padding:11px 13px;border-radius:8px;font-size:14px;margin-top:14px;line-height:1.5}
 .auth-message.error,.search-status.error{background:#fef2f2;color:#b42318}
 .auth-message.success,.search-status.success{background:#ecfdf3;color:#027a48}
 
 #app{min-height:100vh;display:flex}
-.sidebar{width:245px;min-height:100vh;background:#111827;color:#fff;padding:20px 14px;position:fixed;left:0;top:0;bottom:0}
+.sidebar{width:245px;min-height:100vh;background:#111827;color:#fff;padding:20px 14px;position:fixed;left:0;top:0;bottom:0;overflow-y:auto}
 .brand{display:flex;align-items:center;gap:11px;padding:7px 10px 25px}
 .brand-icon{width:38px;height:38px;border-radius:10px}
 .brand-name{font-weight:750;font-size:17px}
@@ -115,8 +116,8 @@ th.sortable{cursor:pointer}
 .placeholder{text-align:center;padding:50px 20px;color:#667085}
 .placeholder-icon{font-size:40px;margin-bottom:12px}
 
-.lead-row{cursor:pointer}
-.lead-row:hover{background:#f8fafc}
+.lead-row,.supply-row{cursor:pointer}
+.lead-row:hover,.supply-row:hover{background:#f8fafc}
 
 .detail-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px}
 .detail-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
@@ -125,7 +126,7 @@ th.sortable{cursor:pointer}
 .detail-value{font-size:14px;font-weight:600}
 
 .modal{position:fixed;inset:0;background:rgba(15,23,42,.55);display:flex;align-items:center;justify-content:center;padding:20px;z-index:1000}
-.modal-card{width:min(1000px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:16px;padding:24px}
+.modal-card{width:min(1100px,100%);max-height:92vh;overflow:auto;background:#fff;border-radius:16px;padding:24px}
 .modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:20px}
 .modal-title{font-size:22px;font-weight:750}
 .close-button{border:0;background:#f2f4f7;border-radius:8px;width:36px;height:36px}
@@ -136,6 +137,16 @@ th.sortable{cursor:pointer}
 .appointment-title{font-weight:700}
 .appointment-meta{color:#667085;font-size:12px;margin-top:4px}
 .appointment-notes{color:#475467;font-size:13px;margin-top:7px;white-space:pre-wrap}
+
+.supply-header-box{background:#f8fafc;border:1px solid #eaecf0;border-radius:10px;padding:15px;margin-bottom:18px}
+.supply-header-box strong{font-size:17px}
+.supply-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.supply-form-grid .full-width{grid-column:1/-1}
+.supply-section-title{font-size:14px;font-weight:750;margin:22px 0 12px;padding-bottom:8px;border-bottom:1px solid #eaecf0}
+.supply-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+.supply-type-options{display:flex;gap:18px;align-items:center;padding:10px 0}
+.supply-type-options label{display:flex;align-items:center;gap:7px;font-weight:600}
+.supply-type-options input{width:17px;height:17px}
 
 .calendar-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
 .calendar-title{font-size:20px;font-weight:750}
@@ -155,6 +166,8 @@ th.sortable{cursor:pointer}
 @media(max-width:1200px){
 .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
 .content-grid,.detail-grid{grid-template-columns:1fr}
+.supply-form-grid{grid-template-columns:1fr}
+.supply-form-grid .full-width{grid-column:auto}
 }
 @media(max-width:760px){
 #app{display:block}
@@ -226,6 +239,10 @@ th.sortable{cursor:pointer}
 
       <button class="nav-item" data-page="leads" type="button">
         <span class="nav-icon">▣</span>Leads
+      </button>
+
+      <button class="nav-item" data-page="supply" type="button">
+        <span class="nav-icon">⚡</span>Leads in Belieferung
       </button>
 
       <button class="nav-item" data-page="calendar" type="button">
@@ -468,7 +485,7 @@ Quelle (URL): https://example.de"></textarea>
       <div class="page-header">
         <div>
           <h1>Leads</h1>
-          <p>Klicke auf einen Lead, um den aktuellen Stand und Termine zu sehen.</p>
+          <p>Klicke auf einen Lead, um den aktuellen Stand, Notizen und Termine zu sehen.</p>
         </div>
 
         <button class="btn-secondary" type="button" id="refreshLeadsButton">
@@ -510,6 +527,71 @@ Quelle (URL): https://example.de"></textarea>
               </tr>
             </thead>
             <tbody id="leadsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEADS IN BELIEFERUNG -->
+    <section id="page-supply" class="page">
+      <div class="page-header">
+        <div>
+          <h1>Leads in Belieferung</h1>
+          <p>Vertragskunden und ihre Belieferungsdaten.</p>
+        </div>
+
+        <button id="refreshSupplyButton" class="btn-secondary" type="button">
+          Aktualisieren
+        </button>
+      </div>
+
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-title">Kunden in Belieferung</div>
+          <div id="supplyCount" class="stat-value">0</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">RLM</div>
+          <div id="supplyRlmCount" class="stat-value">0</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">SLP</div>
+          <div id="supplySlpCount" class="stat-value">0</div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-title">Jahresverbrauch</div>
+          <div id="supplyConsumptionTotal" class="stat-value">0 kWh</div>
+        </div>
+      </div>
+
+      <div class="card table-card">
+        <div class="table-toolbar">
+          <input id="supplySearch" type="search" placeholder="Kunden durchsuchen...">
+          <select id="supplyTypeFilter">
+            <option value="">RLM + SLP</option>
+            <option value="RLM">RLM</option>
+            <option value="SLP">SLP</option>
+          </select>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Unternehmen</th>
+                <th>Belieferungsstart</th>
+                <th>Gewünschter Liefertermin</th>
+                <th>RLM / SLP</th>
+                <th>Jahresverbrauch</th>
+                <th>Vorlieferant</th>
+                <th>MaLo-ID</th>
+                <th>Zählernummer</th>
+              </tr>
+            </thead>
+            <tbody id="supplyTableBody"></tbody>
           </table>
         </div>
       </div>
@@ -666,67 +748,107 @@ Quelle (URL): https://example.de"></textarea>
 
     <div class="detail-grid">
 
-      <div class="card">
-        <h2>Lead-Informationen</h2>
+      <div>
+        <div class="card">
+          <h2>Lead-Informationen</h2>
+          <div id="leadDetailInfo" class="detail-list"></div>
 
-        <div id="leadDetailInfo" class="detail-list"></div>
+          <div style="margin-top:20px">
+            <div class="detail-label">Aktueller Status</div>
 
-        <div style="margin-top:20px">
-          <div class="detail-label">Aktueller Status</div>
+            <div class="status-control">
+              <select id="leadDetailStatus">
+                <option value="new">Neu</option>
+                <option value="called">Angerufen</option>
+                <option value="not_reached">Nicht erreicht</option>
+                <option value="negotiation">In Verhandlung</option>
+                <option value="calculation">In Berechnung</option>
+                <option value="signed">Unterschrieben</option>
+                <option value="no_interest">Kein Interesse</option>
+                <option value="qualified">Qualifiziert</option>
+                <option value="lost">Verloren</option>
+              </select>
 
-          <div class="status-control">
-            <select id="leadDetailStatus">
-              <option value="new">Neu</option>
-              <option value="called">Angerufen</option>
-              <option value="not_reached">Nicht erreicht</option>
-              <option value="negotiation">In Verhandlung</option>
-              <option value="calculation">In Berechnung</option>
-              <option value="signed">Unterschrieben</option>
-              <option value="no_interest">Kein Interesse</option>
-              <option value="qualified">Qualifiziert</option>
-              <option value="lost">Verloren</option>
-            </select>
+              <button id="saveLeadStatusButton" class="btn-primary" type="button">
+                Status speichern
+              </button>
+            </div>
 
-            <button id="saveLeadStatusButton" class="btn-primary" type="button">
-              Status speichern
-            </button>
+            <div id="leadStatusMessage" class="search-status"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <h2>Gesprächsnotizen</h2>
+
+          <div class="form-group">
+            <label for="leadNotes">
+              Wichtige Notizen aus Telefonaten und Gesprächen
+            </label>
+
+            <textarea
+              id="leadNotes"
+              rows="8"
+              placeholder="z. B. Ansprechpartner bevorzugt Rückruf am Nachmittag. Interesse an Angebot ab Januar..."
+            ></textarea>
           </div>
 
-          <div id="leadStatusMessage" class="search-status"></div>
+          <button id="saveLeadNotesButton" class="btn-primary" type="button">
+            Gesprächsnotizen speichern
+          </button>
+
+          <div id="leadNotesMessage" class="search-status"></div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <h2>Vertragsabschluss</h2>
+
+          <p style="color:#667085;line-height:1.6;margin-bottom:15px">
+            Nach Vertragsabschluss kannst du den Kunden hier direkt in
+            „Leads in Belieferung“ übernehmen.
+          </p>
+
+          <button id="moveLeadToSupplyButton" class="btn-success" type="button">
+            Kunde in Belieferung übernehmen
+          </button>
+
+          <div id="leadSupplyMessage" class="search-status"></div>
         </div>
       </div>
 
-      <div class="card">
-        <h2>Termin erstellen</h2>
+      <div>
+        <div class="card">
+          <h2>Termin erstellen</h2>
 
-        <form id="appointmentForm">
+          <form id="appointmentForm">
 
-          <div class="form-group">
-            <label for="appointmentTitle">Titel</label>
-            <input id="appointmentTitle" type="text" placeholder="Beratungsgespräch" required>
-          </div>
+            <div class="form-group">
+              <label for="appointmentTitle">Titel</label>
+              <input id="appointmentTitle" type="text" placeholder="Beratungsgespräch" required>
+            </div>
 
-          <div class="form-group">
-            <label for="appointmentDate">Datum</label>
-            <input id="appointmentDate" type="date" required>
-          </div>
+            <div class="form-group">
+              <label for="appointmentDate">Datum</label>
+              <input id="appointmentDate" type="date" required>
+            </div>
 
-          <div class="form-group">
-            <label for="appointmentTime">Uhrzeit</label>
-            <input id="appointmentTime" type="time">
-          </div>
+            <div class="form-group">
+              <label for="appointmentTime">Uhrzeit</label>
+              <input id="appointmentTime" type="time">
+            </div>
 
-          <div class="form-group">
-            <label for="appointmentNotes">Notizen</label>
-            <textarea id="appointmentNotes" rows="4" placeholder="Notizen zum Termin"></textarea>
-          </div>
+            <div class="form-group">
+              <label for="appointmentNotes">Notizen</label>
+              <textarea id="appointmentNotes" rows="4" placeholder="Notizen zum Termin"></textarea>
+            </div>
 
-          <button class="btn-primary" type="submit">
-            Termin speichern
-          </button>
+            <button class="btn-primary" type="submit">
+              Termin speichern
+            </button>
 
-          <div id="appointmentMessage" class="search-status"></div>
-        </form>
+            <div id="appointmentMessage" class="search-status"></div>
+          </form>
+        </div>
       </div>
     </div>
 
@@ -734,6 +856,163 @@ Quelle (URL): https://example.de"></textarea>
       <h2>Termine dieses Leads</h2>
       <div id="leadAppointments" class="appointment-list"></div>
     </div>
+
+  </div>
+</div>
+
+<!-- SUPPLY DETAIL -->
+<div id="supplyDetailModal" class="modal hidden">
+  <div class="modal-card">
+
+    <div class="modal-header">
+      <div>
+        <div id="supplyDetailTitle" class="modal-title">Belieferung</div>
+        <div id="supplyDetailSubtitle" style="color:#667085;margin-top:4px"></div>
+      </div>
+
+      <button id="closeSupplyDetailButton" class="close-button" type="button">×</button>
+    </div>
+
+    <div class="supply-header-box">
+      <strong id="supplyLinkedLeadName">—</strong>
+      <div id="supplyLinkedLeadInfo" style="color:#667085;font-size:13px;margin-top:4px"></div>
+    </div>
+
+    <form id="supplyForm">
+
+      <input id="supplyId" type="hidden">
+      <input id="supplyLeadId" type="hidden">
+
+      <div class="supply-section-title">Unternehmen</div>
+
+      <div class="supply-form-grid">
+
+        <div class="form-group">
+          <label for="supplyCompanyName">Firmenname</label>
+          <input id="supplyCompanyName" type="text">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyVatId">USt-IdNr.</label>
+          <input id="supplyVatId" type="text" placeholder="DE123456789">
+        </div>
+
+        <div class="form-group full-width">
+          <label for="supplyBusinessAddress">Genaue Geschäftsadresse</label>
+          <textarea id="supplyBusinessAddress" rows="3" placeholder="Straße, Hausnummer, PLZ, Ort"></textarea>
+        </div>
+
+      </div>
+
+      <div class="supply-section-title">Zähler und Verbrauch</div>
+
+      <div class="supply-form-grid">
+
+        <div class="form-group">
+          <label for="supplyMaloId">MaLo-ID</label>
+          <input id="supplyMaloId" type="text" inputmode="numeric" maxlength="11" placeholder="11-stellige MaLo-ID">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyMeterNumber">Zählernummer</label>
+          <input id="supplyMeterNumber" type="text">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyAnnualConsumption">Jahresverbrauch in kWh</label>
+          <input id="supplyAnnualConsumption" type="number" min="0" step="0.01">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyMeterReading">Aktueller Zählerstand</label>
+          <input id="supplyMeterReading" type="number" min="0" step="0.01">
+        </div>
+
+        <div class="form-group">
+          <label>Messkonzept</label>
+
+          <div class="supply-type-options">
+            <label>
+              <input type="radio" name="supplyType" value="SLP">
+              SLP
+            </label>
+
+            <label>
+              <input type="radio" name="supplyType" value="RLM">
+              RLM
+            </label>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="supply-section-title">Lieferung</div>
+
+      <div class="supply-form-grid">
+
+        <div class="form-group">
+          <label for="supplyDeliveryStartDate">Belieferungsstart</label>
+          <input id="supplyDeliveryStartDate" type="date">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyDesiredDeliveryDate">Gewünschter Liefertermin</label>
+          <input id="supplyDesiredDeliveryDate" type="date">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyPreviousSupplier">Vorheriger Lieferant</label>
+          <input id="supplyPreviousSupplier" type="text">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyPreviousCustomerNumber">Kundennummer beim Vorlieferanten</label>
+          <input id="supplyPreviousCustomerNumber" type="text">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyOldContractDeadline">Altes Vertragsende</label>
+          <input id="supplyOldContractDeadline" type="date">
+        </div>
+
+        <div class="form-group">
+          <label for="supplyOldContractNotice">Kündigungsfrist / Selbstkündigung</label>
+          <input id="supplyOldContractNotice" type="text" placeholder="z. B. 3 Monate zum Vertragsende">
+        </div>
+
+      </div>
+
+      <div class="supply-section-title">Zahlung</div>
+
+      <div class="supply-form-grid">
+
+        <div class="form-group">
+          <label for="supplyIban">IBAN Firmenkonto / SEPA</label>
+          <input id="supplyIban" type="text" autocomplete="off" placeholder="DE...">
+        </div>
+
+      </div>
+
+      <div class="supply-section-title">Belieferungsnotizen</div>
+
+      <div class="form-group">
+        <label for="supplyNotes">Notizen zur Belieferung</label>
+        <textarea id="supplyNotes" rows="7" placeholder="Weitere Informationen zur Belieferung, Kündigung, Zählerwechsel, Ansprechpartner usw."></textarea>
+      </div>
+
+      <div class="supply-actions">
+        <button id="saveSupplyButton" class="btn-primary" type="submit">
+          Belieferungsdaten speichern
+        </button>
+
+        <button id="supplyAppointmentButton" class="btn-secondary" type="button">
+          Termin anlegen
+        </button>
+      </div>
+
+      <div id="supplyMessage" class="search-status"></div>
+
+    </form>
 
   </div>
 </div>
@@ -749,14 +1028,16 @@ const SUPABASE_URL =
   "https://ippummtfsjfrayosofxb.supabase.co";
 
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcHVtbXRmc2pmcmF5b3NvZnhiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTQ4MDUsImV4cCI6MjEwNTMzMDgwNX0.-BrJuSK9S28uG53a2T8kkk43BljiJX5kIDGwu44x-5A";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlwcHVtbXRmc2pmcmF5b3NvZnhiIiwicm9sZSI6Im5vbmUiLCJpYXQiOjE3ODk3NTQ4MDUsImV4cCI6MjEwNTMzMDgwNX0.-BrJuSK9S28uG53a2T8kkk43BljiJX5kIDGwu44x-5A";
 
 let supabaseClient = null;
 let currentUser = null;
 let currentLeads = [];
 let currentCompanies = [];
 let currentAppointments = [];
+let currentSupplies = [];
 let selectedLead = null;
+let selectedSupply = null;
 let calendarDate = new Date();
 let companySortDirection = "asc";
 
@@ -864,6 +1145,26 @@ function energyBadge(value){
   return '<span class="energy-badge energy-none">—</span>';
 }
 
+function localDateInputValue(date = new Date()){
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2,"0"),
+    String(date.getDate()).padStart(2,"0")
+  ].join("-");
+}
+
+function formatNumber(value){
+  const number = Number(value);
+
+  if(!Number.isFinite(number)){
+    return "—";
+  }
+
+  return new Intl.NumberFormat("de-DE",{
+    maximumFractionDigits:2
+  }).format(number);
+}
+
 async function getApiToken(){
   if(!supabaseClient){
     throw new Error("Supabase ist nicht initialisiert.");
@@ -915,6 +1216,7 @@ async function showApp(user){
 
   await loadLeads();
   await loadAllAppointments();
+  await loadSupplies();
 }
 
 function switchAuthMode(mode){
@@ -1013,6 +1315,7 @@ async function logout(){
   currentUser = null;
   currentLeads = [];
   currentAppointments = [];
+  currentSupplies = [];
   showLogin();
 }
 
@@ -1074,6 +1377,10 @@ async function showPage(page){
 
   if(page === "contacts"){
     renderContacts();
+  }
+
+  if(page === "supply"){
+    await loadSupplies();
   }
 }
 
@@ -1328,13 +1635,18 @@ function getFilteredCompanies(){
       );
   }
 
-  companies.sort((a,b) =>
-    String(a.name || "")
-      .localeCompare(
-        String(b.name || ""),
-        "de"
-      )
-  );
+  companies.sort((a,b) => {
+    const comparison =
+      String(a.name || "")
+        .localeCompare(
+          String(b.name || ""),
+          "de"
+        );
+
+    return companySortDirection === "asc"
+      ? comparison
+      : -comparison;
+  });
 
   return companies;
 }
@@ -1596,19 +1908,20 @@ function filterLeads(){
 
 function getNextAppointmentForLead(leadId){
   const today =
-    new Date().toISOString().slice(0,10);
+    localDateInputValue();
 
   return currentAppointments
     .filter(
       appointment =>
-        appointment.lead_id === leadId &&
+        String(appointment.lead_id) === String(leadId) &&
         appointment.appointment_date >= today
     )
     .sort(
       (a,b) =>
-        String(a.appointment_date).localeCompare(
-          String(b.appointment_date)
-        )
+        `${a.appointment_date} ${a.appointment_time || ""}`
+          .localeCompare(
+            `${b.appointment_date} ${b.appointment_time || ""}`
+          )
     )[0] || null;
 }
 
@@ -1751,6 +2064,11 @@ async function openLeadDetail(leadId){
     </div>
 
     <div class="detail-item">
+      <div class="detail-label">Adresse</div>
+      <div class="detail-value">${escapeHtml(company.address || "—")}</div>
+    </div>
+
+    <div class="detail-item">
       <div class="detail-label">Ort</div>
       <div class="detail-value">
         ${escapeHtml(
@@ -1788,10 +2106,12 @@ async function openLeadDetail(leadId){
     </div>
   `;
 
+  $("leadNotes").value = lead.notes || "";
+
   $("leadDetailModal").classList.remove("hidden");
 
   $("appointmentDate").value =
-    new Date().toISOString().slice(0,10);
+    localDateInputValue();
 
   $("appointmentTitle").value =
     "Termin mit " + (company.name || "Lead");
@@ -1801,6 +2121,22 @@ async function openLeadDetail(leadId){
 
   hideStatus("leadStatusMessage");
   hideStatus("appointmentMessage");
+  hideStatus("leadNotesMessage");
+  hideStatus("leadSupplyMessage");
+
+  const existingSupply =
+    currentSupplies.find(
+      supply =>
+        String(supply.lead_id) === String(lead.id)
+    );
+
+  if(existingSupply){
+    $("moveLeadToSupplyButton").textContent =
+      "Belieferungsdaten öffnen";
+  }else{
+    $("moveLeadToSupplyButton").textContent =
+      "Kunde in Belieferung übernehmen";
+  }
 
   await loadAppointmentsForLead(lead.id);
 }
@@ -1871,14 +2207,6 @@ async function updateLeadStatus(){
     updateDashboardStats(currentLeads);
     renderPipeline();
 
-    await openLeadDetail(selectedLead.id);
-
-    showStatus(
-      "leadStatusMessage",
-      "Status gespeichert.",
-      "success"
-    );
-
   }catch(error){
     showStatus(
       "leadStatusMessage",
@@ -1886,6 +2214,728 @@ async function updateLeadStatus(){
       "error"
     );
   }
+}
+
+
+/* =========================================================
+   LEAD-NOTIZEN
+========================================================= */
+
+async function saveLeadNotes(){
+  if(!selectedLead) return;
+
+  const notes =
+    $("leadNotes").value.trim();
+
+  const button =
+    $("saveLeadNotesButton");
+
+  button.disabled = true;
+
+  try{
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-notes?lead_id=" +
+        encodeURIComponent(selectedLead.id),
+        {
+          method:"PATCH",
+          headers:{
+            "Content-Type":"application/json",
+            Authorization:"Bearer " + token
+          },
+          body:JSON.stringify({
+            notes
+          })
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Gesprächsnotizen konnten nicht gespeichert werden."
+      );
+    }
+
+    const localLead =
+      currentLeads.find(
+        lead => String(lead.id) === String(selectedLead.id)
+      );
+
+    if(localLead){
+      localLead.notes = notes;
+      selectedLead = localLead;
+    }
+
+    showStatus(
+      "leadNotesMessage",
+      "Gesprächsnotizen gespeichert.",
+      "success"
+    );
+
+  }catch(error){
+    showStatus(
+      "leadNotesMessage",
+      formatError(error),
+      "error"
+    );
+  }finally{
+    button.disabled = false;
+  }
+}
+
+
+/* =========================================================
+   LEAD -> BELIEFERUNG
+========================================================= */
+
+async function moveLeadToSupply(){
+  if(!selectedLead) return;
+
+  const existingSupply =
+    currentSupplies.find(
+      supply =>
+        String(supply.lead_id) === String(selectedLead.id)
+    );
+
+  if(existingSupply){
+    closeLeadDetail();
+    await openSupplyDetail(existingSupply.id);
+    return;
+  }
+
+  const button =
+    $("moveLeadToSupplyButton");
+
+  button.disabled = true;
+
+  try{
+    const token =
+      await getApiToken();
+
+    const company =
+      selectedLead.companies || {};
+
+    const response =
+      await fetch("/api/lead-supply",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          Authorization:"Bearer " + token
+        },
+        body:JSON.stringify({
+          lead_id:selectedLead.id,
+          company_name:company.name || "",
+          business_address:company.address || "",
+          supply_type:"SLP",
+          notes:selectedLead.notes || ""
+        })
+      });
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Kunde konnte nicht in die Belieferung übernommen werden."
+      );
+    }
+
+    const supply =
+      result.supply || result;
+
+    currentSupplies =
+      [
+        ...currentSupplies.filter(
+          item =>
+            String(item.lead_id) !== String(selectedLead.id)
+        ),
+        supply
+      ];
+
+    const currentLeadId =
+      selectedLead.id;
+
+    try{
+      const statusResponse =
+        await fetch("/api/leads",{
+          method:"PATCH",
+          headers:{
+            "Content-Type":"application/json",
+            Authorization:"Bearer " + token
+          },
+          body:JSON.stringify({
+            lead_id:currentLeadId,
+            status:"signed"
+          })
+        });
+
+      if(statusResponse.ok){
+        const statusResult =
+          await statusResponse.json();
+
+        const localLead =
+          currentLeads.find(
+            lead =>
+              String(lead.id) === String(currentLeadId)
+          );
+
+        if(localLead){
+          localLead.status = "signed";
+          localLead.status_updated_at =
+            statusResult.lead?.status_updated_at ||
+            new Date().toISOString();
+        }
+      }
+    }catch(statusError){
+      console.error(
+        "Lead-Status konnte nach Übernahme nicht gesetzt werden:",
+        statusError
+      );
+    }
+
+    renderLeads(currentLeads);
+    renderPipeline();
+    updateDashboardStats(currentLeads);
+    renderSupply();
+
+    closeLeadDetail();
+
+    await openSupplyDetail(supply.id);
+
+  }catch(error){
+    showStatus(
+      "leadSupplyMessage",
+      formatError(error),
+      "error"
+    );
+  }finally{
+    button.disabled = false;
+  }
+}
+
+
+/* =========================================================
+   BELIEFERUNG
+========================================================= */
+
+async function loadSupplies(){
+  if(!currentUser) return;
+
+  try{
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch("/api/lead-supply",{
+        headers:{
+          Authorization:"Bearer " + token
+        }
+      });
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Belieferungen konnten nicht geladen werden."
+      );
+    }
+
+    currentSupplies =
+      result.supplies ||
+      result.records ||
+      [];
+
+    renderSupply();
+
+  }catch(error){
+    console.error("BELIEFERUNGEN FEHLER:",error);
+
+    currentSupplies = [];
+
+    renderSupply();
+
+    const tbody =
+      $("supplyTableBody");
+
+    if(tbody){
+      tbody.innerHTML =
+        `<tr><td colspan="8" class="empty">${escapeHtml(formatError(error))}</td></tr>`;
+    }
+  }
+}
+
+function getFilteredSupplies(){
+  const search =
+    $("supplySearch").value
+      .trim()
+      .toLowerCase();
+
+  const type =
+    $("supplyTypeFilter").value;
+
+  return currentSupplies.filter(supply => {
+
+    const lead =
+      currentLeads.find(
+        item =>
+          String(item.id) === String(supply.lead_id)
+      );
+
+    const company =
+      lead?.companies || {};
+
+    const text =
+      [
+        supply.company_name,
+        supply.business_address,
+        supply.vat_id,
+        supply.malo_id,
+        supply.meter_number,
+        supply.previous_supplier,
+        supply.previous_customer_number,
+        company.name,
+        company.city
+      ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+
+    return (
+      (!search || text.includes(search)) &&
+      (!type || String(supply.supply_type || "") === type)
+    );
+  });
+}
+
+function renderSupply(){
+  const tbody =
+    $("supplyTableBody");
+
+  if(!tbody) return;
+
+  const supplies =
+    getFilteredSupplies();
+
+  $("supplyCount").textContent =
+    currentSupplies.length;
+
+  $("supplyRlmCount").textContent =
+    currentSupplies.filter(
+      item => item.supply_type === "RLM"
+    ).length;
+
+  $("supplySlpCount").textContent =
+    currentSupplies.filter(
+      item => item.supply_type === "SLP"
+    ).length;
+
+  const totalConsumption =
+    currentSupplies.reduce(
+      (sum,item) =>
+        sum + (Number(item.annual_consumption_kwh) || 0),
+      0
+    );
+
+  $("supplyConsumptionTotal").textContent =
+    `${formatNumber(totalConsumption)} kWh`;
+
+  if(!supplies.length){
+    tbody.innerHTML =
+      `<tr><td colspan="8" class="empty">Noch keine Kunden in Belieferung vorhanden.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML =
+    supplies.map(supply => {
+
+      const lead =
+        currentLeads.find(
+          item =>
+            String(item.id) === String(supply.lead_id)
+        );
+
+      const company =
+        lead?.companies || {};
+
+      return `
+        <tr
+          class="supply-row"
+          data-supply-id="${escapeAttribute(supply.id)}"
+        >
+          <td>
+            <strong>
+              ${escapeHtml(
+                supply.company_name ||
+                company.name ||
+                "Unbekannt"
+              )}
+            </strong>
+          </td>
+
+          <td>
+            ${formatDate(supply.delivery_start_date)}
+          </td>
+
+          <td>
+            ${formatDate(supply.desired_delivery_date)}
+          </td>
+
+          <td>
+            ${
+              supply.supply_type
+                ? `<span class="status ${supply.supply_type === "RLM" ? "status-calculation" : "status-new"}">
+                    ${escapeHtml(supply.supply_type)}
+                   </span>`
+                : "—"
+            }
+          </td>
+
+          <td>
+            ${
+              supply.annual_consumption_kwh != null
+                ? escapeHtml(formatNumber(supply.annual_consumption_kwh)) + " kWh"
+                : "—"
+            }
+          </td>
+
+          <td>
+            ${escapeHtml(supply.previous_supplier || "—")}
+          </td>
+
+          <td>
+            ${escapeHtml(supply.malo_id || "—")}
+          </td>
+
+          <td>
+            ${escapeHtml(supply.meter_number || "—")}
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+  tbody
+    .querySelectorAll(".supply-row")
+    .forEach(row => {
+      row.addEventListener(
+        "click",
+        () => openSupplyDetail(row.dataset.supplyId)
+      );
+    });
+}
+
+function clearSupplyForm(){
+  $("supplyId").value = "";
+  $("supplyLeadId").value = "";
+  $("supplyCompanyName").value = "";
+  $("supplyBusinessAddress").value = "";
+  $("supplyVatId").value = "";
+  $("supplyMaloId").value = "";
+  $("supplyMeterNumber").value = "";
+  $("supplyAnnualConsumption").value = "";
+  $("supplyMeterReading").value = "";
+  $("supplyPreviousSupplier").value = "";
+  $("supplyPreviousCustomerNumber").value = "";
+  $("supplyIban").value = "";
+  $("supplyDesiredDeliveryDate").value = "";
+  $("supplyDeliveryStartDate").value = "";
+  $("supplyOldContractDeadline").value = "";
+  $("supplyOldContractNotice").value = "";
+  $("supplyNotes").value = "";
+
+  document
+    .querySelectorAll('input[name="supplyType"]')
+    .forEach(input => input.checked = false);
+}
+
+async function openSupplyDetail(supplyId){
+  const supply =
+    currentSupplies.find(
+      item =>
+        String(item.id) === String(supplyId)
+    );
+
+  if(!supply) return;
+
+  selectedSupply = supply;
+
+  const lead =
+    currentLeads.find(
+      item =>
+        String(item.id) === String(supply.lead_id)
+    );
+
+  const company =
+    lead?.companies || {};
+
+  $("supplyId").value =
+    supply.id || "";
+
+  $("supplyLeadId").value =
+    supply.lead_id || "";
+
+  $("supplyCompanyName").value =
+    supply.company_name ||
+    company.name ||
+    "";
+
+  $("supplyBusinessAddress").value =
+    supply.business_address ||
+    company.address ||
+    "";
+
+  $("supplyVatId").value =
+    supply.vat_id || "";
+
+  $("supplyMaloId").value =
+    supply.malo_id || "";
+
+  $("supplyMeterNumber").value =
+    supply.meter_number || "";
+
+  $("supplyAnnualConsumption").value =
+    supply.annual_consumption_kwh ?? "";
+
+  $("supplyMeterReading").value =
+    supply.current_meter_reading ?? "";
+
+  $("supplyPreviousSupplier").value =
+    supply.previous_supplier || "";
+
+  $("supplyPreviousCustomerNumber").value =
+    supply.previous_customer_number || "";
+
+  $("supplyIban").value =
+    supply.iban || "";
+
+  $("supplyDesiredDeliveryDate").value =
+    supply.desired_delivery_date || "";
+
+  $("supplyDeliveryStartDate").value =
+    supply.delivery_start_date || "";
+
+  $("supplyOldContractDeadline").value =
+    supply.old_contract_deadline || "";
+
+  $("supplyOldContractNotice").value =
+    supply.old_contract_notice || "";
+
+  $("supplyNotes").value =
+    supply.notes || "";
+
+  document
+    .querySelectorAll('input[name="supplyType"]')
+    .forEach(input => {
+      input.checked =
+        input.value === supply.supply_type;
+    });
+
+  $("supplyDetailTitle").textContent =
+    supply.company_name ||
+    company.name ||
+    "Belieferung";
+
+  $("supplyDetailSubtitle").textContent =
+    [
+      supply.supply_type,
+      company.city
+    ]
+    .filter(Boolean)
+    .join(" · ");
+
+  $("supplyLinkedLeadName").textContent =
+    company.name ||
+    supply.company_name ||
+    "Unbekannter Kunde";
+
+  $("supplyLinkedLeadInfo").textContent =
+    [
+      company.contact_name,
+      company.phone,
+      company.city
+    ]
+    .filter(Boolean)
+    .join(" · ");
+
+  hideStatus("supplyMessage");
+
+  $("supplyDetailModal").classList.remove("hidden");
+}
+
+function closeSupplyDetail(){
+  selectedSupply = null;
+  $("supplyDetailModal").classList.add("hidden");
+}
+
+async function saveSupply(event){
+  event.preventDefault();
+
+  const supplyId =
+    $("supplyId").value.trim();
+
+  const leadId =
+    $("supplyLeadId").value.trim();
+
+  const supplyType =
+    document.querySelector(
+      'input[name="supplyType"]:checked'
+    )?.value || null;
+
+  if(!leadId){
+    showStatus(
+      "supplyMessage",
+      "Der zugehörige Lead fehlt.",
+      "error"
+    );
+    return;
+  }
+
+  if(!supplyType){
+    showStatus(
+      "supplyMessage",
+      "Bitte RLM oder SLP auswählen.",
+      "error"
+    );
+    return;
+  }
+
+  const maloId =
+    $("supplyMaloId").value.trim();
+
+  if(maloId && !/^\d{11}$/.test(maloId)){
+    showStatus(
+      "supplyMessage",
+      "Die MaLo-ID muss genau 11 Ziffern enthalten.",
+      "error"
+    );
+    return;
+  }
+
+  const button =
+    $("saveSupplyButton");
+
+  button.disabled = true;
+
+  const payload = {
+    lead_id:leadId,
+    company_name:$("supplyCompanyName").value.trim(),
+    business_address:$("supplyBusinessAddress").value.trim(),
+    vat_id:$("supplyVatId").value.trim(),
+    malo_id:maloId,
+    meter_number:$("supplyMeterNumber").value.trim(),
+    annual_consumption_kwh:
+      $("supplyAnnualConsumption").value === ""
+        ? null
+        : Number($("supplyAnnualConsumption").value),
+    current_meter_reading:
+      $("supplyMeterReading").value === ""
+        ? null
+        : Number($("supplyMeterReading").value),
+    previous_supplier:$("supplyPreviousSupplier").value.trim(),
+    previous_customer_number:$("supplyPreviousCustomerNumber").value.trim(),
+    iban:$("supplyIban").value.trim(),
+    desired_delivery_date:$("supplyDesiredDeliveryDate").value || null,
+    delivery_start_date:$("supplyDeliveryStartDate").value || null,
+    old_contract_deadline:$("supplyOldContractDeadline").value || null,
+    old_contract_notice:$("supplyOldContractNotice").value.trim(),
+    supply_type:supplyType,
+    notes:$("supplyNotes").value.trim()
+  };
+
+  try{
+    const token =
+      await getApiToken();
+
+    const response =
+      await fetch(
+        "/api/lead-supply" +
+        (supplyId
+          ? "?id=" + encodeURIComponent(supplyId)
+          : ""),
+        {
+          method:supplyId ? "PATCH" : "POST",
+          headers:{
+            "Content-Type":"application/json",
+            Authorization:"Bearer " + token
+          },
+          body:JSON.stringify(payload)
+        }
+      );
+
+    const result =
+      await response.json();
+
+    if(!response.ok){
+      throw new Error(
+        result.error ||
+        "Belieferungsdaten konnten nicht gespeichert werden."
+      );
+    }
+
+    const saved =
+      result.supply || result;
+
+    const index =
+      currentSupplies.findIndex(
+        item =>
+          String(item.id) === String(saved.id)
+      );
+
+    if(index >= 0){
+      currentSupplies[index] = saved;
+    }else{
+      currentSupplies.push(saved);
+    }
+
+    selectedSupply = saved;
+
+    renderSupply();
+
+    showStatus(
+      "supplyMessage",
+      "Belieferungsdaten gespeichert.",
+      "success"
+    );
+
+  }catch(error){
+    showStatus(
+      "supplyMessage",
+      formatError(error),
+      "error"
+    );
+  }finally{
+    button.disabled = false;
+  }
+}
+
+function openSupplyAppointment(){
+  if(!selectedSupply) return;
+
+  const lead =
+    currentLeads.find(
+      item =>
+        String(item.id) === String(selectedSupply.lead_id)
+    );
+
+  if(!lead){
+    showStatus(
+      "supplyMessage",
+      "Der zugehörige Lead wurde nicht gefunden.",
+      "error"
+    );
+    return;
+  }
+
+  closeSupplyDetail();
+  openLeadDetail(lead.id);
 }
 
 
@@ -2604,9 +3654,58 @@ function setupEvents(){
     updateLeadStatus
   );
 
+  $("saveLeadNotesButton").addEventListener(
+    "click",
+    saveLeadNotes
+  );
+
+  $("moveLeadToSupplyButton").addEventListener(
+    "click",
+    moveLeadToSupply
+  );
+
   $("appointmentForm").addEventListener(
     "submit",
     createAppointment
+  );
+
+  $("closeSupplyDetailButton").addEventListener(
+    "click",
+    closeSupplyDetail
+  );
+
+  $("supplyDetailModal").addEventListener(
+    "click",
+    event => {
+      if(event.target === $("supplyDetailModal")){
+        closeSupplyDetail();
+      }
+    }
+  );
+
+  $("supplyForm").addEventListener(
+    "submit",
+    saveSupply
+  );
+
+  $("supplyAppointmentButton").addEventListener(
+    "click",
+    openSupplyAppointment
+  );
+
+  $("refreshSupplyButton").addEventListener(
+    "click",
+    loadSupplies
+  );
+
+  $("supplySearch").addEventListener(
+    "input",
+    renderSupply
+  );
+
+  $("supplyTypeFilter").addEventListener(
+    "change",
+    renderSupply
   );
 
   $("calendarPrev").addEventListener(
