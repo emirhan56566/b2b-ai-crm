@@ -9,6 +9,7 @@ const SERVICE_KEY =
 const ANON_KEY =
     process.env.SUPABASE_ANON_KEY;
 
+
 function serviceHeaders() {
     return {
         apikey: SERVICE_KEY,
@@ -19,7 +20,9 @@ function serviceHeaders() {
     };
 }
 
+
 async function getUser(req) {
+
     const auth =
         req.headers.authorization ||
         req.headers.Authorization;
@@ -54,10 +57,12 @@ async function getUser(req) {
     return await response.json();
 }
 
+
 async function getExistingLeads(
     userId,
     companyIds
 ) {
+
     if (!companyIds.length) {
         return [];
     }
@@ -90,24 +95,40 @@ async function getExistingLeads(
     );
 }
 
+
 async function createLead(
     userId,
     companyId
 ) {
+
     const response =
         await fetch(
             `${SUPABASE_URL}/rest/v1/leads`,
             {
                 method: "POST",
+
                 headers: {
                     ...serviceHeaders(),
                     Prefer:
                         "return=representation"
                 },
+
                 body: JSON.stringify({
-                    user_id: userId,
-                    company_id: companyId,
-                    status: "new",
+                    user_id:
+                        userId,
+
+                    company_id:
+                        companyId,
+
+                    status:
+                        "new",
+
+                    status_updated_at:
+                        new Date().toISOString(),
+
+                    pipeline_value:
+                        2,
+
                     source:
                         "company_database"
                 })
@@ -125,15 +146,45 @@ async function createLead(
     }
 
     try {
+
         const rows =
             JSON.parse(text);
 
         return rows[0] || null;
 
     } catch {
+
         return null;
     }
 }
+
+
+/* ==================================================
+   STATUS VALIDIERUNG
+================================================== */
+
+const VALID_STATUSES = [
+    "new",
+    "called",
+    "not_reached",
+    "negotiation",
+    "calculation",
+    "signed",
+    "no_interest"
+];
+
+
+function isValidStatus(status) {
+
+    return VALID_STATUSES.includes(
+        String(status || "")
+    );
+}
+
+
+/* ==================================================
+   HANDLER
+================================================== */
 
 export default async function handler(
     req,
@@ -145,9 +196,10 @@ export default async function handler(
         const user =
             await getUser(req);
 
-        // ==========================================
-        // GET — bestehende Leads laden
-        // ==========================================
+
+        /* ==========================================
+           GET — Leads laden
+        ========================================== */
 
         if (req.method === "GET") {
 
@@ -166,21 +218,25 @@ export default async function handler(
                 await response.text();
 
             if (!response.ok) {
+
                 throw new Error(
                     text ||
                     "Leads konnten nicht geladen werden."
                 );
             }
 
+            const leads =
+                JSON.parse(text);
+
             return res.status(200).json({
-                leads:
-                    JSON.parse(text)
+                leads
             });
         }
 
-        // ==========================================
-        // POST — ausgewählte Unternehmen → Leads
-        // ==========================================
+
+        /* ==========================================
+           POST — Unternehmen → Leads
+        ========================================== */
 
         if (req.method === "POST") {
 
@@ -202,17 +258,20 @@ export default async function handler(
                     : [];
 
             if (!companyIds.length) {
+
                 return res.status(400).json({
                     error:
                         "Keine Unternehmen ausgewählt."
                 });
             }
 
+
             const existing =
                 await getExistingLeads(
                     user.id,
                     companyIds
                 );
+
 
             const existingCompanyIds =
                 new Set(
@@ -222,6 +281,7 @@ export default async function handler(
                     )
                 );
 
+
             const newCompanyIds =
                 companyIds.filter(
                     id =>
@@ -230,7 +290,9 @@ export default async function handler(
                         )
                 );
 
+
             const created = [];
+
 
             for (
                 const companyId
@@ -246,17 +308,13 @@ export default async function handler(
                         );
 
                     if (lead) {
-                        created.push(lead);
+                        created.push(
+                            lead
+                        );
                     }
 
                 } catch (error) {
 
-                    /*
-                     * Falls gleichzeitig von
-                     * einem anderen Request ein
-                     * Lead angelegt wurde:
-                     * nicht doppelt anlegen.
-                     */
                     console.error(
                         "Lead create error:",
                         error
@@ -264,21 +322,176 @@ export default async function handler(
                 }
             }
 
+
             return res.status(200).json({
-                success: true,
+                success:
+                    true,
+
                 created:
                     created.length,
+
                 skipped:
                     companyIds.length -
                     created.length,
-                leads: created
+
+                leads:
+                    created
             });
         }
+
+
+        /* ==========================================
+           PATCH — Lead-Status ändern
+        ========================================== */
+
+        if (req.method === "PATCH") {
+
+            const body =
+                typeof req.body === "string"
+                    ? JSON.parse(req.body)
+                    : req.body || {};
+
+            const leadId =
+                String(
+                    body.lead_id || ""
+                ).trim();
+
+            const status =
+                String(
+                    body.status || ""
+                ).trim();
+
+
+            if (!leadId) {
+
+                return res.status(400).json({
+                    error:
+                        "Lead-ID fehlt."
+                });
+            }
+
+
+            if (!isValidStatus(status)) {
+
+                return res.status(400).json({
+                    error:
+                        "Ungültiger Lead-Status."
+                });
+            }
+
+
+            /*
+             * Erst prüfen, ob der Lead
+             * wirklich dem eingeloggten
+             * Benutzer gehört.
+             */
+
+            const ownershipResponse =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(
+                        leadId
+                    )}&user_id=eq.${encodeURIComponent(
+                        user.id
+                    )}&select=id`,
+                    {
+                        headers:
+                            serviceHeaders()
+                    }
+                );
+
+
+            if (!ownershipResponse.ok) {
+
+                throw new Error(
+                    "Lead konnte nicht geprüft werden."
+                );
+            }
+
+
+            const ownership =
+                await ownershipResponse.json();
+
+
+            if (!ownership.length) {
+
+                return res.status(404).json({
+                    error:
+                        "Lead nicht gefunden."
+                });
+            }
+
+
+            const updateResponse =
+                await fetch(
+                    `${SUPABASE_URL}/rest/v1/leads?id=eq.${encodeURIComponent(
+                        leadId
+                    )}&user_id=eq.${encodeURIComponent(
+                        user.id
+                    )}`,
+                    {
+                        method:
+                            "PATCH",
+
+                        headers: {
+                            ...serviceHeaders(),
+                            Prefer:
+                                "return=representation"
+                        },
+
+                        body:
+                            JSON.stringify({
+                                status,
+                                status_updated_at:
+                                    new Date().toISOString(),
+                                pipeline_value:
+                                    2
+                            })
+                    }
+                );
+
+
+            const text =
+                await updateResponse.text();
+
+
+            if (!updateResponse.ok) {
+
+                throw new Error(
+                    text ||
+                    "Lead-Status konnte nicht gespeichert werden."
+                );
+            }
+
+
+            let lead = null;
+
+            try {
+
+                const rows =
+                    JSON.parse(text);
+
+                lead =
+                    rows[0] || null;
+
+            } catch {
+                lead = null;
+            }
+
+
+            return res.status(200).json({
+                success:
+                    true,
+
+                lead
+            });
+        }
+
 
         return res.status(405).json({
             error:
                 "Method Not Allowed"
         });
+
 
     } catch (error) {
 
