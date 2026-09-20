@@ -2351,27 +2351,39 @@ async function moveLeadToSupply(){
         selectedLead.notes || ""
     };
 
-    const response =
-      await fetch(
-        "/api/lead-supply",
-        {
-          method:"POST",
+    const apiUrl =
+  new URL(
+    "/api/lead-supply",
+    window.location.origin
+  ).toString();
 
-          headers:{
-            "Content-Type":
-              "application/json",
+if(typeof token !== "string" || !token.trim()){
+  throw new Error(
+    "Kein gültiger Supabase-Access-Token vorhanden."
+  );
+}
 
-            Authorization:
-              "Bearer " + token,
+if(/[\r\n]/.test(token)){
+  throw new Error(
+    "Der Supabase-Access-Token enthält ungültige Zeichen."
+  );
+}
 
-            Accept:
-              "application/json"
-          },
+const response =
+  await fetch(
+    apiUrl,
+    {
+      method:"POST",
 
-          body:
-            JSON.stringify(payload)
-        }
-      );
+      headers:{
+        "Content-Type":"application/json",
+        "Accept":"application/json",
+        "Authorization":"Bearer " + token.trim()
+      },
+
+      body:JSON.stringify(payload)
+    }
+  );
 
     const responseText =
       await response.text();
@@ -2745,13 +2757,10 @@ function clearSupplyForm(){
   $("supplyPreviousSupplier").value = "";
   $("supplyPreviousCustomerNumber").value = "";
   $("supplyIban").value = "";
-  $("supplyDesiredDeliveryDate").value =
-  safeDateInputValue(supply.desired_delivery_date);
-$("supplyDeliveryStartDate").value =
-  safeDateInputValue(supply.delivery_start_date);
-$("supplyNextOfferDate").value =
-  safeDateInputValue(supply.next_offer_date);
-$("supplyNextCancellationDate").value =
+  $("supplyDesiredDeliveryDate").value = "";
+  $("supplyDeliveryStartDate").value = "";
+  $("supplyNextOfferDate").value = "";
+  $("supplyNextCancellationDate").value = "";
   safeDateInputValue(supply.next_cancellation_date);
   $("supplyOldContractDeadline").value = "";
   $("supplyOldContractNotice").value = "";
