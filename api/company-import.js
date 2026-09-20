@@ -1150,12 +1150,15 @@ export default async function handler(
                 }
 
                 const saved =
-                    await insertCompany(
-                        user.id,
-                        company
-                    );
+    await insertCompany(
+        user.id,
+        company
+    );
 
-                existingCompanies.push(saved);
+existingCompanies.push(
+    saved
+);
+
 imported++;
 
             } catch (error) {
