@@ -2344,18 +2344,8 @@ async function saveLeadNotes(){
 ========================================================= */
 
 async function moveLeadToSupply(){
-  if(!selectedLead) return;
 
-  const existingSupply =
-    currentSupplies.find(
-      supply =>
-        String(supply.lead_id) ===
-        String(selectedLead.id)
-    );
-
-  if(existingSupply){
-    closeLeadDetail();
-    await openSupplyDetail(existingSupply.id);
+  if(!selectedLead){
     return;
   }
 
@@ -2365,14 +2355,51 @@ async function moveLeadToSupply(){
   button.disabled = true;
 
   try{
+
+    const leadId =
+      selectedLead.id;
+
+    if(!leadId){
+      throw new Error(
+        "Der Lead besitzt keine gültige ID."
+      );
+    }
+
+    const existingSupply =
+      currentSupplies.find(
+        supply =>
+          String(supply.lead_id) ===
+          String(leadId)
+      );
+
+    if(existingSupply){
+
+      closeLeadDetail();
+
+      await openSupplyDetail(
+        existingSupply.id
+      );
+
+      return;
+    }
+
     const token =
       await getApiToken();
+
+    if(
+      typeof token !== "string" ||
+      !token.trim()
+    ){
+      throw new Error(
+        "Kein gültiger Supabase-Anmeldetoken vorhanden."
+      );
+    }
 
     const company =
       selectedLead.companies || {};
 
     const payload = {
-      lead_id: selectedLead.id,
+      lead_id: leadId,
 
       company_name:
         company.name || "",
@@ -2387,88 +2414,124 @@ async function moveLeadToSupply(){
         selectedLead.notes || ""
     };
 
-    const apiUrl =
-  new URL(
-    "/api/lead-supply",
-    window.location.origin
-  ).toString();
+    console.log(
+      "BELIEFERUNG POST PAYLOAD:",
+      payload
+    );
 
-if(typeof token !== "string" || !token.trim()){
-  throw new Error(
-    "Kein gültiger Supabase-Access-Token vorhanden."
-  );
-}
+    const response =
+      await fetch(
+        "/api/lead-supply",
+        {
+          method: "POST",
 
-if(/[\r\n]/.test(token)){
-  throw new Error(
-    "Der Supabase-Access-Token enthält ungültige Zeichen."
-  );
-}
+          headers: {
+            "Content-Type":
+              "application/json",
 
-const response =
-  await fetch(
-    apiUrl,
-    {
-      method:"POST",
+            "Accept":
+              "application/json",
 
-      headers:{
-        "Content-Type":"application/json",
-        "Accept":"application/json",
-        "Authorization":"Bearer " + token.trim()
-      },
+            "Authorization":
+              "Bearer " + token.trim()
+          },
 
-      body:JSON.stringify(payload)
-    }
-  );
+          body:
+            JSON.stringify(payload)
+        }
+      );
 
     const responseText =
       await response.text();
 
+    console.log(
+      "BELIEFERUNG API STATUS:",
+      response.status
+    );
+
+    console.log(
+      "BELIEFERUNG API ANTWORT:",
+      responseText
+    );
+
     let result = {};
 
     try{
+
       result =
         responseText
           ? JSON.parse(responseText)
           : {};
-    }catch(error){
+
+    }catch(parseError){
+
       throw new Error(
         "Ungültige Antwort von /api/lead-supply: " +
-        responseText.slice(0,300)
+        responseText.slice(0,500)
       );
     }
 
     if(!response.ok){
+
+      let apiError =
+        result?.error;
+
+      if(
+        apiError &&
+        typeof apiError === "object"
+      ){
+
+        apiError =
+          apiError.message ||
+          apiError.details ||
+          apiError.hint ||
+          JSON.stringify(apiError);
+      }
+
+      if(!apiError){
+
+        apiError =
+          `Kunde konnte nicht übernommen werden (${response.status}).`;
+      }
+
       throw new Error(
-        result.error ||
-        `Kunde konnte nicht übernommen werden (${response.status}).`
+        String(apiError)
       );
     }
-
-    if(!result.supply?.id){
-      throw new Error(
-        "Die Belieferung wurde nicht mit einer gültigen ID zurückgegeben."
-      );
-    }
-
-    /*
-      Die API hat die Belieferung erfolgreich gespeichert.
-      Jetzt beide Datenquellen neu laden.
-    */
-
-    await loadLeads();
-    await loadSupplies();
 
     const savedSupply =
+      result?.supply;
+
+    if(
+      !savedSupply ||
+      !savedSupply.id
+    ){
+
+      throw new Error(
+        "Supabase hat keine gültige Belieferungs-ID zurückgegeben."
+      );
+    }
+
+    await loadLeads();
+
+    await loadSupplies();
+
+    const refreshedSupply =
       currentSupplies.find(
         item =>
           String(item.id) ===
-          String(result.supply.id)
+          String(savedSupply.id)
+      ) ||
+      currentSupplies.find(
+        item =>
+          String(item.lead_id) ===
+          String(leadId)
       );
 
-    if(!savedSupply){
+    if(!refreshedSupply){
+
       throw new Error(
-        "Die Belieferung wurde gespeichert, konnte danach aber nicht wieder geladen werden."
+        "Der Kunde wurde in Supabase gespeichert, konnte aber anschließend nicht aus lead_supply geladen werden."
       );
     }
 
@@ -2477,7 +2540,7 @@ const response =
     closeLeadDetail();
 
     await openSupplyDetail(
-      savedSupply.id
+      refreshedSupply.id
     );
 
   }catch(error){
@@ -2487,9 +2550,34 @@ const response =
       error
     );
 
+    let message = "";
+
+    if(error instanceof Error){
+
+      message =
+        error.message;
+
+    }else if(
+      error &&
+      typeof error === "object"
+    ){
+
+      message =
+        error.message ||
+        error.details ||
+        error.hint ||
+        JSON.stringify(error);
+
+    }else{
+
+      message =
+        String(error);
+    }
+
     showStatus(
       "leadSupplyMessage",
-      formatError(error),
+      message ||
+        "Unbekannter Fehler.",
       "error"
     );
 
