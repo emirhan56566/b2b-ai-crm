@@ -1821,26 +1821,51 @@ async function loadLeads(){
       await response.json();
 
     if(!response.ok){
+      const apiError =
+        typeof result.error === "string"
+          ? result.error
+          : result.error?.message ||
+            result.error?.details ||
+            JSON.stringify(result.error);
+
       throw new Error(
-        result.error ||
+        apiError ||
         "Leads konnten nicht geladen werden."
       );
     }
 
+    /*
+     * Alle Leads im Speicher behalten.
+     * Auch signed-Leads werden benötigt,
+     * damit Belieferungen ihren Lead/Kundennamen
+     * finden können.
+     */
     currentLeads =
-  (result.leads || []).filter(
-    lead => normalizeStatus(lead.status) !== "signed"
-  );
+      result.leads || [];
 
-    renderLeads(currentLeads);
-    updateDashboardStats(currentLeads);
+    /*
+     * In der normalen Leads-Tabelle
+     * weiterhin nur nicht abgeschlossene Leads anzeigen.
+     */
+    const activeLeads =
+      currentLeads.filter(
+        lead =>
+          normalizeStatus(lead.status) !== "signed"
+      );
+
+    renderLeads(activeLeads);
+    updateDashboardStats(activeLeads);
     renderPipeline();
     renderContacts();
 
   }catch(error){
-    console.error("LOAD LEADS FEHLER:",error);
+    console.error(
+      "LOAD LEADS FEHLER:",
+      error
+    );
 
     currentLeads = [];
+
     renderLeads([]);
     updateDashboardStats([]);
   }
@@ -2152,11 +2177,18 @@ async function updateLeadStatus(){
       await response.json();
 
     if(!response.ok){
-      throw new Error(
-        result.error ||
-        "Status konnte nicht gespeichert werden."
-      );
-    }
+  const apiError =
+    typeof result.error === "string"
+      ? result.error
+      : result.error?.message ||
+        result.error?.details ||
+        JSON.stringify(result.error);
+
+  throw new Error(
+    apiError ||
+    `Belieferungen konnten nicht geladen werden (${response.status}).`
+  );
+}
 
     const updated =
       result.lead || result;
