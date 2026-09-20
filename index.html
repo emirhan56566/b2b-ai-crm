@@ -1458,7 +1458,7 @@ async function importCompanies(){
 
     showStatus(
       "importStatus",
-      `${result.inserted || result.created || 0} Unternehmen gespeichert.`,
+      `${result.imported ?? result.saved ?? result.inserted ?? result.created ?? 0} Unternehmen gespeichert.`,
       "success"
     );
 
