@@ -1,11 +1,17 @@
 // api/company-import.js
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
+
 const SUPABASE_SERVICE_ROLE_KEY =
     process.env.SUPABASE_SERVICE_ROLE_KEY;
+
 const SUPABASE_ANON_KEY =
     process.env.SUPABASE_ANON_KEY;
 
+
+/* ==================================================
+   SUPABASE
+================================================== */
 
 function supabaseHeaders() {
     return {
@@ -18,6 +24,7 @@ function supabaseHeaders() {
 
 
 async function getUser(req) {
+
     const auth =
         req.headers.authorization ||
         req.headers.Authorization;
@@ -54,15 +61,39 @@ async function getUser(req) {
 }
 
 
+/* ==================================================
+   HILFSFUNKTIONEN
+================================================== */
+
 function clean(value) {
+
     const text =
         String(value ?? "").trim();
 
-    return text || null;
+    if (!text) {
+        return null;
+    }
+
+    const lower =
+        text.toLowerCase();
+
+    if (
+        lower === "k. a." ||
+        lower === "k.a." ||
+        lower === "k a" ||
+        lower === "keine angabe" ||
+        lower === "nicht angegeben" ||
+        lower === "-"
+    ) {
+        return null;
+    }
+
+    return text;
 }
 
 
 function normalizeKey(value) {
+
     return String(value || "")
         .toLowerCase()
         .replace(/ä/g, "ae")
@@ -73,12 +104,21 @@ function normalizeKey(value) {
 }
 
 
+/* ==================================================
+   FELDER
+================================================== */
+
 const FIELD_NAMES = new Set(
     [
         "name",
         "firma",
         "unternehmen",
         "firmenname",
+
+        "branche",
+        "branchen",
+        "industrie",
+        "kategorie",
 
         "adresse",
         "anschrift",
@@ -90,27 +130,45 @@ const FIELD_NAMES = new Set(
         "stadt",
 
         "telefon",
+        "telefonzentrale",
+        "telefonzentralegeschaeftsleitung",
+        "telefonnummer",
         "tel",
         "phone",
-        "telefonnummer",
+        "fon",
+        "mobil",
+        "mobile",
+
+        "ansprechpartner",
+        "ansprechpartnernamefunktion",
+        "kontakt",
+        "kontaktperson",
 
         "website",
         "webseite",
         "homepage",
         "url",
 
-        "branche",
-        "branchen",
-        "industrie",
-        "kategorie",
-
         "mitarbeiter",
         "mitarbeiterzahl",
+        "mitarbeiteranzahl",
         "employees",
 
         "rechtsform",
         "unternehmensform",
         "firmenform",
+
+        "handelsregisterstatus",
+        "handelsregister",
+
+        "energiebedarf",
+        "energiebedarfe",
+        "energie",
+
+        "quelle",
+        "quelleurl",
+        "source",
+        "sourceurl",
 
         "beschreibung",
         "description",
@@ -119,10 +177,15 @@ const FIELD_NAMES = new Set(
 );
 
 
+/* ==================================================
+   FELDZEILE ERKENNEN
+================================================== */
+
 function fieldMatch(line) {
+
     const match =
         String(line || "").match(
-            /^([^:]+):\s*(.+)$/
+            /^([^:]+):\s*(.*)$/
         );
 
     if (!match) {
@@ -130,67 +193,132 @@ function fieldMatch(line) {
     }
 
     return {
-        key: normalizeKey(match[1]),
-        value: match[2].trim()
+        rawKey:
+            match[1].trim(),
+
+        key:
+            normalizeKey(match[1]),
+
+        value:
+            match[2].trim()
     };
 }
 
 
-function isCompanyNameLabel(line) {
-    const field =
-        fieldMatch(line);
-
-    return (
-        !!field &&
-        [
-            "name",
-            "firma",
-            "unternehmen",
-            "firmenname"
-        ].includes(field.key)
-    );
-}
-
-
 function isFieldLine(line) {
+
     const field =
         fieldMatch(line);
 
-    return (
-        !!field &&
-        FIELD_NAMES.has(field.key)
+    if (!field) {
+        return false;
+    }
+
+    return FIELD_NAMES.has(
+        field.key
     );
 }
 
 
-/*
+/* ==================================================
+   FIRMENNAME
+================================================== */
+
+function isCompanyNumberLine(line) {
+
+    return /^\[\d+\]\s+/.test(
+        String(line || "")
+    );
+}
+
+
+function removeCompanyNumber(line) {
+
+    return String(line || "")
+        .replace(
+            /^\[\d+\]\s*/,
+            ""
+        )
+        .trim();
+}
+
+
+function isCompanyNameLabel(line) {
+
+    const field =
+        fieldMatch(line);
+
+    if (!field) {
+        return false;
+    }
+
+    return [
+        "name",
+        "firma",
+        "unternehmen",
+        "firmenname"
+    ].includes(field.key);
+}
+
+
+function guessCompanyName(lines) {
+
+    for (const originalLine of lines) {
+
+        const line =
+            removeCompanyNumber(
+                originalLine
+            );
+
+        if (!line) {
+            continue;
+        }
+
+        if (
+            isFieldLine(line)
+        ) {
+            continue;
+        }
+
+        if (
+            isCompanyNumberLine(
+                originalLine
+            )
+        ) {
+            return line;
+        }
+
+        if (
+            line.length > 1
+        ) {
+            return line;
+        }
+    }
+
+    return null;
+}
+
+
+/* ==================================================
+   DATENSÄTZE TRENNEN
 ==================================================
-UNTERNEHMENSBLÖCKE ERKENNEN
-==================================================
 
-Unterstützt zum Beispiel:
+Unterstützt exakt:
 
-Firma A GmbH
-Branche: Sanitär
-Ort: Koblenz
+[1] Firma A
+Branche: ...
+...
+Quelle (URL): ...
 
-Firma B GmbH
-Branche: Maschinenbau
-Ort: Bonn
-
-
-sowie:
-
-Name: Firma A GmbH
-Branche: Sanitär
+[2] Firma B
+Branche: ...
 ...
 
-Name: Firma B GmbH
-Branche: Maschinenbau
-...
-*/
+Auch ohne Leerzeilen.
+================================================== */
 
 function splitCompanyBlocks(text) {
+
     const lines =
         String(text || "")
             .replace(/\r/g, "")
@@ -203,6 +331,7 @@ function splitCompanyBlocks(text) {
 
 
     function flush() {
+
         const block =
             current.filter(Boolean);
 
@@ -219,65 +348,49 @@ function splitCompanyBlocks(text) {
         i < lines.length;
         i++
     ) {
+
         const line =
             lines[i];
 
-
-        /*
-        Leerzeile = neuer Datensatz
-        */
         if (!line) {
-            flush();
             continue;
         }
 
 
         /*
-        Explizites Name/Firma-Feld
-        = immer neuer Datensatz
+        [1], [2], [3] usw.
+        beginnen immer einen neuen Datensatz.
         */
+
         if (
-            isCompanyNameLabel(line)
+            isCompanyNumberLine(line)
         ) {
+
             if (current.length) {
                 flush();
             }
 
             current.push(line);
+
             continue;
         }
 
 
         /*
-        Bare Company Name:
-
-        Wenn bereits Felder vorhanden sind
-        und die nächste Zeile ein Feld ist,
-        beginnt hier ein neues Unternehmen.
+        Name:/Firma:/Unternehmen:
         */
-        if (current.length) {
-            const hasName =
-                current.some(
-                    item =>
-                        isCompanyNameLabel(item) ||
-                        (
-                            !isFieldLine(item) &&
-                            item.length > 1
-                        )
-                );
 
-            const next =
-                lines[i + 1] || "";
+        if (
+            isCompanyNameLabel(line)
+        ) {
 
-
-            if (
-                !isFieldLine(line) &&
-                hasName &&
-                next &&
-                isFieldLine(next)
-            ) {
+            if (current.length) {
                 flush();
             }
+
+            current.push(line);
+
+            continue;
         }
 
 
@@ -289,67 +402,62 @@ function splitCompanyBlocks(text) {
 
 
     /*
-    Sicherheits-Fallback:
-
-    Falls alles ohne Leerzeilen eingefügt wurde
-    und mehrere Branchen vorhanden sind,
-    versuchen wir anhand neuer Unternehmensnamen
-    nochmals zu trennen.
+    Fallback für Daten ohne [1], [2] usw.
     */
-    if (blocks.length === 1) {
-        const block =
+
+    if (
+        blocks.length === 1
+    ) {
+
+        const original =
             blocks[0];
 
-        const industryCount =
-            block.filter(line => {
-                const field =
-                    fieldMatch(line);
+        const rebuilt = [];
 
-                return (
-                    field &&
-                    [
-                        "branche",
-                        "branchen",
-                        "industrie",
-                        "kategorie"
-                    ].includes(field.key)
+        let currentBlock = [];
+
+        for (const line of original) {
+
+            const cleanLine =
+                removeCompanyNumber(
+                    line
                 );
-            }).length;
 
+            const startsCompany =
+                currentBlock.length > 0 &&
+                !isFieldLine(
+                    cleanLine
+                ) &&
+                isFieldLine(
+                    currentBlock[
+                        currentBlock.length - 1
+                    ]
+                );
 
-        if (industryCount > 1) {
-            const rebuilt = [];
-            let part = [];
+            if (startsCompany) {
 
+                rebuilt.push(
+                    currentBlock
+                );
 
-            for (const line of block) {
-                const startsNewCompany =
-                    !isFieldLine(line) &&
-                    part.length > 0 &&
-                    part.some(
-                        item =>
-                            isFieldLine(item)
-                    );
-
-
-                if (startsNewCompany) {
-                    rebuilt.push(part);
-                    part = [];
-                }
-
-
-                part.push(line);
+                currentBlock = [];
             }
 
+            currentBlock.push(line);
+        }
 
-            if (part.length) {
-                rebuilt.push(part);
-            }
+        if (
+            currentBlock.length
+        ) {
+            rebuilt.push(
+                currentBlock
+            );
+        }
 
-
-            if (rebuilt.length > 1) {
-                return rebuilt;
-            }
+        if (
+            rebuilt.length > 1
+        ) {
+            return rebuilt;
         }
     }
 
@@ -358,54 +466,110 @@ function splitCompanyBlocks(text) {
 }
 
 
-/*
-==================================================
-FELD AUS DATENSATZ LESEN
-==================================================
-*/
+/* ==================================================
+   FELD AUS BLOCK HOLEN
+================================================== */
 
-function getField(lines, names) {
+function getField(
+    lines,
+    names
+) {
+
     const wanted =
         new Set(
-            names.map(normalizeKey)
+            names.map(
+                normalizeKey
+            )
         );
 
+    for (
+        const line of lines
+    ) {
 
-    for (const line of lines) {
         const field =
-            fieldMatch(line);
+            fieldMatch(
+                removeCompanyNumber(
+                    line
+                )
+            );
 
         if (
             field &&
-            wanted.has(field.key)
+            wanted.has(
+                field.key
+            )
         ) {
             return field.value;
         }
     }
 
-
     return null;
 }
 
 
-/*
+/* ==================================================
+   TELEFON
 ==================================================
-FIRMENNAMEN ERKENNEN
-==================================================
-*/
 
-function guessCompanyName(lines) {
-    for (const line of lines) {
-        if (!line) {
-            continue;
+Unterstützt:
+
+Telefon (Zentrale/Geschäftsleitung):
++49 2622 2442 (ungeprüft)
+
+Telefon:
+0261 123456
+
+Tel.:
+0261 123456
+
+Mobil:
+0176 12345678
+================================================== */
+
+function getPhone(lines) {
+
+    for (
+        const line of lines
+    ) {
+
+        const cleanLine =
+            removeCompanyNumber(
+                line
+            );
+
+        const match =
+            cleanLine.match(
+                /^telefon(?:\s*\([^)]*\))?\s*:\s*(.+)$/i
+            );
+
+        if (match) {
+
+            return clean(
+                match[1]
+            );
         }
+    }
 
-        if (isFieldLine(line)) {
-            continue;
-        }
 
-        if (line.length > 1) {
-            return line.trim();
+    for (
+        const line of lines
+    ) {
+
+        const cleanLine =
+            removeCompanyNumber(
+                line
+            );
+
+        const match =
+            cleanLine.match(
+                /^(?:tel\.?|phone|fon|mobil|mobile)(?:\s*\([^)]*\))?\s*:\s*(.+)$/i
+            );
+
+        if (match) {
+
+            return clean(
+                match[1]
+            );
         }
     }
 
@@ -413,32 +577,236 @@ function guessCompanyName(lines) {
 }
 
 
-/*
+/* ==================================================
+   ANSPRECHPARTNER
 ==================================================
-RECHTSFORM ERKENNEN
-==================================================
-*/
 
-function detectLegalForm(text) {
+Beispiel:
+
+Ansprechpartner (Name, Funktion):
+Hans-Peter Schiffer (Inhaber)
+
+wird:
+
+contact_name = Hans-Peter Schiffer
+contact_role = Inhaber
+================================================== */
+
+function getContact(lines) {
+
+    let value =
+        null;
+
+    for (
+        const line of lines
+    ) {
+
+        const cleanLine =
+            removeCompanyNumber(
+                line
+            );
+
+        const match =
+            cleanLine.match(
+                /^ansprechpartner(?:\s*\([^)]*\))?\s*:\s*(.+)$/i
+            );
+
+        if (match) {
+
+            value =
+                clean(
+                    match[1]
+                );
+
+            break;
+        }
+    }
+
+
+    if (!value) {
+
+        for (
+            const line of lines
+        ) {
+
+            const cleanLine =
+                removeCompanyNumber(
+                    line
+                );
+
+            const match =
+                cleanLine.match(
+                    /^(?:kontakt|kontaktperson)\s*:\s*(.+)$/i
+                );
+
+            if (match) {
+
+                value =
+                    clean(
+                        match[1]
+                    );
+
+                break;
+            }
+        }
+    }
+
+
+    if (!value) {
+
+        return {
+            name: null,
+            role: null
+        };
+    }
+
+
+    /*
+    Letzte Klammer gilt als Funktion.
+
+    Beispiel:
+    Thomas Preißing (Inhaber)
+
+    */
+
+    const roleMatch =
+        value.match(
+            /^(.+?)\s*\(([^()]*)\)\s*$/
+        );
+
+
+    if (roleMatch) {
+
+        return {
+            name:
+                clean(
+                    roleMatch[1]
+                ),
+
+            role:
+                clean(
+                    roleMatch[2]
+                )
+        };
+    }
+
+
+    /*
+    Falls kein Rollenwert
+    vorhanden ist.
+    */
+
+    return {
+        name:
+            clean(value),
+
+        role:
+            null
+    };
+}
+
+
+/* ==================================================
+   MITARBEITER
+================================================== */
+
+function parseEmployees(
+    value
+) {
+
+    const raw =
+        clean(value);
+
+    if (!raw) {
+        return null;
+    }
+
+
+    /*
+    Einzelwert:
+
+    15
+    ca. 15
+    */
+
+    const single =
+        raw.match(
+            /\b(\d+)\b/
+        );
+
+    if (!single) {
+        return null;
+    }
+
+
+    const first =
+        Number(
+            single[1]
+        );
+
+    if (
+        !Number.isFinite(first)
+    ) {
+        return null;
+    }
+
+
+    /*
+    Bereich:
+
+    10–25
+    10-25
+    10 bis 25
+
+    Wir speichern den Mittelwert,
+    damit die bestehende employees-Spalte
+    weiterhin numerisch nutzbar bleibt.
+    */
+
+    const range =
+        raw.match(
+            /(\d+)\s*(?:-|–|—|bis)\s*(\d+)/
+        );
+
+    if (range) {
+
+        const min =
+            Number(
+                range[1]
+            );
+
+        const max =
+            Number(
+                range[2]
+            );
+
+        if (
+            Number.isFinite(min) &&
+            Number.isFinite(max)
+        ) {
+
+            return Math.round(
+                (min + max) / 2
+            );
+        }
+    }
+
+
+    return first;
+}
+
+
+/* ==================================================
+   RECHTSFORM
+================================================== */
+
+function detectLegalForm(
+    text
+) {
+
     const value =
         String(text || "")
             .toLowerCase();
-
-
-    if (
-        /\be\.?\s*k\.?\b/.test(value)
-    ) {
-        return "e.K.";
-    }
-
-
-    if (
-        value.includes(
-            "einzelunternehmen"
-        )
-    ) {
-        return "Einzelunternehmen";
-    }
 
 
     if (
@@ -449,67 +817,252 @@ function detectLegalForm(text) {
         return "GmbH & Co. KG";
     }
 
+    if (
+        value.includes(
+            "einzelunternehmen"
+        )
+    ) {
+        return "Einzelunternehmen";
+    }
 
     if (
-        value.includes("gmbh")
+        /\be\.?\s*k\.?\b/.test(
+            value
+        )
+    ) {
+        return "e.K.";
+    }
+
+    if (
+        /\bgmbh\b/.test(
+            value
+        )
     ) {
         return "GmbH";
     }
 
-
     if (
-        /\bug\b/.test(value)
+        /\bug\b/.test(
+            value
+        )
     ) {
         return "UG";
     }
 
-
     if (
-        /\bag\b/.test(value)
+        /\bag\b/.test(
+            value
+        )
     ) {
         return "AG";
     }
 
-
     if (
-        /\bohg\b/.test(value)
+        /\bohg\b/.test(
+            value
+        )
     ) {
         return "OHG";
     }
 
-
     if (
-        /\bkg\b/.test(value)
+        /\bkg\b/.test(
+            value
+        )
     ) {
         return "KG";
     }
 
-
     if (
-        /\bgbr\b/.test(value)
+        /\bgbr\b/.test(
+            value
+        )
     ) {
         return "GbR";
     }
-
 
     return null;
 }
 
 
-/*
+/* ==================================================
+   ENERGIEBEDARF
 ==================================================
-UNTERNEHMEN PARSEN
-==================================================
-*/
 
-function parseCompany(block) {
+Eingabe:
+
+hoch (Backöfen, Kühlung)
+
+wird:
+
+energy_demand = hoch
+energy_reason = Backöfen, Kühlung
+================================================== */
+
+function getEnergy(
+    lines
+) {
+
+    let value =
+        getField(
+            lines,
+            [
+                "energiebedarf",
+                "energiebedarfe",
+                "energie"
+            ]
+        );
+
+
+    if (!value) {
+
+        return {
+            demand: null,
+            reason: null
+        };
+    }
+
+
+    value =
+        String(value)
+            .trim();
+
+
+    const match =
+        value.match(
+            /^(hoch|mittel|niedrig)\s*(?:\((.*)\))?$/i
+        );
+
+
+    if (match) {
+
+        return {
+            demand:
+                clean(
+                    match[1]
+                )?.toLowerCase(),
+
+            reason:
+                clean(
+                    match[2]
+                )
+        };
+    }
+
+
+    /*
+    Falls die Begründung
+    anders formatiert wurde.
+    */
+
+    const lower =
+        value.toLowerCase();
+
+    let demand =
+        null;
+
+
+    if (
+        lower.startsWith("hoch")
+    ) {
+        demand = "hoch";
+    } else if (
+        lower.startsWith("mittel")
+    ) {
+        demand = "mittel";
+    } else if (
+        lower.startsWith("niedrig")
+    ) {
+        demand = "niedrig";
+    }
+
+
+    const reason =
+        value
+            .replace(
+                /^(hoch|mittel|niedrig)\s*/i,
+                ""
+            )
+            .replace(
+                /^\(/,
+                ""
+            )
+            .replace(
+                /\)$/,
+                ""
+            )
+            .trim();
+
+
+    return {
+        demand:
+            clean(demand),
+
+        reason:
+            clean(reason)
+    };
+}
+
+
+/* ==================================================
+   QUELLE
+================================================== */
+
+function getSourceUrl(
+    lines
+) {
+
+    const value =
+        getField(
+            lines,
+            [
+                "quelle",
+                "quelleurl",
+                "source",
+                "sourceurl"
+            ]
+        );
+
+    if (!value) {
+        return null;
+    }
+
+    const urlMatch =
+        value.match(
+            /https?:\/\/[^\s)]+/i
+        );
+
+    if (urlMatch) {
+        return urlMatch[0];
+    }
+
+    return clean(value);
+}
+
+
+/* ==================================================
+   UNTERNEHMEN PARSEN
+================================================== */
+
+function parseCompany(
+    block
+) {
+
+    const cleanedLines =
+        block.map(
+            removeCompanyNumber
+        );
+
+
     const joined =
-        block.join(" ");
+        cleanedLines.join(
+            " "
+        );
 
 
     const name =
         getField(
-            block,
+            cleanedLines,
             [
                 "name",
                 "firma",
@@ -517,7 +1070,9 @@ function parseCompany(block) {
                 "firmenname"
             ]
         ) ||
-        guessCompanyName(block);
+        guessCompanyName(
+            cleanedLines
+        );
 
 
     if (!name) {
@@ -527,48 +1082,56 @@ function parseCompany(block) {
 
     const employeesRaw =
         getField(
-            block,
+            cleanedLines,
             [
                 "mitarbeiter",
                 "mitarbeiterzahl",
+                "mitarbeiteranzahl",
                 "employees"
             ]
         );
 
 
-    let employees = null;
-
-
-    if (employeesRaw) {
-        const match =
-            String(employeesRaw)
-                .replace(/\./g, "")
-                .replace(",", ".")
-                .match(
-                    /\d+(?:\.\d+)?/
-                );
-
-
-        if (match) {
-            employees =
-                Number(match[0]) || null;
-        }
-    }
+    const employees =
+        parseEmployees(
+            employeesRaw
+        );
 
 
     const legalForm =
         getField(
-            block,
+            cleanedLines,
             [
                 "rechtsform",
                 "unternehmensform",
                 "firmenform"
             ]
         ) ||
-        detectLegalForm(joined);
+        detectLegalForm(
+            joined
+        );
+
+
+    const contact =
+        getContact(
+            cleanedLines
+        );
+
+
+    const energy =
+        getEnergy(
+            cleanedLines
+        );
+
+
+    const sourceUrl =
+        getSourceUrl(
+            cleanedLines
+        );
 
 
     return {
+
         name:
             clean(name),
 
@@ -578,7 +1141,7 @@ function parseCompany(block) {
         address:
             clean(
                 getField(
-                    block,
+                    cleanedLines,
                     [
                         "adresse",
                         "anschrift"
@@ -589,7 +1152,7 @@ function parseCompany(block) {
         postal_code:
             clean(
                 getField(
-                    block,
+                    cleanedLines,
                     [
                         "plz",
                         "postleitzahl"
@@ -600,7 +1163,7 @@ function parseCompany(block) {
         city:
             clean(
                 getField(
-                    block,
+                    cleanedLines,
                     [
                         "ort",
                         "stadt"
@@ -609,22 +1172,20 @@ function parseCompany(block) {
             ),
 
         phone:
-            clean(
-                getField(
-                    block,
-                    [
-                        "telefon",
-                        "tel",
-                        "phone",
-                        "telefonnummer"
-                    ]
-                )
+            getPhone(
+                cleanedLines
             ),
+
+        contact_name:
+            contact.name,
+
+        contact_role:
+            contact.role,
 
         website:
             clean(
                 getField(
-                    block,
+                    cleanedLines,
                     [
                         "website",
                         "webseite",
@@ -637,7 +1198,7 @@ function parseCompany(block) {
         industry:
             clean(
                 getField(
-                    block,
+                    cleanedLines,
                     [
                         "branche",
                         "branchen",
@@ -647,15 +1208,27 @@ function parseCompany(block) {
                 )
             ),
 
-        employees,
+        employees:
+            employees,
 
         legal_form:
-            clean(legalForm),
+            clean(
+                legalForm
+            ),
+
+        energy_demand:
+            energy.demand,
+
+        energy_reason:
+            energy.reason,
+
+        source_url:
+            sourceUrl,
 
         description:
             clean(
                 getField(
-                    block,
+                    cleanedLines,
                     [
                         "beschreibung",
                         "description",
@@ -667,24 +1240,14 @@ function parseCompany(block) {
 }
 
 
-/*
-==================================================
-DUPLIKAT-VERGLEICH
-==================================================
+/* ==================================================
+   DUPLIKAT-VERGLEICH
+================================================== */
 
-Wichtig:
-Nur gleicher Name reicht NICHT automatisch.
+function normalizeText(
+    value
+) {
 
-Dadurch werden z.B.
-
-Müller GmbH - Koblenz
-Müller GmbH - Bonn
-
-nicht einfach als dasselbe Unternehmen
-behandelt.
-*/
-
-function normalizeText(value) {
     return String(value || "")
         .toLowerCase()
         .normalize("NFD")
@@ -692,10 +1255,22 @@ function normalizeText(value) {
             /[\u0300-\u036f]/g,
             ""
         )
-        .replace(/ä/g, "ae")
-        .replace(/ö/g, "oe")
-        .replace(/ü/g, "ue")
-        .replace(/ß/g, "ss")
+        .replace(
+            /ä/g,
+            "ae"
+        )
+        .replace(
+            /ö/g,
+            "oe"
+        )
+        .replace(
+            /ü/g,
+            "ue"
+        )
+        .replace(
+            /ß/g,
+            "ss"
+        )
         .replace(
             /[^a-z0-9]/g,
             ""
@@ -703,13 +1278,22 @@ function normalizeText(value) {
 }
 
 
-function normalizePhone(value) {
+function normalizePhone(
+    value
+) {
+
     return String(value || "")
-        .replace(/\D/g, "");
+        .replace(
+            /\D/g,
+            ""
+        );
 }
 
 
-function normalizeWebsite(value) {
+function normalizeWebsite(
+    value
+) {
+
     return String(value || "")
         .toLowerCase()
         .trim()
@@ -728,18 +1312,22 @@ function normalizeWebsite(value) {
 }
 
 
-function sameCompany(a, b) {
+function sameCompany(
+    a,
+    b
+) {
+
     const nameA =
-        normalizeText(a.name);
+        normalizeText(
+            a.name
+        );
 
     const nameB =
-        normalizeText(b.name);
+        normalizeText(
+            b.name
+        );
 
 
-    /*
-    Ohne gleichen Namen
-    niemals Duplikat.
-    */
     if (
         !nameA ||
         !nameB ||
@@ -759,34 +1347,51 @@ function sameCompany(a, b) {
             b.postal_code
         );
 
+
     const cityA =
-        normalizeText(a.city);
+        normalizeText(
+            a.city
+        );
 
     const cityB =
-        normalizeText(b.city);
+        normalizeText(
+            b.city
+        );
+
 
     const addressA =
-        normalizeText(a.address);
+        normalizeText(
+            a.address
+        );
 
     const addressB =
-        normalizeText(b.address);
+        normalizeText(
+            b.address
+        );
+
 
     const phoneA =
-        normalizePhone(a.phone);
+        normalizePhone(
+            a.phone
+        );
 
     const phoneB =
-        normalizePhone(b.phone);
+        normalizePhone(
+            b.phone
+        );
+
 
     const websiteA =
-        normalizeWebsite(a.website);
+        normalizeWebsite(
+            a.website
+        );
 
     const websiteB =
-        normalizeWebsite(b.website);
+        normalizeWebsite(
+            b.website
+        );
 
 
-    /*
-    Gleiche exakte Adresse
-    */
     if (
         addressA &&
         addressB &&
@@ -796,9 +1401,6 @@ function sameCompany(a, b) {
     }
 
 
-    /*
-    Gleiche PLZ + gleicher Ort
-    */
     if (
         postalA &&
         postalB &&
@@ -811,9 +1413,6 @@ function sameCompany(a, b) {
     }
 
 
-    /*
-    Gleiche Telefonnummer
-    */
     if (
         phoneA &&
         phoneB &&
@@ -823,9 +1422,6 @@ function sameCompany(a, b) {
     }
 
 
-    /*
-    Gleiche Website
-    */
     if (
         websiteA &&
         websiteB &&
@@ -835,11 +1431,6 @@ function sameCompany(a, b) {
     }
 
 
-    /*
-    Wenn keinerlei weitere Daten vorhanden sind,
-    gilt der exakt gleiche normalisierte Name
-    als Duplikat.
-    */
     if (
         !postalA &&
         !postalB &&
@@ -860,13 +1451,14 @@ function sameCompany(a, b) {
 }
 
 
-/*
-==================================================
-BESTEHENDE UNTERNEHMEN EINMAL LADEN
-==================================================
-*/
+/* ==================================================
+   BESTEHENDE UNTERNEHMEN LADEN
+================================================== */
 
-async function getExistingCompanies(userId) {
+async function getExistingCompanies(
+    userId
+) {
+
     const response =
         await fetch(
             `${SUPABASE_URL}/rest/v1/companies` +
@@ -880,6 +1472,7 @@ async function getExistingCompanies(userId) {
 
 
     if (!response.ok) {
+
         const text =
             await response.text();
 
@@ -894,24 +1487,25 @@ async function getExistingCompanies(userId) {
 }
 
 
-/*
-==================================================
-UNTERNEHMEN SPEICHERN
-==================================================
-*/
+/* ==================================================
+   UNTERNEHMEN SPEICHERN
+================================================== */
 
 async function insertCompany(
     userId,
     company
 ) {
+
     const response =
         await fetch(
             `${SUPABASE_URL}/rest/v1/companies`,
             {
-                method: "POST",
+                method:
+                    "POST",
 
                 headers: {
                     ...supabaseHeaders(),
+
                     Prefer:
                         "return=representation"
                 },
@@ -920,6 +1514,7 @@ async function insertCompany(
                     JSON.stringify({
                         user_id:
                             userId,
+
                         ...company
                     })
             }
@@ -931,6 +1526,7 @@ async function insertCompany(
 
 
     if (!response.ok) {
+
         throw new Error(
             text ||
             "Unternehmen konnte nicht gespeichert werden."
@@ -946,19 +1542,19 @@ async function insertCompany(
 }
 
 
-/*
-==================================================
-API HANDLER
-==================================================
-*/
+/* ==================================================
+   API
+================================================== */
 
 export default async function handler(
     req,
     res
 ) {
+
     if (
         req.method !== "POST"
     ) {
+
         return res.status(405).json({
             error:
                 "Method Not Allowed"
@@ -967,8 +1563,11 @@ export default async function handler(
 
 
     try {
+
         const user =
-            await getUser(req);
+            await getUser(
+                req
+            );
 
 
         const body =
@@ -984,6 +1583,7 @@ export default async function handler(
 
 
         if (!text) {
+
             return res.status(400).json({
                 error:
                     "Keine Unternehmensdaten übergeben."
@@ -992,93 +1592,151 @@ export default async function handler(
 
 
         /*
-        Alle Datensätze erkennen
+        Alle Unternehmensblöcke
+        erkennen.
         */
+
         const blocks =
-            splitCompanyBlocks(text);
+            splitCompanyBlocks(
+                text
+            );
+
+
+        if (!blocks.length) {
+
+            return res.status(400).json({
+                error:
+                    "Keine Unternehmensdatensätze erkannt."
+            });
+        }
 
 
         /*
-        Datenbank EINMAL laden
+        Bestehende Unternehmen
+        nur EINMAL laden.
         */
+
         const existingCompanies =
             await getExistingCompanies(
                 user.id
             );
 
 
-        let imported = 0;
-        let duplicates = 0;
-        let invalid = 0;
+        let imported =
+            0;
+
+        let duplicates =
+            0;
+
+        let invalid =
+            0;
+
+        const errors =
+            [];
 
 
         /*
-        Jeden Datensatz einzeln verarbeiten
+        Jeden Datensatz einzeln
+        verarbeiten.
         */
+
         for (
-            const block of blocks
+            let index = 0;
+            index < blocks.length;
+            index++
         ) {
-            const company =
-                parseCompany(block);
+
+            const block =
+                blocks[index];
 
 
-            if (
-                !company?.name
-            ) {
+            try {
+
+                const company =
+                    parseCompany(
+                        block
+                    );
+
+
+                if (
+                    !company?.name
+                ) {
+
+                    invalid++;
+
+                    errors.push({
+                        index:
+                            index + 1,
+
+                        error:
+                            "Firmenname konnte nicht erkannt werden."
+                    });
+
+                    continue;
+                }
+
+
+                /*
+                Duplikat prüfen.
+                */
+
+                const duplicate =
+                    existingCompanies.some(
+                        existing =>
+                            sameCompany(
+                                existing,
+                                company
+                            )
+                    );
+
+
+                if (duplicate) {
+
+                    duplicates++;
+
+                    continue;
+                }
+
+
+                /*
+                Unternehmen speichern.
+                */
+
+                const saved =
+                    await insertCompany(
+                        user.id,
+                        company
+                    );
+
+
+                if (saved) {
+
+                    existingCompanies.push(
+                        saved
+                    );
+
+                    imported++;
+                }
+
+            } catch (error) {
+
                 invalid++;
-                continue;
-            }
 
+                errors.push({
 
-            /*
-            Bereits vorhandenes
-            Unternehmen prüfen.
-            */
-            const duplicate =
-                existingCompanies.some(
-                    existing =>
-                        sameCompany(
-                            existing,
-                            company
-                        )
-                );
+                    index:
+                        index + 1,
 
-
-            if (duplicate) {
-                duplicates++;
-                continue;
-            }
-
-
-            /*
-            Speichern
-            */
-            const saved =
-                await insertCompany(
-                    user.id,
-                    company
-                );
-
-
-            /*
-            Neu gespeichertes Unternehmen
-            sofort in den Vergleich aufnehmen.
-
-            Dadurch werden auch doppelte
-            Einträge innerhalb desselben
-            Imports erkannt.
-            */
-            if (saved) {
-                existingCompanies.push(
-                    saved
-                );
-
-                imported++;
+                    error:
+                        error?.message ||
+                        "Datensatz konnte nicht gespeichert werden."
+                });
             }
         }
 
 
         return res.status(200).json({
+
             success:
                 true,
 
@@ -1095,11 +1753,15 @@ export default async function handler(
                 blocks.length,
 
             saved:
-                imported
+                imported,
+
+            errors:
+                errors
         });
 
 
     } catch (error) {
+
         console.error(
             "Company import error:",
             error
@@ -1107,6 +1769,7 @@ export default async function handler(
 
 
         return res.status(500).json({
+
             error:
                 error?.message ||
                 "Unternehmen konnten nicht importiert werden."
