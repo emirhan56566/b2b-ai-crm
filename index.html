@@ -2689,10 +2689,14 @@ function clearSupplyForm(){
   $("supplyPreviousSupplier").value = "";
   $("supplyPreviousCustomerNumber").value = "";
   $("supplyIban").value = "";
-  $("supplyDesiredDeliveryDate").value = "";
-  $("supplyDeliveryStartDate").value = "";
-  $("supplyNextOfferDate").value = "";
-$("supplyNextCancellationDate").value = "";
+  $("supplyDesiredDeliveryDate").value =
+  safeDateInputValue(supply.desired_delivery_date);
+$("supplyDeliveryStartDate").value =
+  safeDateInputValue(supply.delivery_start_date);
+$("supplyNextOfferDate").value =
+  safeDateInputValue(supply.next_offer_date);
+$("supplyNextCancellationDate").value =
+  safeDateInputValue(supply.next_cancellation_date);
   $("supplyOldContractDeadline").value = "";
   $("supplyOldContractNotice").value = "";
   $("supplyNotes").value = "";
@@ -3475,6 +3479,17 @@ function renderLeadAppointments(
 /* =========================================================
    KALENDER
 ========================================================= */
+function safeDateInputValue(value){
+  if(!value) return "";
+
+  const text = String(value).trim();
+
+  if(/^\d{4}-\d{2}-\d{2}$/.test(text)){
+    return text;
+  }
+
+  return "";
+}
 
 function formatDate(date){
   if(!date) return "—";
