@@ -1456,13 +1456,32 @@ async function importCompanies(){
       );
     }
 
+    const imported = result.imported ?? 0;
+    const duplicates = result.duplicates ?? 0;
+    const invalid = result.invalid ?? 0;
+    const failedBlocks = (result.errors ?? [])
+      .map(entry => entry.index)
+      .join(", ");
+
+    const message = [
+      `Neue Leads: ${imported}.`,
+      `Bereits bekannte Firmen: ${duplicates}.`,
+      `Fehlgeschlagene Einträge: ${invalid}.`
+    ];
+
+    if (failedBlocks) {
+      message.push(`Bitte prüfe die Blöcke: ${failedBlocks}.`);
+    }
+
     showStatus(
       "importStatus",
-      `${result.imported ?? result.saved ?? result.inserted ?? result.created ?? 0} Unternehmen gespeichert.`,
-      "success"
+      message.join(" "),
+      invalid > 0 ? "error" : "success"
     );
 
-    $("companyImportText").value = "";
+    if (invalid === 0 && duplicates === 0 && imported > 0) {
+      $("companyImportText").value = "";
+    }
 
   }catch(error){
     console.error(error);
