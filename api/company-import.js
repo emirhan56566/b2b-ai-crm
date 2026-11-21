@@ -1,15 +1,6 @@
-// api/company-import.js
-
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_SERVICE_ROLE_KEY =
-    process.env.SUPABASE_SERVICE_ROLE_KEY;
-const SUPABASE_ANON_KEY =
-    process.env.SUPABASE_ANON_KEY;
-
-
-/* =========================================================
-   SUPABASE
-========================================================= */
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
 
 function supabaseHeaders() {
     return {
@@ -19,27 +10,20 @@ function supabaseHeaders() {
     };
 }
 
-
 async function getUser(req) {
-    const auth =
-        req.headers.authorization ||
-        req.headers.Authorization;
+    const auth = req.headers.authorization || req.headers.Authorization;
 
     if (!auth?.startsWith("Bearer ")) {
         throw new Error("Nicht authentifiziert.");
     }
 
     const token = auth.substring(7);
-
-    const response = await fetch(
-        `${SUPABASE_URL}/auth/v1/user`,
-        {
-            headers: {
-                apikey: SUPABASE_ANON_KEY,
-                Authorization: `Bearer ${token}`
-            }
+    const response = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: {
+            apikey: SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${token}`
         }
-    );
+    });
 
     if (!response.ok) {
         throw new Error("Sitzung ungültig.");
@@ -47,11 +31,6 @@ async function getUser(req) {
 
     return await response.json();
 }
-
-
-/* =========================================================
-   HILFSFUNKTIONEN
-========================================================= */
 
 function clean(value) {
     const text = String(value ?? "").trim();
@@ -76,7 +55,6 @@ function clean(value) {
     return text;
 }
 
-
 function normalizeKey(value) {
     return String(value || "")
         .toLowerCase()
@@ -87,88 +65,61 @@ function normalizeKey(value) {
         .replace(/[^a-z0-9]/g, "");
 }
 
-
-/* =========================================================
-   FELDER
-========================================================= */
-
-const FIELD_NAMES = new Set(
-    [
-        "name",
-        "firma",
-        "unternehmen",
-        "firmenname",
-
-        "branche",
-        "branchen",
-        "industrie",
-        "kategorie",
-
-        "adresse",
-        "anschrift",
-
-        "plz",
-        "postleitzahl",
-
-        "ort",
-        "stadt",
-
-        "telefon",
-        "telefonzentrale",
-        "telefonzentralegeschaeftsleitung",
-        "telefonnummer",
-        "tel",
-        "phone",
-        "fon",
-        "mobil",
-        "mobile",
-
-        "ansprechpartner",
-        "ansprechpartnernamefunktion",
-        "kontakt",
-        "kontaktperson",
-
-        "website",
-        "webseite",
-        "homepage",
-        "url",
-
-        "mitarbeiter",
-        "mitarbeiterzahl",
-        "mitarbeiteranzahl",
-        "employees",
-
-        "rechtsform",
-        "unternehmensform",
-        "firmenform",
-
-        "handelsregisterstatus",
-        "handelsregister",
-
-        "energiebedarf",
-        "energiebedarfe",
-        "energie",
-
-        "quelle",
-        "quelleurl",
-        "source",
-        "sourceurl",
-
-        "beschreibung",
-        "description",
-        "info"
-    ].map(normalizeKey)
-);
-
-
-/* =========================================================
-   FELDZEILE
-========================================================= */
+const FIELD_NAMES = new Set([
+    "name",
+    "firma",
+    "unternehmen",
+    "firmenname",
+    "branche",
+    "branchen",
+    "industrie",
+    "kategorie",
+    "adresse",
+    "anschrift",
+    "plz",
+    "postleitzahl",
+    "ort",
+    "stadt",
+    "telefon",
+    "telefonzentrale",
+    "telefonzentralegeschaeftsleitung",
+    "telefonnummer",
+    "tel",
+    "phone",
+    "fon",
+    "mobil",
+    "mobile",
+    "ansprechpartner",
+    "ansprechpartnernamefunktion",
+    "kontakt",
+    "kontaktperson",
+    "website",
+    "webseite",
+    "homepage",
+    "url",
+    "mitarbeiter",
+    "mitarbeiterzahl",
+    "mitarbeiteranzahl",
+    "employees",
+    "rechtsform",
+    "unternehmensform",
+    "firmenform",
+    "handelsregisterstatus",
+    "handelsregister",
+    "energiebedarf",
+    "energiebedarfe",
+    "energie",
+    "quelle",
+    "quelleurl",
+    "source",
+    "sourceurl",
+    "beschreibung",
+    "description",
+    "info"
+].map(normalizeKey));
 
 function fieldMatch(line) {
-    const match = String(line || "").match(
-        /^([^:]+):\s*(.*)$/
-    );
+    const match = String(line || "").match(/^([^:]+):\s*(.*)$/);
 
     if (!match) {
         return null;
@@ -181,7 +132,6 @@ function fieldMatch(line) {
     };
 }
 
-
 function isFieldLine(line) {
     const field = fieldMatch(line);
 
@@ -192,26 +142,15 @@ function isFieldLine(line) {
     return FIELD_NAMES.has(field.key);
 }
 
-
-/* =========================================================
-   FIRMENNUMMER
-========================================================= */
-
 function isCompanyNumberLine(line) {
     return /^\[\d+\]\s+/.test(String(line || ""));
 }
-
 
 function removeCompanyNumber(line) {
     return String(line || "")
         .replace(/^\[\d+\]\s*/, "")
         .trim();
 }
-
-
-/* =========================================================
-   FIRMENNAME
-========================================================= */
 
 function isCompanyNameLabel(line) {
     const field = fieldMatch(line);
@@ -227,7 +166,6 @@ function isCompanyNameLabel(line) {
         "firmenname"
     ].includes(field.key);
 }
-
 
 function guessCompanyName(lines) {
     for (const originalLine of lines) {
@@ -250,24 +188,6 @@ function guessCompanyName(lines) {
 
     return null;
 }
-
-
-/* =========================================================
-   UNTERNEHMENSBLÖCKE TRENNEN
-
-   Unterstützt:
-
-   [1] Firma A
-   Branche: ...
-   ...
-
-   [2] Firma B
-   Branche: ...
-   ...
-
-   Die Nummer [1], [2], [3] usw. beginnt IMMER einen
-   neuen Datensatz.
-========================================================= */
 
 function splitCompanyBlocks(text) {
     const lines = String(text || "")
@@ -315,29 +235,16 @@ function splitCompanyBlocks(text) {
     }
 
     flush();
-
     return blocks;
 }
 
-
-/* =========================================================
-   FELD AUS BLOCK
-========================================================= */
-
 function getField(lines, names) {
-    const wanted = new Set(
-        names.map(normalizeKey)
-    );
+    const wanted = new Set(names.map(normalizeKey));
 
     for (const line of lines) {
-        const field = fieldMatch(
-            removeCompanyNumber(line)
-        );
+        const field = fieldMatch(removeCompanyNumber(line));
 
-        if (
-            field &&
-            wanted.has(field.key)
-        ) {
+        if (field && wanted.has(field.key)) {
             return field.value;
         }
     }
@@ -345,21 +252,9 @@ function getField(lines, names) {
     return null;
 }
 
-
-/* =========================================================
-   TELEFON
-
-   Beispiel:
-
-   Telefon (Zentrale/Geschäftsleitung):
-   +49 2622 2442 (ungeprüft)
-========================================================= */
-
 function getPhone(lines) {
     for (const line of lines) {
-        const cleanLine =
-            removeCompanyNumber(line);
-
+        const cleanLine = removeCompanyNumber(line);
         const match = cleanLine.match(
             /^telefon(?:\s*\([^)]*\))?\s*:\s*(.+)$/i
         );
@@ -370,9 +265,7 @@ function getPhone(lines) {
     }
 
     for (const line of lines) {
-        const cleanLine =
-            removeCompanyNumber(line);
-
+        const cleanLine = removeCompanyNumber(line);
         const match = cleanLine.match(
             /^(?:tel\.?|phone|fon|mobil|mobile)(?:\s*\([^)]*\))?\s*:\s*(.+)$/i
         );
@@ -385,27 +278,11 @@ function getPhone(lines) {
     return null;
 }
 
-
-/* =========================================================
-   ANSPRECHPARTNER
-
-   Beispiel:
-
-   Hans-Peter Schiffer (Inhaber)
-
-   wird:
-
-   contact_name = Hans-Peter Schiffer
-   contact_role = Inhaber
-========================================================= */
-
 function getContact(lines) {
     let value = null;
 
     for (const line of lines) {
-        const cleanLine =
-            removeCompanyNumber(line);
-
+        const cleanLine = removeCompanyNumber(line);
         const match = cleanLine.match(
             /^ansprechpartner(?:\s*\([^)]*\))?\s*:\s*(.+)$/i
         );
@@ -418,9 +295,7 @@ function getContact(lines) {
 
     if (!value) {
         for (const line of lines) {
-            const cleanLine =
-                removeCompanyNumber(line);
-
+            const cleanLine = removeCompanyNumber(line);
             const match = cleanLine.match(
                 /^(?:kontakt|kontaktperson)\s*:\s*(.+)$/i
             );
@@ -433,15 +308,10 @@ function getContact(lines) {
     }
 
     if (!value) {
-        return {
-            name: null,
-            role: null
-        };
+        return { name: null, role: null };
     }
 
-    const roleMatch = value.match(
-        /^(.+?)\s*\(([^()]*)\)\s*$/
-    );
+    const roleMatch = value.match(/^(.+?)\s*\(([^()]*)\)\s*$/);
 
     if (roleMatch) {
         return {
@@ -456,20 +326,6 @@ function getContact(lines) {
     };
 }
 
-
-/* =========================================================
-   MITARBEITER
-
-   Beispiele:
-
-   k. A.
-   ca. 15
-   ca. 10–25 (ungeprüft)
-
-   Speicherung:
-   employees = Zahl
-========================================================= */
-
 function parseEmployees(value) {
     const raw = clean(value);
 
@@ -477,21 +333,14 @@ function parseEmployees(value) {
         return null;
     }
 
-    const range = raw.match(
-        /(\d+)\s*(?:-|–|—|bis)\s*(\d+)/
-    );
+    const range = raw.match(/(\d+)\s*(?:-|–|—|bis)\s*(\d+)/);
 
     if (range) {
         const min = Number(range[1]);
         const max = Number(range[2]);
 
-        if (
-            Number.isFinite(min) &&
-            Number.isFinite(max)
-        ) {
-            return Math.round(
-                (min + max) / 2
-            );
+        if (Number.isFinite(min) && Number.isFinite(max)) {
+            return Math.round((min + max) / 2);
         }
     }
 
@@ -502,53 +351,36 @@ function parseEmployees(value) {
     }
 
     const number = Number(single[1]);
-
-    return Number.isFinite(number)
-        ? number
-        : null;
+    return Number.isFinite(number) ? number : null;
 }
 
-
-/* =========================================================
-   RECHTSFORM
-========================================================= */
-
 function detectLegalForm(text) {
-    const value =
-        String(text || "").toLowerCase();
+    const value = String(text || "").toLowerCase();
 
     if (value.includes("gmbh & co")) {
         return "GmbH & Co. KG";
     }
-
     if (value.includes("einzelunternehmen")) {
         return "Einzelunternehmen";
     }
-
     if (/\be\.?\s*k\.?\b/.test(value)) {
         return "e.K.";
     }
-
     if (/\bgmbh\b/.test(value)) {
         return "GmbH";
     }
-
     if (/\bug\b/.test(value)) {
         return "UG";
     }
-
     if (/\bag\b/.test(value)) {
         return "AG";
     }
-
     if (/\bohg\b/.test(value)) {
         return "OHG";
     }
-
     if (/\bkg\b/.test(value)) {
         return "KG";
     }
-
     if (/\bgbr\b/.test(value)) {
         return "GbR";
     }
@@ -556,27 +388,11 @@ function detectLegalForm(text) {
     return null;
 }
 
-
-/* =========================================================
-   ENERGIEBEDARF
-
-   Beispiel:
-
-   Energiebedarf (hoch/mittel/niedrig, kurze Begründung):
-   hoch (Backöfen, Teigknetmaschinen und Kühlung)
-
-   Speicherung:
-
-   energy_need = hoch
-========================================================= */
-
 function getEnergy(lines) {
     let value = null;
 
     for (const line of lines) {
-        const cleanLine =
-            removeCompanyNumber(line);
-
+        const cleanLine = removeCompanyNumber(line);
         const match = cleanLine.match(
             /^energiebedarf(?:\s*\([^)]*\))?\s*:\s*(.+)$/i
         );
@@ -591,9 +407,7 @@ function getEnergy(lines) {
         return null;
     }
 
-    const match = value.match(
-        /^(hoch|mittel|niedrig)\b/i
-    );
+    const match = value.match(/^(hoch|mittel|niedrig)\b/i);
 
     if (!match) {
         return null;
@@ -602,18 +416,11 @@ function getEnergy(lines) {
     return match[1].toLowerCase();
 }
 
-
-/* =========================================================
-   ENERGIEBEGRÜNDUNG
-========================================================= */
-
 function getEnergyReason(lines) {
     let value = null;
 
     for (const line of lines) {
-        const cleanLine =
-            removeCompanyNumber(line);
-
+        const cleanLine = removeCompanyNumber(line);
         const match = cleanLine.match(
             /^energiebedarf(?:\s*\([^)]*\))?\s*:\s*(.+)$/i
         );
@@ -628,9 +435,7 @@ function getEnergyReason(lines) {
         return null;
     }
 
-    const match = value.match(
-        /^(hoch|mittel|niedrig)\s*(?:\((.*)\))?$/i
-    );
+    const match = value.match(/^(hoch|mittel|niedrig)\s*(?:\((.*)\))?$/i);
 
     if (match) {
         return clean(match[2]);
@@ -638,38 +443,25 @@ function getEnergyReason(lines) {
 
     return clean(
         value
-            .replace(
-                /^(hoch|mittel|niedrig)\s*/i,
-                ""
-            )
+            .replace(/^(hoch|mittel|niedrig)\s*/i, "")
             .replace(/^\(/, "")
             .replace(/\)$/, "")
     );
 }
 
-
-/* =========================================================
-   QUELLE
-========================================================= */
-
 function getSourceUrl(lines) {
-    const value = getField(
-        lines,
-        [
-            "quelle",
-            "quelleurl",
-            "source",
-            "sourceurl"
-        ]
-    );
+    const value = getField(lines, [
+        "quelle",
+        "quelleurl",
+        "source",
+        "sourceurl"
+    ]);
 
     if (!value) {
         return null;
     }
 
-    const urlMatch = value.match(
-        /https?:\/\/[^\s)]+/i
-    );
+    const urlMatch = value.match(/https?:\/\/[^\s)]+/i);
 
     if (urlMatch) {
         return urlMatch[0];
@@ -678,188 +470,73 @@ function getSourceUrl(lines) {
     return clean(value);
 }
 
-
-/* =========================================================
-   UNTERNEHMEN PARSEN
-========================================================= */
-
 function parseCompany(block) {
-    const lines =
-        block.map(removeCompanyNumber);
-
-    const name =
-        getField(
-            lines,
-            [
-                "name",
-                "firma",
-                "unternehmen",
-                "firmenname"
-            ]
-        ) ||
-        guessCompanyName(lines);
+    const lines = block.map(removeCompanyNumber);
+    const name = getField(lines, [
+        "name",
+        "firma",
+        "unternehmen",
+        "firmenname"
+    ]) || guessCompanyName(lines);
 
     if (!name) {
         return null;
     }
 
-    const employees =
-        parseEmployees(
-            getField(
-                lines,
-                [
-                    "mitarbeiter",
-                    "mitarbeiterzahl",
-                    "mitarbeiteranzahl",
-                    "employees"
-                ]
-            )
-        );
+    const employees = parseEmployees(getField(lines, [
+        "mitarbeiter",
+        "mitarbeiterzahl",
+        "mitarbeiteranzahl",
+        "employees"
+    ]));
 
-    const legalForm =
-        getField(
-            lines,
-            [
-                "rechtsform",
-                "unternehmensform",
-                "firmenform"
-            ]
-        ) ||
-        detectLegalForm(
-            lines.join(" ")
-        );
+    const legalForm = getField(lines, [
+        "rechtsform",
+        "unternehmensform",
+        "firmenform"
+    ]) || detectLegalForm(lines.join(" "));
 
-    const contact =
-        getContact(lines);
-
-    const energyNeed =
-        getEnergy(lines);
-
-    const energyReason =
-        getEnergyReason(lines);
+    const contact = getContact(lines);
+    const energyNeed = getEnergy(lines);
+    const energyReason = getEnergyReason(lines);
 
     return {
         name: clean(name),
-
-        address: clean(
-            getField(
-                lines,
-                [
-                    "adresse",
-                    "anschrift"
-                ]
-            )
-        ),
-
-        postal_code: clean(
-            getField(
-                lines,
-                [
-                    "plz",
-                    "postleitzahl"
-                ]
-            )
-        ),
-
-        city: clean(
-            getField(
-                lines,
-                [
-                    "ort",
-                    "stadt"
-                ]
-            )
-        ),
-
-        phone:
-            getPhone(lines),
-
-        contact_name:
-            contact.name,
-
-        contact_role:
-            contact.role,
-
-        website: clean(
-            getField(
-                lines,
-                [
-                    "website",
-                    "webseite",
-                    "homepage",
-                    "url"
-                ]
-            )
-        ),
-
-        industry: clean(
-            getField(
-                lines,
-                [
-                    "branche",
-                    "branchen",
-                    "industrie",
-                    "kategorie"
-                ]
-            )
-        ),
-
+        address: clean(getField(lines, ["adresse", "anschrift"])),
+        postal_code: clean(getField(lines, ["plz", "postleitzahl"])),
+        city: clean(getField(lines, ["ort", "stadt"])),
+        phone: getPhone(lines),
+        contact_name: contact.name,
+        contact_role: contact.role,
+        website: clean(getField(lines, ["website", "webseite", "homepage", "url"])),
+        industry: clean(getField(lines, ["branche", "branchen", "industrie", "kategorie"])),
         employees,
-
-        legal_form:
-            clean(legalForm),
-
-        energy_need:
-            energyNeed,
-
-        energy_reason:
-            energyReason,
-
-        source_url:
-            getSourceUrl(lines),
-
-        handelsregister_status:
-            clean(
-                getField(
-                    lines,
-                    [
-                        "handelsregisterstatus",
-                        "handelsregister"
-                    ]
-                )
-            )
+        legal_form: clean(legalForm),
+        energy_need: energyNeed,
+        energy_reason: energyReason,
+        source_url: getSourceUrl(lines),
+        handelsregister_status: clean(getField(lines, [
+            "handelsregisterstatus",
+            "handelsregister"
+        ]))
     };
 }
-
-
-/* =========================================================
-   DUPLIKAT-VERGLEICH
-========================================================= */
 
 function normalizeText(value) {
     return String(value || "")
         .toLowerCase()
         .normalize("NFD")
-        .replace(
-            /[\u0300-\u036f]/g,
-            ""
-        )
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/ä/g, "ae")
         .replace(/ö/g, "oe")
         .replace(/ü/g, "ue")
         .replace(/ß/g, "ss")
-        .replace(
-            /[^a-z0-9]/g,
-            ""
-        );
+        .replace(/[^a-z0-9]/g, "");
 }
-
 
 function normalizePhone(value) {
-    return String(value || "")
-        .replace(/\D/g, "");
+    return String(value || "").replace(/\D/g, "");
 }
-
 
 function normalizeWebsite(value) {
     return String(value || "")
@@ -870,98 +547,51 @@ function normalizeWebsite(value) {
         .replace(/\/$/, "");
 }
 
-
 function sameCompany(a, b) {
-    const nameA =
-        normalizeText(a.name);
+    const nameA = normalizeText(a.name);
+    const nameB = normalizeText(b.name);
 
-    const nameB =
-        normalizeText(b.name);
-
-    if (
-        !nameA ||
-        !nameB ||
-        nameA !== nameB
-    ) {
+    if (!nameA || !nameB || nameA !== nameB) {
         return false;
     }
 
-    const postalA =
-        normalizeText(a.postal_code);
+    const postalA = normalizeText(a.postal_code);
+    const postalB = normalizeText(b.postal_code);
+    const cityA = normalizeText(a.city);
+    const cityB = normalizeText(b.city);
+    const addressA = normalizeText(a.address);
+    const addressB = normalizeText(b.address);
+    const phoneA = normalizePhone(a.phone);
+    const phoneB = normalizePhone(b.phone);
+    const websiteA = normalizeWebsite(a.website);
+    const websiteB = normalizeWebsite(b.website);
 
-    const postalB =
-        normalizeText(b.postal_code);
-
-    const cityA =
-        normalizeText(a.city);
-
-    const cityB =
-        normalizeText(b.city);
-
-    const addressA =
-        normalizeText(a.address);
-
-    const addressB =
-        normalizeText(b.address);
-
-    const phoneA =
-        normalizePhone(a.phone);
-
-    const phoneB =
-        normalizePhone(b.phone);
-
-    const websiteA =
-        normalizeWebsite(a.website);
-
-    const websiteB =
-        normalizeWebsite(b.website);
-
-    if (
-        addressA &&
-        addressB &&
-        addressA === addressB
-    ) {
+    if (addressA && addressB && addressA === addressB) {
         return true;
     }
 
     if (
-        postalA &&
-        postalB &&
-        cityA &&
-        cityB &&
-        postalA === postalB &&
-        cityA === cityB
+        postalA && postalB &&
+        cityA && cityB &&
+        postalA === postalB && cityA === cityB
     ) {
         return true;
     }
 
-    if (
-        phoneA &&
-        phoneB &&
-        phoneA === phoneB
-    ) {
+    if (phoneA && phoneB && phoneA === phoneB) {
+        return true;
+    }
+
+    if (websiteA && websiteB && websiteA === websiteB) {
         return true;
     }
 
     if (
-        websiteA &&
-        websiteB &&
-        websiteA === websiteB
-    ) {
-        return true;
-    }
-
-    if (
-        !postalA &&
-        !postalB &&
-        !cityA &&
-        !cityB &&
-        !addressA &&
-        !addressB &&
-        !phoneA &&
-        !phoneB &&
-        !websiteA &&
-        !websiteB
+        !postalA && !postalB &&
+        !cityA && !cityB &&
+        !addressA && !addressB &&
+        !phoneA && !phoneB &&
+        !websiteA && !websiteB
     ) {
         return true;
     }
@@ -969,210 +599,124 @@ function sameCompany(a, b) {
     return false;
 }
 
-
-/* =========================================================
-   BESTEHENDE FIRMEN LADEN
-========================================================= */
-
 async function getExistingCompanies(userId) {
     const response = await fetch(
         `${SUPABASE_URL}/rest/v1/companies` +
         `?user_id=eq.${encodeURIComponent(userId)}` +
         `&select=*`,
-        {
-            headers:
-                supabaseHeaders()
-        }
+        { headers: supabaseHeaders() }
     );
 
     if (!response.ok) {
-        const text =
-            await response.text();
-
+        const text = await response.text();
         throw new Error(
-            text ||
-            "Bestehende Unternehmen konnten nicht geladen werden."
+            text || "Bestehende Unternehmen konnten nicht geladen werden."
         );
     }
 
     return await response.json();
 }
 
+async function insertCompany(userId, company) {
+    const response = await fetch(
+        `${SUPABASE_URL}/rest/v1/rpc/create_manual_company_lead`,
+        {
+            method: "POST",
+            headers: supabaseHeaders(),
+            body: JSON.stringify({
+                p_user_id: userId,
+                p_company: company
+            })
+        }
+    );
 
-/* =========================================================
-   FIRMA SPEICHERN
-========================================================= */
-
-async function insertCompany(
-    userId,
-    company
-) {
-    const response =
-        await fetch(
-            `${SUPABASE_URL}/rest/v1/companies`,
-            {
-                method: "POST",
-
-                headers: {
-                    ...supabaseHeaders(),
-
-                    Prefer:
-                        "return=representation"
-                },
-
-                body:
-                    JSON.stringify({
-                        user_id:
-                            userId,
-
-                        ...company
-                    })
-            }
-        );
-
-    const text =
-        await response.text();
+    const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-        throw new Error(
-            text ||
-            "Unternehmen konnte nicht gespeichert werden."
-        );
+        console.error("Firma und Lead speichern fehlgeschlagen", {
+            status: response.status,
+            code: result?.code
+        });
+
+        throw new Error("Firma und Lead konnten nicht gespeichert werden.");
     }
 
-    let rows;
-
-    try {
-        rows =
-            JSON.parse(text);
-    } catch {
-        rows = [];
+    if (!result?.company_id || !result?.lead_id) {
+        throw new Error("Supabase hat keine Firmen- und Lead-ID bestätigt.");
     }
 
-    return rows[0] || {
-    ...company,
-    user_id: userId
-};
+    return {
+        ...company,
+        id: result.company_id,
+        user_id: userId
+    };
 }
 
-/* =========================================================
-   API
-========================================================= */
-
-export default async function handler(
-    req,
-    res
-) {
+export default async function handler(req, res) {
     if (req.method !== "POST") {
         return res.status(405).json({
-            error:
-                "Method Not Allowed"
+            error: "Method Not Allowed"
         });
     }
 
     try {
-        const user =
-            await getUser(req);
+        const user = await getUser(req);
+        const body = typeof req.body === "string"
+            ? JSON.parse(req.body)
+            : req.body || {};
 
-        const body =
-            typeof req.body === "string"
-                ? JSON.parse(req.body)
-                : req.body || {};
-
-        const text =
-            String(
-                body.text || ""
-            ).trim();
+        const text = String(body.text || "").trim();
 
         if (!text) {
             return res.status(400).json({
-                error:
-                    "Keine Unternehmensdaten übergeben."
+                error: "Keine Unternehmensdaten übergeben."
             });
         }
 
-        const blocks =
-            splitCompanyBlocks(text);
+        const blocks = splitCompanyBlocks(text);
 
         if (!blocks.length) {
             return res.status(400).json({
-                error:
-                    "Keine Unternehmensdatensätze erkannt."
+                error: "Keine Unternehmensdatensätze erkannt."
             });
         }
 
-        const existingCompanies =
-            await getExistingCompanies(
-                user.id
-            );
-
+        const existingCompanies = await getExistingCompanies(user.id);
         let imported = 0;
         let duplicates = 0;
         let invalid = 0;
-
         const errors = [];
 
-        for (
-            let index = 0;
-            index < blocks.length;
-            index++
-        ) {
+        for (let index = 0; index < blocks.length; index++) {
             try {
-                const company =
-                    parseCompany(
-                        blocks[index]
-                    );
+                const company = parseCompany(blocks[index]);
 
                 if (!company?.name) {
                     invalid++;
-
                     errors.push({
-                        index:
-                            index + 1,
-
-                        error:
-                            "Firmenname konnte nicht erkannt werden."
+                        index: index + 1,
+                        error: "Firmenname konnte nicht erkannt werden."
                     });
-
                     continue;
                 }
 
-                const duplicate =
-                    existingCompanies.some(
-                        existing =>
-                            sameCompany(
-                                existing,
-                                company
-                            )
-                    );
+                const duplicate = existingCompanies.some(
+                    existing => sameCompany(existing, company)
+                );
 
                 if (duplicate) {
                     duplicates++;
                     continue;
                 }
 
-                const saved =
-    await insertCompany(
-        user.id,
-        company
-    );
-
-existingCompanies.push(
-    saved
-);
-
-imported++;
-
+                const saved = await insertCompany(user.id, company);
+                existingCompanies.push(saved);
+                imported++;
             } catch (error) {
                 invalid++;
-
                 errors.push({
-                    index:
-                        index + 1,
-
-                    error:
-                        error?.message ||
-                        "Datensatz konnte nicht gespeichert werden."
+                    index: index + 1,
+                    error: error?.message || "Datensatz konnte nicht gespeichert werden."
                 });
             }
         }
@@ -1182,23 +726,15 @@ imported++;
             imported,
             duplicates,
             invalid,
-            total_blocks:
-                blocks.length,
-            saved:
-                imported,
+            total_blocks: blocks.length,
+            saved: imported,
             errors
         });
-
     } catch (error) {
-        console.error(
-            "Company import error:",
-            error
-        );
+        console.error("Company import error:", error);
 
         return res.status(500).json({
-            error:
-                error?.message ||
-                "Unternehmen konnten nicht importiert werden."
+            error: error?.message || "Unternehmen konnten nicht importiert werden."
         });
     }
 }
